@@ -12,7 +12,9 @@ COPY . .
 ENV PORT=8080
 EXPOSE 8080
 
-# Drop root privileges (the base image ships a non-root "node" user).
-USER node
+# NOTE: unlike the other apps, the dashboard runs as root. Its auto-discovery
+# reads the host's Docker socket (mounted read-only), which is owned by
+# root:docker — an unprivileged user gets EACCES and discovery silently returns
+# no containers, leaving only the manually-configured tiles.
 
 CMD ["node", "server.js"]
