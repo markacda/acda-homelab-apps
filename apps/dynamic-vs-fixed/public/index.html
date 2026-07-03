@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dynamic vs Fixed energy contract (NL)</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="card">
+      <h1>⚡ Dynamic vs Fixed contract</h1>
+      <p class="subtitle">
+        Upload your HomeWizard usage export and see whether a
+        <strong>dynamic</strong> (hourly-market) contract would have cost you
+        more or less than your <strong>fixed</strong> contract over the year.
+        Historic prices come from the EnergyZero (NL) market.
+      </p>
+
+      <form id="calc" autocomplete="off">
+        <fieldset>
+          <legend>Your fixed contract</legend>
+          <div class="grid">
+            <label>
+              Day / peak tariff <span class="hint">€/kWh, all-in</span>
+              <input id="fixedDayTariff" type="number" step="0.001" min="0" />
+            </label>
+            <label>
+              Night / off-peak tariff <span class="hint">€/kWh, all-in</span>
+              <input id="fixedNightTariff" type="number" step="0.001" min="0" />
+            </label>
+            <label>
+              Gas price <span class="hint">€/m³, all-in</span>
+              <input id="fixedGasPrice" type="number" step="0.001" min="0" />
+            </label>
+            <label class="check">
+              <input id="includeGas" type="checkbox" />
+              Include gas in the comparison
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Dynamic price build-up <span class="hint">(NL defaults — edit to match the CSV's year)</span></legend>
+          <div class="grid">
+            <label>
+              Electricity energy tax <span class="hint">€/kWh, excl. VAT</span>
+              <input id="elecEnergyTax" type="number" step="0.0001" min="0" />
+            </label>
+            <label>
+              Gas energy tax <span class="hint">€/m³, excl. VAT</span>
+              <input id="gasEnergyTax" type="number" step="0.0001" min="0" />
+            </label>
+            <label>
+              Electricity supplier markup <span class="hint">€/kWh, excl. VAT</span>
+              <input id="elecMarkup" type="number" step="0.0001" min="0" />
+            </label>
+            <label>
+              Gas supplier markup <span class="hint">€/m³, excl. VAT</span>
+              <input id="gasMarkup" type="number" step="0.0001" min="0" />
+            </label>
+            <label>
+              VAT <span class="hint">%</span>
+              <input id="vatPct" type="number" step="1" min="0" />
+            </label>
+          </div>
+        </fieldset>
+
+        <details class="advanced">
+          <summary>Advanced: day/night window</summary>
+          <div class="grid">
+            <label>
+              Day starts at hour <span class="hint">0–23</span>
+              <input id="dayStartHour" type="number" step="1" min="0" max="23" />
+            </label>
+            <label>
+              Day ends at hour <span class="hint">0–24</span>
+              <input id="dayEndHour" type="number" step="1" min="0" max="24" />
+            </label>
+            <label class="check">
+              <input id="weekendAllNight" type="checkbox" />
+              Weekends count as night tariff
+            </label>
+          </div>
+        </details>
+
+        <fieldset>
+          <legend>Usage data</legend>
+          <label>
+            HomeWizard CSV export
+            <span class="hint">Settings → Graphs → Export, 15-min resolution</span>
+            <input id="csv" type="file" accept=".csv,text/csv" />
+          </label>
+          <button type="submit" id="submitBtn">Calculate</button>
+        </fieldset>
+      </form>
+
+      <div id="status" class="status" hidden></div>
+
+      <section id="result" class="result" hidden>
+        <div class="verdict" id="verdict"></div>
+        <div class="result-value" id="annualDiff">—</div>
+        <div class="result-label" id="annualLabel">per year</div>
+
+        <table class="totals">
+          <thead>
+            <tr><th></th><th>Fixed</th><th>Dynamic</th><th>Difference</th></tr>
+          </thead>
+          <tbody id="totalsBody"></tbody>
+        </table>
+
+        <p class="note" id="coverageNote"></p>
+
+        <details class="breakdown">
+          <summary>Monthly breakdown</summary>
+          <table class="monthly">
+            <thead>
+              <tr><th>Month</th><th>kWh</th><th>m³</th><th>Fixed</th><th>Dynamic</th><th>Diff</th></tr>
+            </thead>
+            <tbody id="monthlyBody"></tbody>
+          </table>
+        </details>
+
+        <details class="breakdown">
+          <summary>Detected CSV columns</summary>
+          <pre id="mappingPre" class="mapping"></pre>
+        </details>
+      </section>
+
+      <details class="how">
+        <summary>How it works &amp; assumptions</summary>
+        <p>
+          Each 15-minute interval of your usage is priced two ways: your fixed
+          day/night tariff, and the matching historic EnergyZero market price
+          built up to an all-in rate:
+        </p>
+        <p class="formula">
+          dynamic €/kWh = (market + markup + energy tax) × (1 + VAT)
+        </p>
+        <ul>
+          <li>Gas is priced at the EnergyZero <em>daily</em> rate (gas isn't metered per 15 min).</li>
+          <li>Solar feed-in (teruglevering) is ignored — cost is on grid import only.</li>
+          <li>Fixed monthly fees and the energy-tax rebate are equal for both contracts, so they cancel out.</li>
+          <li>If your export covers less than a year, results are scaled to a full year.</li>
+        </ul>
+      </details>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
