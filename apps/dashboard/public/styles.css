@@ -1,0 +1,158 @@
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --surface-hover: #eef2f7;
+  --border: #d8dee6;
+  --text: #1a1f27;
+  --text-dim: #626c7a;
+  --accent: #2563eb;
+  --up: #1a9c3e;
+  --down: #d92d20;
+  --unknown: #98a2b3;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.meta {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+main {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.group-title {
+  margin: 1.5rem 0 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.group-title:first-child {
+  margin-top: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.tile {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.tile:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.1);
+}
+
+.tile-icon {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: contain;
+  background: #eef2f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--accent);
+}
+
+.tile-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.tile-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tile-sub {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-dot {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--unknown);
+}
+
+.status-dot.up {
+  background: var(--up);
+  box-shadow: 0 0 6px var(--up);
+}
+
+.status-dot.down {
+  background: var(--down);
+}
+
+.placeholder {
+  color: var(--text-dim);
+  text-align: center;
+  padding: 3rem 0;
+}

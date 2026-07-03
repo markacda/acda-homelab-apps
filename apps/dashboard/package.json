@@ -1,0 +1,20 @@
+{
+  "name": "dashboard",
+  "version": "1.0.0",
+  "description": "Tiled homelab dashboard with Docker auto-discovery and server-side health checks",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "dockerode": "^4.0.2",
+    "express": "^4.19.2",
+    "js-yaml": "^4.1.0"
+  }
+}

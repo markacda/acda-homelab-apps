@@ -1,0 +1,44 @@
+# Homelab Dashboard configuration.
+# Everything here is optional — with no config the dashboard auto-discovers
+# every running container that publishes a port.
+
+settings:
+  title: "Acda Homelab"
+  # Address the DASHBOARD uses for server-side health checks. Inside Docker it
+  # cannot use localhost, so it reaches host-published ports via the gateway.
+  # (docker-compose already maps host.docker.internal -> host-gateway.)
+  hostAddress: "host.docker.internal"
+  healthCheckIntervalSeconds: 30
+  # Set to false to disable Docker auto-discovery and show only `apps` below.
+  autoDiscover: true
+
+discovery:
+  # If true, only containers with the label `homelab.enable=true` are shown.
+  requireLabel: false
+  # Container names to never show.
+  ignore:
+    - dashboard
+    - portainer_agent
+    - mqtt
+
+# Manual tiles — for things not running in Docker (router, NAS, external links)
+# or when you prefer to define everything by hand.
+apps:
+  # Home Assistant usually runs in host-network mode, so Docker reports no
+  # published port and it isn't auto-discovered — declare it manually here.
+  - name: "Home Assistant"
+    port: 8123
+    icon: "home-assistant"
+  # - name: "Router"
+  #   url: "http://192.168.1.1"
+  #   icon: "router"          # slug (dashboard-icons), or a full https:// URL, or /icons/foo.png
+  #   group: "Infra"
+
+# Per-container overrides, keyed by container name. Set `hidden: true` to hide.
+overrides:
+  # sonarr:
+  #   name: "Sonarr"
+  #   icon: "sonarr"
+  #   group: "Media"
+  # some-noisy-container:
+  #   hidden: true
