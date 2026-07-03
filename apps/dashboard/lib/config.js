@@ -65,9 +65,37 @@ export function loadConfig(configPath = process.env.CONFIG_PATH || DEFAULT_CONFI
 }
 
 /**
+ * Numeric rank used to order tiles by their url/port. Port-based apps sort by
+ * their port; url-based apps sort by the port in the url (defaulting to 443 for
+ * https and 80 for http). Anything without a target sorts last.
+ */
+function portRank(app) {
+  if (app.port) return Number(app.port);
+  if (app.url) {
+    try {
+      const u = new URL(app.url);
+      if (u.port) return Number(u.port);
+      return u.protocol === "https:" ? 443 : 80;
+    } catch {
+      return Number.MAX_SAFE_INTEGER;
+    }
+  }
+  return Number.MAX_SAFE_INTEGER;
+}
+
+/** Order apps by port/url, tie-breaking on the link target then the name. */
+function compareByTarget(a, b) {
+  const rank = portRank(a) - portRank(b);
+  if (rank !== 0) return rank;
+  const target = (a.url || "").localeCompare(b.url || "");
+  if (target !== 0) return target;
+  return (a.name || "").localeCompare(b.name || "");
+}
+
+/**
  * Merge discovered container entries with config overrides and manual apps.
  * Order: discovered → apply per-container overrides (incl. `hidden`) →
- * append manual apps → dedupe by url (falling back to name).
+ * append manual apps → dedupe by url (falling back to name) → sort by url/port.
  */
 export function mergeApps(discovered, config) {
   const merged = [];
@@ -94,5 +122,6 @@ export function mergeApps(discovered, config) {
     result.push(app);
   }
 
+  result.sort(compareByTarget);
   return result;
 }
