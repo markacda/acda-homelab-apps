@@ -16,6 +16,8 @@ const upload = multer({
   limits: { fileSize: 25 * 1024 * 1024 }, // a year of 15-min data is a few MB
 });
 
+app.get("/healthz", (_req, res) => res.json({ status: "ok" }));
+
 app.use(express.static(join(__dirname, "public")));
 
 app.post("/api/calculate", upload.single("csv"), async (req, res) => {
