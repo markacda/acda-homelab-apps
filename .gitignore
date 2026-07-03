@@ -2,3 +2,6 @@ node_modules/
 npm-debug.log*
 .env
 .DS_Store
+
+# Local price-cache written by dynamic-vs-fixed in dev (DATA_DIR)
+data/

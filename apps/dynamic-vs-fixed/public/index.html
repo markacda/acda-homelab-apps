@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -11,9 +11,9 @@
       <h1>⚡ Dynamic vs Fixed contract</h1>
       <p class="subtitle">
         Upload your HomeWizard usage export and see whether a
-        <strong>dynamic</strong> (hourly-market) contract would have cost you
-        more or less than your <strong>fixed</strong> contract over the year.
-        Historic prices come from the EnergyZero (NL) market.
+        <strong>dynamic</strong> (hourly-market) contract would have cost you more or less than your
+        <strong>fixed</strong> contract over the year. Historic prices come from the EnergyZero (NL)
+        market.
       </p>
 
       <form id="calc" autocomplete="off">
@@ -40,7 +40,10 @@
         </fieldset>
 
         <fieldset>
-          <legend>Dynamic price build-up <span class="hint">(NL defaults — edit to match the CSV's year)</span></legend>
+          <legend>
+            Dynamic price build-up
+            <span class="hint">(NL defaults — edit to match the CSV's year)</span>
+          </legend>
           <div class="grid">
             <label>
               Electricity energy tax <span class="hint">€/kWh, excl. VAT</span>
@@ -103,7 +106,12 @@
 
         <table class="totals">
           <thead>
-            <tr><th></th><th>Fixed</th><th>Dynamic</th><th>Difference</th></tr>
+            <tr>
+              <th></th>
+              <th>Fixed</th>
+              <th>Dynamic</th>
+              <th>Difference</th>
+            </tr>
           </thead>
           <tbody id="totalsBody"></tbody>
         </table>
@@ -114,7 +122,14 @@
           <summary>Monthly breakdown</summary>
           <table class="monthly">
             <thead>
-              <tr><th>Month</th><th>kWh</th><th>m³</th><th>Fixed</th><th>Dynamic</th><th>Diff</th></tr>
+              <tr>
+                <th>Month</th>
+                <th>kWh</th>
+                <th>m³</th>
+                <th>Fixed</th>
+                <th>Dynamic</th>
+                <th>Diff</th>
+              </tr>
             </thead>
             <tbody id="monthlyBody"></tbody>
           </table>
@@ -129,17 +144,19 @@
       <details class="how">
         <summary>How it works &amp; assumptions</summary>
         <p>
-          Each 15-minute interval of your usage is priced two ways: your fixed
-          day/night tariff, and the matching historic EnergyZero market price
-          built up to an all-in rate:
+          Each 15-minute interval of your usage is priced two ways: your fixed day/night tariff, and
+          the matching historic EnergyZero market price built up to an all-in rate:
         </p>
-        <p class="formula">
-          dynamic €/kWh = (market + markup + energy tax) × (1 + VAT)
-        </p>
+        <p class="formula">dynamic €/kWh = (market + markup + energy tax) × (1 + VAT)</p>
         <ul>
-          <li>Gas is priced at the EnergyZero <em>daily</em> rate (gas isn't metered per 15 min).</li>
+          <li>
+            Gas is priced at the EnergyZero <em>daily</em> rate (gas isn't metered per 15 min).
+          </li>
           <li>Solar feed-in (teruglevering) is ignored — cost is on grid import only.</li>
-          <li>Fixed monthly fees and the energy-tax rebate are equal for both contracts, so they cancel out.</li>
+          <li>
+            Fixed monthly fees and the energy-tax rebate are equal for both contracts, so they
+            cancel out.
+          </li>
           <li>If your export covers less than a year, results are scaled to a full year.</li>
         </ul>
       </details>
