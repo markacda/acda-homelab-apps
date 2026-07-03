@@ -36,6 +36,19 @@ test("mergeApps appends manual apps and dedupes by url", () => {
   assert.ok(result.some((a) => a.name === "Router"));
 });
 
+test("mergeApps orders apps by port/url", () => {
+  const discovered = [
+    { source: "docker", name: "high", port: 9000 },
+    { source: "docker", name: "low", port: 80 },
+    { source: "docker", name: "mid", url: "http://x.local:3000" },
+  ];
+  const result = mergeApps(discovered, baseConfig);
+  assert.deepEqual(
+    result.map((a) => a.name),
+    ["low", "mid", "high"],
+  );
+});
+
 test("healthTarget prefers explicit url, then host+port", () => {
   assert.equal(healthTarget({ url: "http://x.local" }, "host.docker.internal"), "http://x.local");
   assert.equal(
