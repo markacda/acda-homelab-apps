@@ -10,6 +10,12 @@ services:
     environment:
       - PORT=6002
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:6002/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   dynamic-vs-fixed:
     build: ./apps/dynamic-vs-fixed
@@ -22,6 +28,12 @@ services:
     volumes:
       - dynamic-vs-fixed-data:/app/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:6003/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 volumes:
   dynamic-vs-fixed-data:
