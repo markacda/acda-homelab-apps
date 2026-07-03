@@ -1,3 +1,6 @@
 node_modules
 package-lock.json
 data
+
+# atc keeps its own toolchain / vendored frontend libs — skip lint/formatting
+apps/atc

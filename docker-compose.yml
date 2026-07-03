@@ -1,7 +1,30 @@
-# Aggregates all homelab apps. Each app gets its own port starting at 6002
-# (6001 is already in use). To add an app: create apps/<name> with a Dockerfile
-# and add a new service below on the next free port.
+# Aggregates all homelab apps. Each app gets its own port starting at 6001.
+# To add an app: create apps/<name> with a Dockerfile and add a new service
+# below on the next free port.
 services:
+  atc:
+    build: ./apps/atc
+    container_name: atc-frontend
+    ports:
+      # Host 6001 avoids Home Assistant's used ports (80/443 proxy, 8123, 1883, 4357)
+      - "6001:6001"
+    environment:
+      - NODE_ENV=production
+      - PORT=6001
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:6001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   ev-crossover:
     build: ./apps/ev-crossover
     container_name: ev-crossover
