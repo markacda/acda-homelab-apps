@@ -116,8 +116,7 @@ export function parseHomewizardCsv(text) {
   const hasTotal = map.importTotal !== -1;
   if (!hasTariffSplit && !hasTotal) {
     throw new Error(
-      "Could not find an electricity import column. Detected headers: " +
-        headers.join(", ")
+      "Could not find an electricity import column. Detected headers: " + headers.join(", "),
     );
   }
   const hasGas = map.gas !== -1;
@@ -187,7 +186,10 @@ export function parseHomewizardCsv(text) {
     },
     rowCount: rows.length,
     skippedRows,
-    periodStart: intervals[0].start,
-    periodEnd: intervals[intervals.length - 1].start,
+    // The covered period runs from the first reading to the LAST reading.
+    // intervals[last].start is only the *start* of the final interval, so using
+    // it here would drop that interval's duration and under-annualize.
+    periodStart: rows[0].time,
+    periodEnd: rows[rows.length - 1].time,
   };
 }

@@ -87,9 +87,7 @@ function render({ result, meta }) {
 
   const rows = [
     ["Electricity", result.period.fixedElec, result.period.dynamicElec],
-    ...(result.usage.includeGas
-      ? [["Gas", result.period.fixedGas, result.period.dynamicGas]]
-      : []),
+    ...(result.usage.includeGas ? [["Gas", result.period.fixedGas, result.period.dynamicGas]] : []),
     ["Total (period)", result.period.fixed, result.period.dynamic],
     ["Total (annualized)", a.fixed, a.dynamic],
   ];
@@ -97,16 +95,19 @@ function render({ result, meta }) {
     .map(
       ([label, f, d]) =>
         `<tr><th>${label}</th><td>${eur(f)}</td><td>${eur(d)}</td>` +
-        `<td class="${f - d >= 0 ? "good" : "bad"}">${eur(f - d)}</td></tr>`
+        `<td class="${f - d >= 0 ? "good" : "bad"}">${eur(f - d)}</td></tr>`,
     )
     .join("");
 
   const c = result.coverage;
-  let note = `Based on ${c.intervals.toLocaleString("nl-NL")} intervals over ${c.spanDays} days` +
+  let note =
+    `Based on ${c.intervals.toLocaleString("nl-NL")} intervals over ${c.spanDays} days` +
     ` (${result.usage.totalKwh} kWh` +
-    (result.usage.includeGas ? `, ${result.usage.totalGasM3} m³ gas` : "") + `).`;
+    (result.usage.includeGas ? `, ${result.usage.totalGasM3} m³ gas` : "") +
+    `).`;
   if (c.annualized) note += " Period was scaled to a full year.";
-  if (c.missingElecHours) note += ` ${c.missingElecHours} hours had no market price (average used).`;
+  if (c.missingElecHours)
+    note += ` ${c.missingElecHours} hours had no market price (average used).`;
   el("coverageNote").textContent = note;
 
   el("monthlyBody").innerHTML = result.monthly
@@ -114,7 +115,7 @@ function render({ result, meta }) {
       (m) =>
         `<tr><td>${m.month}</td><td>${m.kwh}</td><td>${result.usage.includeGas ? m.gasM3 : "—"}</td>` +
         `<td>${eur(m.fixed)}</td><td>${eur(m.dynamic)}</td>` +
-        `<td class="${m.difference >= 0 ? "good" : "bad"}">${eur(m.difference)}</td></tr>`
+        `<td class="${m.difference >= 0 ? "good" : "bad"}">${eur(m.difference)}</td></tr>`,
     )
     .join("");
 

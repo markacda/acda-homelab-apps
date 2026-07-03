@@ -12,4 +12,7 @@ COPY . .
 ENV PORT=6002
 EXPOSE 6002
 
+# Drop root privileges (the base image ships a non-root "node" user).
+USER node
+
 CMD ["node", "server.js"]

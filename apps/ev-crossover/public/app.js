@@ -1,3 +1,5 @@
+import { crossoverPrice } from "./crossover.js";
+
 const STORAGE_KEY = "ev-crossover:v1";
 
 const FIELDS = ["petrolPrice", "consumption", "capacity", "range"];
@@ -9,9 +11,7 @@ const DEFAULTS = {
   range: 400, // km
 };
 
-const inputs = Object.fromEntries(
-  FIELDS.map((id) => [id, document.getElementById(id)])
-);
+const inputs = Object.fromEntries(FIELDS.map((id) => [id, document.getElementById(id)]));
 const resultValue = document.getElementById("resultValue");
 const resultText = document.getElementById("resultText");
 
@@ -38,25 +38,18 @@ function save() {
 }
 
 function compute() {
-  const petrolPrice = parseFloat(inputs.petrolPrice.value);
-  const consumption = parseFloat(inputs.consumption.value);
-  const capacity = parseFloat(inputs.capacity.value);
-  const range = parseFloat(inputs.range.value);
+  const crossover = crossoverPrice({
+    petrolPrice: inputs.petrolPrice.value,
+    consumption: inputs.consumption.value,
+    capacity: inputs.capacity.value,
+    range: inputs.range.value,
+  });
 
-  const allValid =
-    [petrolPrice, consumption, capacity, range].every(
-      (n) => Number.isFinite(n) && n > 0
-    );
-
-  if (!allValid) {
+  if (crossover == null) {
     resultValue.textContent = "—";
-    resultText.textContent =
-      "Enter positive values in all four fields to see the crossover price.";
+    resultText.textContent = "Enter positive values in all four fields to see the crossover price.";
     return;
   }
-
-  // €/kWh = (petrol price × range) / (consumption × capacity)
-  const crossover = (petrolPrice * range) / (consumption * capacity);
 
   resultValue.textContent = `€${crossover.toFixed(3)}`;
   resultText.innerHTML =
