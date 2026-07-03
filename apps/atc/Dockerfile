@@ -35,12 +35,12 @@ COPY --from=builder /app/dist ./dist
 # Copy static frontend files
 COPY src ./src
 
-# Expose port 8080
-EXPOSE 8080
+# Expose port 6001
+EXPOSE 6001
 
 # Set environment to production
 ENV NODE_ENV=production
-ENV PORT=8080
+ENV PORT=6001
 
 # Run as non-root user for security
 USER node

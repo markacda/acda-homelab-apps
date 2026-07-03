@@ -1,7 +1,7 @@
 import app from './app';
 import path from 'path';
 
-const PORT: number = parseInt(process.env.PORT || '8080', 10);
+const PORT: number = parseInt(process.env.PORT || '6001', 10);
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {

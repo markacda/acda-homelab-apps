@@ -82,7 +82,7 @@ This will automatically restart the server when you make changes to TypeScript f
 
 ### 4. Access the Application
 
-- Default: `http://localhost:8080`
+- Default: `http://localhost:6001`
 
 #### Running on a Different Port
 
@@ -183,7 +183,7 @@ This approach results in a smaller, more secure production image.
 http://localhost:6001
 ```
 
-The container listens on port `8080` internally, which `docker-compose.yml` maps to host port `6001` (chosen to avoid conflicts on a Raspberry Pi running Home Assistant). On the Pi, access it at `http://<pi-ip>:6001`.
+The container listens on port `6001` internally, which `docker-compose.yml` maps to host port `6001` (chosen to avoid conflicts on a Raspberry Pi running Home Assistant). On the Pi, access it at `http://<pi-ip>:6001`.
 
 ### Stop the Container
 
@@ -265,7 +265,7 @@ sudo systemctl enable docker
 
 The following environment variables can be configured:
 
-- `PORT` - Server port (default: 8080)
+- `PORT` - Server port (default: 6001)
 - `NODE_ENV` - Environment mode (default: production)
 
 ### Docker Resource Limits
@@ -318,7 +318,7 @@ The application includes a built-in proxy for `api.airplanes.live` API calls wit
 
 **Example**:
 ```
-GET http://localhost:8080/api/airplanes/51.9082/-3.1966/50
+GET http://localhost:6001/api/airplanes/51.9082/-3.1966/50
 ```
 
 This will fetch aircraft data for:

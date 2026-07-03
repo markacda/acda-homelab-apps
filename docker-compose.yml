@@ -6,12 +6,11 @@ services:
     build: ./apps/atc
     container_name: atc-frontend
     ports:
-      # atc listens on 8080 internally; host 6001 avoids Home Assistant's
-      # used ports (80/443 proxy, 8123, 1883, 4357)
-      - "6001:8080"
+      # Host 6001 avoids Home Assistant's used ports (80/443 proxy, 8123, 1883, 4357)
+      - "6001:6001"
     environment:
       - NODE_ENV=production
-      - PORT=8080
+      - PORT=6001
     restart: unless-stopped
     healthcheck:
       test:
@@ -19,7 +18,7 @@ services:
           "CMD",
           "node",
           "-e",
-          "fetch('http://localhost:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+          "fetch('http://localhost:6001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
         ]
       interval: 30s
       timeout: 5s
