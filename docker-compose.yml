@@ -5,6 +5,8 @@ services:
   atc:
     build: ./apps/atc
     container_name: atc-frontend
+    labels:
+      - "homelab.name=Aircraft Tracker"
     ports:
       # Host 6001 avoids Home Assistant's used ports (80/443 proxy, 8123, 1883, 4357)
       - "6001:6001"
@@ -28,6 +30,8 @@ services:
   ev-crossover:
     build: ./apps/ev-crossover
     container_name: ev-crossover
+    labels:
+      - "homelab.name=EV Crossover Price"
     ports:
       - "6002:6002"
     environment:
@@ -49,6 +53,8 @@ services:
   dynamic-vs-fixed:
     build: ./apps/dynamic-vs-fixed
     container_name: dynamic-vs-fixed
+    labels:
+      - "homelab.name=Dynamic vs Fixed Energy"
     ports:
       - "6003:6003"
     environment:
