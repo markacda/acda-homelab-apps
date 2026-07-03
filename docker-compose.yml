@@ -1,0 +1,12 @@
+# Aggregates all homelab apps. Each app gets its own port starting at 6002
+# (6001 is already in use). To add an app: create apps/<name> with a Dockerfile
+# and add a new service below on the next free port.
+services:
+  ev-crossover:
+    build: ./apps/ev-crossover
+    container_name: ev-crossover
+    ports:
+      - "6002:6002"
+    environment:
+      - PORT=6002
+    restart: unless-stopped

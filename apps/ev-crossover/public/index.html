@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EV vs Petrol — crossover €/kWh</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="card">
+      <h1>⚡ EV vs Petrol crossover</h1>
+      <p class="subtitle">
+        Find the electricity price at which charging your car becomes cheaper
+        than filling it with petrol.
+      </p>
+
+      <form id="calc" autocomplete="off">
+        <label>
+          Petrol price
+          <span class="hint">€ per litre</span>
+          <input id="petrolPrice" type="number" step="0.01" min="0" inputmode="decimal" />
+        </label>
+
+        <label>
+          Fuel consumption
+          <span class="hint">km per litre (1 : x)</span>
+          <input id="consumption" type="number" step="0.1" min="0" inputmode="decimal" />
+        </label>
+
+        <label>
+          Battery capacity
+          <span class="hint">kWh</span>
+          <input id="capacity" type="number" step="0.1" min="0" inputmode="decimal" />
+        </label>
+
+        <label>
+          Electric range
+          <span class="hint">km on a full charge</span>
+          <input id="range" type="number" step="1" min="0" inputmode="decimal" />
+        </label>
+      </form>
+
+      <section id="result" class="result">
+        <div class="result-value" id="resultValue">—</div>
+        <div class="result-label">crossover price (€/kWh)</div>
+        <p class="result-text" id="resultText"></p>
+      </section>
+
+      <details class="how">
+        <summary>How it's calculated</summary>
+        <p>
+          Petrol cost per km = petrol price ÷ consumption.<br />
+          Electric energy per km = battery capacity ÷ range.<br />
+          The two costs are equal when:
+        </p>
+        <p class="formula">
+          €/kWh = (petrol price × range) ÷ (consumption × capacity)
+        </p>
+        <p>
+          If your actual electricity tariff is <strong>below</strong> this
+          number, charging is cheaper than petrol.
+        </p>
+      </details>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
