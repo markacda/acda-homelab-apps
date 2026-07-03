@@ -1,0 +1,32 @@
+{
+  "name": "atc",
+  "version": "1.0.0",
+  "description": "ATC Frontend - Aircraft Tracking Application",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node server/index.ts",
+    "dev:watch": "nodemon --exec ts-node server/index.ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "compression": "^1.8.1",
+    "cors": "^2.8.6",
+    "express": "^4.18.2",
+    "morgan": "^1.10.1"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "devDependencies": {
+    "@types/compression": "^1.8.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^25.2.3",
+    "nodemon": "^3.1.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

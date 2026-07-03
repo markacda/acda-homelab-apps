@@ -4,7 +4,9 @@ import prettier from "eslint-config-prettier";
 
 export default [
   {
-    ignores: ["**/node_modules/**", "**/data/**"],
+    // atc keeps its own TypeScript toolchain and ships vendored frontend libs,
+    // so it is excluded from the monorepo's JS lint/format.
+    ignores: ["**/node_modules/**", "**/data/**", "apps/atc/**"],
   },
   js.configs.recommended,
   {
