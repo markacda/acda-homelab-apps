@@ -1,0 +1,253 @@
+:root {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --accent: #22c55e;
+  --bad: #f87171;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --input-bg: #0f172a;
+  --border: #334155;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.card {
+  width: 100%;
+  max-width: 44rem;
+  background: var(--card);
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+
+h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+}
+
+.subtitle {
+  margin: 0 0 1.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  margin: 0 0 1.25rem;
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+legend {
+  padding: 0 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+label.check input {
+  width: auto;
+}
+
+.hint {
+  font-weight: 400;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin: 0.15rem 0 0.35rem;
+}
+
+input[type="number"],
+input[type="file"] {
+  padding: 0.55rem 0.7rem;
+  font-size: 0.95rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  width: 100%;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.advanced {
+  margin: 0 0 1.25rem;
+  font-size: 0.85rem;
+}
+
+.advanced summary,
+.how summary,
+.breakdown summary {
+  cursor: pointer;
+  color: var(--text);
+  margin-bottom: 0.75rem;
+}
+
+button {
+  margin-top: 1rem;
+  padding: 0.7rem 1.4rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #052e16;
+  background: var(--accent);
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.status {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+}
+
+.status.error {
+  border-color: var(--bad);
+  color: var(--bad);
+}
+
+.result {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+.verdict {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.verdict.good {
+  color: var(--accent);
+}
+.verdict.bad {
+  color: var(--bad);
+}
+
+.result-value {
+  font-size: 2.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.result-label {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-top: 0.35rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0 0.5rem;
+  font-size: 0.85rem;
+}
+
+th,
+td {
+  padding: 0.4rem 0.6rem;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+}
+
+thead th,
+tbody th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+td.good,
+.good {
+  color: var(--accent);
+}
+td.bad,
+.bad {
+  color: var(--bad);
+}
+
+.note {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-align: left;
+  margin: 0.75rem 0;
+}
+
+.breakdown {
+  text-align: left;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+}
+
+.mapping {
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  overflow-x: auto;
+  font-size: 0.75rem;
+}
+
+.how {
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: left;
+}
+
+.how ul {
+  padding-left: 1.1rem;
+}
+
+.formula {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  color: var(--text);
+}

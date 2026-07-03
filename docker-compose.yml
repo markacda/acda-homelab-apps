@@ -10,3 +10,18 @@ services:
     environment:
       - PORT=6002
     restart: unless-stopped
+
+  dynamic-vs-fixed:
+    build: ./apps/dynamic-vs-fixed
+    container_name: dynamic-vs-fixed
+    ports:
+      - "6003:6003"
+    environment:
+      - PORT=6003
+      - DATA_DIR=/app/data
+    volumes:
+      - dynamic-vs-fixed-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  dynamic-vs-fixed-data:

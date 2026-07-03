@@ -9,6 +9,7 @@ each on its own port, all aggregated by a single `docker-compose.yml`.
 | ---- | -------------- | ------------------------------------------------------------------ |
 | 6001 | _(other app)_  | already in use                                                     |
 | 6002 | `ev-crossover` | Electricity price (€/kWh) at which charging is cheaper than petrol |
+| 6003 | `dynamic-vs-fixed` | Whether a dynamic (hourly-market) energy contract beats your fixed one, from HomeWizard usage + EnergyZero prices (NL) |
 
 ## Run all apps
 
