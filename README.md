@@ -5,11 +5,12 @@ each on its own port, all aggregated by a single `docker-compose.yml`.
 
 ## Port map
 
-| Port | App                | Description                                                                                                            |
-| ---- | ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| 6001 | `atc`              | Live aircraft-tracking frontend (airplanes.live), TypeScript/Express server + static map UI                            |
-| 6002 | `ev-crossover`     | Electricity price (€/kWh) at which charging is cheaper than petrol                                                     |
-| 6003 | `dynamic-vs-fixed` | Whether a dynamic (hourly-market) energy contract beats your fixed one, from HomeWizard usage + EnergyZero prices (NL) |
+| Port            | App                | Description                                                                                                            |
+| --------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| 80 / 443 / 8080 | `dashboard`        | Landing page: tiled dashboard that auto-discovers the other apps via the Docker socket and health-checks them          |
+| 6001            | `atc`              | Live aircraft-tracking frontend (airplanes.live), TypeScript/Express server + static map UI                            |
+| 6002            | `ev-crossover`     | Electricity price (€/kWh) at which charging is cheaper than petrol                                                     |
+| 6003            | `dynamic-vs-fixed` | Whether a dynamic (hourly-market) energy contract beats your fixed one, from HomeWizard usage + EnergyZero prices (NL) |
 
 ## Run all apps
 
