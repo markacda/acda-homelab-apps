@@ -112,6 +112,7 @@ services:
       - ev-crossover-logs:/logs/ev-crossover:ro
       - dynamic-vs-fixed-logs:/logs/dynamic-vs-fixed:ro
       - dashboard-logs:/logs/dashboard:ro
+      - recipe-book-logs:/logs/recipe-book:ro
       - log-viewer-logs:/logs/log-viewer:ro
       # Read-write target for this app's own access log.
       - log-viewer-logs:/app/logs
@@ -123,6 +124,40 @@ services:
           "node",
           "-e",
           "fetch('http://localhost:6004/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  recipe-book:
+    build:
+      context: .
+      dockerfile: apps/recipe-book/Dockerfile
+    container_name: recipe-book
+    labels:
+      - "homelab.name=Recipe Book"
+    ports:
+      - "6005:6005"
+    environment:
+      - NODE_ENV=production
+      - PORT=6005
+      - DATA_DIR=/app/data
+      - LOG_DIR=/app/logs
+      # Tectonic caches downloaded LaTeX support files here (on the data volume).
+      - TECTONIC_CACHE_DIR=/app/data/.tectonic-cache
+    volumes:
+      # Persistent recipes, books, downloaded images, generated output + TeX cache.
+      - recipe-book-data:/app/data
+      - recipe-book-logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:6005/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
         ]
       interval: 30s
       timeout: 5s
@@ -174,8 +209,10 @@ services:
 
 volumes:
   dynamic-vs-fixed-data:
+  recipe-book-data:
   atc-logs:
   ev-crossover-logs:
   dynamic-vs-fixed-logs:
   dashboard-logs:
+  recipe-book-logs:
   log-viewer-logs:

@@ -1,0 +1,29 @@
+%% =====================================================================
+%% recipe-book — PER-RECIPE TEMPLATE (placeholder)
+%%
+%% Rendered once per recipe and inserted into book.tex. Replace the body
+%% below with your predetermined per-page layout. The generator substitutes
+%% five double-brace tokens (do not repeat them in comments); each is already
+%% LaTeX-escaped where it is free text:
+%%   title        - the recipe title
+%%   categoryLine - an italic category line, or empty
+%%   image        - an includegraphics command, or empty
+%%   ingredients  - \item lines (wrap them in your own itemize)
+%%   steps        - \item lines (wrap them in your own enumerate)
+%% =====================================================================
+\section{{{title}}}
+{{categoryLine}}
+
+{{image}}
+
+\subsection*{Ingredi\"enten}
+\begin{itemize}[leftmargin=*]
+{{ingredients}}
+\end{itemize}
+
+\subsection*{Bereiding}
+\begin{enumerate}[leftmargin=*]
+{{steps}}
+\end{enumerate}
+
+\clearpage
