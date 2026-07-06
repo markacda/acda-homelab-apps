@@ -1,0 +1,125 @@
+\documentclass{article}
+
+% use for selecting Dutch as language
+\usepackage[dutch]{babel}
+
+% Used to break lines eagerly, to not overflow them into the column to the right of it
+\sloppy
+
+% Use font Spartan
+\usepackage{fontspec}
+\setmainfont{Spartan}[
+    Path=./font/,
+    Scale=0.9,
+    Extension = .ttf,
+    UprightFont=*-Regular,
+    BoldFont=*-ExtraBold,
+    ItalicFont=*-Regular, % Italic not downloaded...
+    BoldItalicFont=*-ExtraBold % BoldItalic not downloaded...
+]
+
+% Used for multi columns, and black line indicator
+\usepackage{paracol}
+\columnratio{0.35}
+\usepackage{color}
+\setlength{\columnseprule}{0.4pt}
+\setlength{\columnsep}{4em}
+\def\columnseprulecolor{\color{black}}
+
+% Move the line separator more to the right (80% and 20%)
+\usepackage{lipsum}
+\usepackage{xpatch}
+\makeatletter
+\xpatchcmd{\pcol@hfil}{.5}{.8}{}{}
+\xpatchcmd{\pcol@hfil}{.5}{.8}{}{}
+\xpatchcmd{\pcol@hfil}{.5}{.2}{}{}
+\xpatchcmd{\pcol@hfil}{.5}{.2}{}{}
+\makeatother
+
+% For using color in tables, and Y as centered column in tabularX
+\usepackage[table]{xcolor}
+\usepackage{tabularx}
+\newcolumntype{Y}{>{\centering\arraybackslash}X}
+
+% Used for page margins
+\usepackage{geometry}
+\geometry{
+    a4paper,
+    total={170mm,257mm},
+    left=20mm,
+    top=20mm,
+}
+
+% Section titles formatting
+\usepackage{setspace}
+\usepackage{titlesec}
+\titleformat{\section}[block]{\Large\bfseries\filcenter}{}{1em}{}
+\newcommand{\sectionfont}{\Large\bfseries\filcenter\uppercase}
+\titleformat{\subsection}
+    {\titlerule     
+     \vspace{1.1em} % padding top
+     \sectionfont}
+    {\thesection}{1em}
+    {\sectionfont}[\vspace{0.6em}\titlerule] % padding bottom
+\titlespacing*{\subsection}
+    {0pt} % margin left
+    {1.5em} % margin top
+    {0pt} % margin bottom
+
+% No numbers in the Table of Contents
+\setcounter{secnumdepth}{0}
+
+% Smaller bullet points in first itemize level 
+\renewcommand\labelitemi{\tiny$\bullet$}
+
+% For changing margins in itemize
+\usepackage{enumitem}
+\setlist[itemize]{noitemsep, topsep=0pt}
+
+% Remove indentation of first line of paragraph and after \newline
+\setlength{\parindent}{0pt}
+
+% For using images
+\usepackage{graphicx}
+\graphicspath{ {./voorgerechten/fotos}{./hoofdgerechten/fotos}{./nagerechten/fotos} }
+
+% Foreach loops
+\usepackage{pgffor}
+
+% For using symbols
+\usepackage{gensymb}
+
+
+
+
+
+% Start of actual document
+\title{Receptenboek}
+\author{Aïsha Acda \and Mark Acda}
+
+\date{Maart 2023}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\newpage
+\section{Voorgerechten}
+% \input{voorgerechten/voorgerecht01}
+
+\newpage
+\section{Hoofdgerechten}
+% \input{hoofdgerechten/couscous} % TODO: remove this file couscous.txt
+\input{hoofdgerechten/gerechten-generator}
+
+\newpage
+\section{Salades}
+% \input{salades/salade01}
+
+\newpage
+\section{Nagerechten}
+% \input{nagerechten/nagerecht01}
+
+\end{document}

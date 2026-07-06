@@ -10,11 +10,20 @@ export interface Recipe {
   title: string;
   /** Original remote image URL (kept for reference/re-download), or null. */
   imageUrl: string | null;
-  /** Local image filename under DATA_DIR/images (e.g. "<id>.jpg"), or null. */
-  imageFile: string | null;
+  /**
+   * Ordered local image filenames under DATA_DIR/images. images[0] is the title
+   * image; images[1..] are extra step photos shown in the layout's gallery.
+   */
+  images: string[];
   ingredients: string[];
   steps: string[];
   servings?: string;
+  /** Human-readable durations (e.g. "30 min", "1 uur 15 min"). */
+  prepTime?: string;
+  cookTime?: string;
+  totalTime?: string;
+  /** Manual free-text notes ("Notities"); not sourced from Allerhande. */
+  notes: string[];
   category?: string;
   createdAt: string;
   updatedAt: string;
@@ -38,5 +47,9 @@ export interface RecipeInput {
   ingredients: string[];
   steps: string[];
   servings?: string;
+  prepTime?: string;
+  cookTime?: string;
+  totalTime?: string;
+  notes: string[];
   category?: string;
 }

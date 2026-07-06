@@ -1,0 +1,81 @@
+\newpage
+
+\begin{center}
+    \uppercase{Hoofdgerecht}
+    % \rule{\linewidth}{0.4pt}
+    \subsection{__titel__}
+    % \rule{\linewidth}{0.4pt}
+
+    % \begin{tabularx}{\linewidth}{Y} % Y is custom column that is centered
+    %     \uppercase{Hoofdgerecht} \\
+    %     \hline
+    %     \subsection{__titel__} \\
+    %     \hline
+    % \end{tabularx}
+    
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{paracol}{2}
+
+\uppercase{\textbf{Ingrediënten}}
+
+\vspace{0.25cm}
+
+__personen__
+
+\vspace{0.5cm}
+
+\begin{itemize}
+    \setlength\itemsep{0em}
+	\foreach \n in {__ingredienten__}{
+		\item \n
+	}
+\end{itemize}
+
+\ifstrequal{__notities__}{{}}{
+    \vspace{0.5cm}
+    \uppercase{\textbf{Notities}}
+    \vspace{0.25cm}
+    \begin{itemize}
+        \setlength\itemsep{1em}
+    	\foreach \n in {__notities__}{
+    		\item \n
+    	}
+    \end{itemize}
+}
+
+\newpage % remove this when the images should start directly below 'Notities'
+
+\foreach \n in {__afbeeldingen__}{
+    \includegraphics[width=\linewidth]{hoofdgerechten/fotos/\n}
+	\hspace{1cm}\newline
+}
+
+\switchcolumn
+
+{\renewcommand{\arraystretch}{2}
+    \begin{tabularx}{\linewidth}{YYY} % Y is custom column that is centered
+        \rowcolor[RGB]{236, 234, 231}
+         Voorbereiding: & Bereiding: & Totale tijd: \\
+		 __voorbereiding__ & __bereiding__ & __totaleTijd__ \\
+         \hline
+    \end{tabularx}
+}
+
+\vspace{0.25cm}
+
+\includegraphics[width=\linewidth]{hoofdgerechten/fotos/__titelAfbeelding__}
+
+\vspace{0.5cm}
+
+\uppercase{\textbf{Bereiden}}
+\vspace{0.25cm}
+\begin{enumerate}
+	\foreach \n in {__stappen__}{
+		\item \n
+	}
+\end{enumerate}
+
+\end{paracol}

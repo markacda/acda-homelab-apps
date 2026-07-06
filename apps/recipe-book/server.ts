@@ -11,8 +11,9 @@ import {
   saveRecipe,
   createRecipe,
   deleteRecipe,
-  downloadImage,
-  saveImageBuffer,
+  addImageFromUrl,
+  addImageBuffer,
+  setImages,
   imageExt,
   listBooks,
   getBook,
@@ -68,6 +69,10 @@ function toRecipeInput(body: Record<string, unknown>): RecipeInput {
     ingredients: toStringArray(body.ingredients),
     steps: toStringArray(body.steps),
     servings: optStr(body.servings),
+    prepTime: optStr(body.prepTime),
+    cookTime: optStr(body.cookTime),
+    totalTime: optStr(body.totalTime),
+    notes: toStringArray(body.notes),
     category: optStr(body.category),
   };
 }
@@ -100,23 +105,21 @@ app.post("/api/recipes/import", async (req, res) => {
       );
     }
 
-    const recipe = await createRecipe({
+    let recipe = await createRecipe({
       title: parsed.title,
       sourceUrl: url,
       imageUrl: parsed.imageUrl,
       ingredients: parsed.ingredients,
       steps: parsed.steps,
       servings: parsed.servings,
+      prepTime: parsed.prepTime,
+      cookTime: parsed.cookTime,
+      totalTime: parsed.totalTime,
+      notes: [],
       category: parsed.category,
     });
 
-    if (parsed.imageUrl) {
-      const imageFile = await downloadImage(recipe.id, parsed.imageUrl);
-      if (imageFile) {
-        recipe.imageFile = imageFile;
-        await saveRecipe(recipe);
-      }
-    }
+    if (parsed.imageUrl) recipe = (await addImageFromUrl(recipe, parsed.imageUrl)) ?? recipe;
 
     res.status(201).json(recipe);
   } catch (err) {
@@ -128,14 +131,8 @@ app.post("/api/recipes/import", async (req, res) => {
 app.post("/api/recipes", async (req, res) => {
   try {
     const input = toRecipeInput(req.body ?? {});
-    const recipe = await createRecipe(input);
-    if (input.imageUrl) {
-      const imageFile = await downloadImage(recipe.id, input.imageUrl);
-      if (imageFile) {
-        recipe.imageFile = imageFile;
-        await saveRecipe(recipe);
-      }
-    }
+    let recipe = await createRecipe(input);
+    if (input.imageUrl) recipe = (await addImageFromUrl(recipe, input.imageUrl)) ?? recipe;
     res.status(201).json(recipe);
   } catch (err) {
     fail(res, 400, err instanceof Error ? err.message : "Could not create recipe.");
@@ -166,7 +163,18 @@ app.patch("/api/recipes/:id", async (req, res) => {
     if ("ingredients" in body) recipe.ingredients = toStringArray(body.ingredients);
     if ("steps" in body) recipe.steps = toStringArray(body.steps);
     if ("servings" in body) recipe.servings = optStr(body.servings);
+    if ("prepTime" in body) recipe.prepTime = optStr(body.prepTime);
+    if ("cookTime" in body) recipe.cookTime = optStr(body.cookTime);
+    if ("totalTime" in body) recipe.totalTime = optStr(body.totalTime);
+    if ("notes" in body) recipe.notes = toStringArray(body.notes);
     if ("category" in body) recipe.category = optStr(body.category);
+    // Reorder / remove gallery images (must reference existing files).
+    if ("images" in body) {
+      if (!Array.isArray(body.images) || body.images.some((x: unknown) => typeof x !== "string")) {
+        throw new Error("images must be an array of filenames.");
+      }
+      return res.json(await setImages(recipe, body.images as string[]));
+    }
     res.json(await saveRecipe(recipe));
   } catch (err) {
     fail(res, 400, err instanceof Error ? err.message : "Could not update recipe.");
@@ -178,8 +186,8 @@ app.delete("/api/recipes/:id", async (req, res) => {
   res.status(204).end();
 });
 
-// Replace a recipe's image — either an uploaded file or a URL to download.
-app.put("/api/recipes/:id/image", upload.single("image"), async (req, res) => {
+// Append an image to a recipe's gallery — an uploaded file or a URL to download.
+app.post("/api/recipes/:id/images", upload.single("image"), async (req, res) => {
   try {
     // The extra multer middleware defeats Express's path param inference, so
     // req.params.id widens to string | string[]; it is always a string here.
@@ -190,21 +198,17 @@ app.put("/api/recipes/:id/image", upload.single("image"), async (req, res) => {
     if (req.file) {
       const ext = imageExt(req.file.mimetype, req.file.originalname);
       if (!ext) return fail(res, 415, "Only JPG or PNG images are supported.");
-      recipe.imageFile = await saveImageBuffer(recipe.id, req.file.buffer, ext);
-      recipe.imageUrl = null;
-    } else {
-      const imageUrl = optStr(req.body?.imageUrl);
-      if (!imageUrl) return fail(res, 400, "Provide an image file or an imageUrl.");
-      const imageFile = await downloadImage(recipe.id, imageUrl);
-      if (!imageFile) {
-        return fail(res, 422, "Could not download that image (unreachable or unsupported format).");
-      }
-      recipe.imageFile = imageFile;
-      recipe.imageUrl = imageUrl;
+      return res.json(await addImageBuffer(recipe, req.file.buffer, ext));
     }
-    res.json(await saveRecipe(recipe));
+    const imageUrl = optStr(req.body?.imageUrl);
+    if (!imageUrl) return fail(res, 400, "Provide an image file or an imageUrl.");
+    const updated = await addImageFromUrl(recipe, imageUrl);
+    if (!updated) {
+      return fail(res, 422, "Could not download that image (unreachable or unsupported format).");
+    }
+    res.json(updated);
   } catch (err) {
-    fail(res, 400, err instanceof Error ? err.message : "Could not update image.");
+    fail(res, 400, err instanceof Error ? err.message : "Could not add image.");
   }
 });
 

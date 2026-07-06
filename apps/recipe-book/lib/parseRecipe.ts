@@ -10,7 +10,28 @@ export interface ParsedRecipe {
   ingredients: string[];
   steps: string[];
   servings?: string;
+  prepTime?: string;
+  cookTime?: string;
+  totalTime?: string;
   category?: string;
+}
+
+/**
+ * Turn an ISO-8601 duration (e.g. "PT1H15M", "PT30M", "PT2H") into a short Dutch
+ * string ("1 uur 15 min", "30 min", "2 uur"), matching the recipe-book layout.
+ * Returns undefined for anything it can't read.
+ */
+export function parseIsoDuration(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const m = /^P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?/.exec(value.trim());
+  if (!m) return undefined;
+  const days = Number(m[1] || 0);
+  const hours = Number(m[2] || 0) + days * 24;
+  const mins = Number(m[3] || 0);
+  const parts: string[] = [];
+  if (hours) parts.push(`${hours} uur`);
+  if (mins) parts.push(`${mins} min`);
+  return parts.length ? parts.join(" ") : undefined;
 }
 
 /** Pull the contents of every <script type="application/ld+json"> block. */
@@ -164,6 +185,9 @@ export function parseRecipe(html: string): ParsedRecipe | null {
         ingredients: normalizeIngredients(node.recipeIngredient),
         steps: normalizeInstructions(node.recipeInstructions),
         servings: normalizeYield(node.recipeYield),
+        prepTime: parseIsoDuration(node.prepTime),
+        cookTime: parseIsoDuration(node.cookTime),
+        totalTime: parseIsoDuration(node.totalTime),
         category: normalizeCategory(node.recipeCategory),
       };
     }

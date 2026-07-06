@@ -1,6 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseRecipe, extractJsonLdBlocks, stripHtml } from "../lib/parseRecipe.ts";
+import {
+  parseRecipe,
+  extractJsonLdBlocks,
+  stripHtml,
+  parseIsoDuration,
+} from "../lib/parseRecipe.ts";
 
 // An Allerhande-shaped page: a JSON-LD @graph with a Recipe node, HowToStep
 // instructions, an image array, and some HTML inside the fields.
@@ -17,12 +22,24 @@ const AH_RECIPE = {
   image: [{ "@type": "ImageObject", url: "https://static.ah.nl/img/recipe.jpg" }],
   recipeYield: "4 personen",
   recipeCategory: "Hoofdgerecht",
+  prepTime: "PT15M",
+  cookTime: "PT25M",
+  totalTime: "PT40M",
   recipeIngredient: ["250 g pappardelle", "2 el <b>olijfolie</b>", "300 g kogelbiefstuk"],
   recipeInstructions: [
     { "@type": "HowToStep", text: "Kook de pappardelle beetgaar." },
     { "@type": "HowToStep", text: "Bak de <i>biefstuk</i> kort aan." },
   ],
 };
+
+test("parseIsoDuration formats ISO-8601 durations in Dutch", () => {
+  assert.equal(parseIsoDuration("PT30M"), "30 min");
+  assert.equal(parseIsoDuration("PT1H15M"), "1 uur 15 min");
+  assert.equal(parseIsoDuration("PT2H"), "2 uur");
+  assert.equal(parseIsoDuration("PT0M"), undefined);
+  assert.equal(parseIsoDuration("nonsense"), undefined);
+  assert.equal(parseIsoDuration(undefined), undefined);
+});
 
 test("extractJsonLdBlocks pulls every ld+json script", () => {
   const html = `<script type="application/ld+json">{"a":1}</script>
@@ -41,6 +58,9 @@ test("parseRecipe extracts a Recipe from a @graph", () => {
   assert.equal(parsed.imageUrl, "https://static.ah.nl/img/recipe.jpg");
   assert.equal(parsed.servings, "4 personen");
   assert.equal(parsed.category, "Hoofdgerecht");
+  assert.equal(parsed.prepTime, "15 min");
+  assert.equal(parsed.cookTime, "25 min");
+  assert.equal(parsed.totalTime, "40 min");
   assert.deepEqual(parsed.ingredients, [
     "250 g pappardelle",
     "2 el olijfolie",

@@ -6,10 +6,14 @@ interface Recipe {
   sourceUrl: string | null;
   title: string;
   imageUrl: string | null;
-  imageFile: string | null;
+  images: string[];
   ingredients: string[];
   steps: string[];
   servings?: string;
+  prepTime?: string;
+  cookTime?: string;
+  totalTime?: string;
+  notes: string[];
   category?: string;
   createdAt: string;
   updatedAt: string;
@@ -62,8 +66,14 @@ async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   return data as T;
 }
 
+/** URL for one stored image filename. */
+function fileSrc(file: string): string {
+  return `/images/${file}`;
+}
+
+/** Title image (images[0]) of a recipe, or null. */
 function imgSrc(recipe: Recipe): string | null {
-  return recipe.imageFile ? `/images/${recipe.imageFile}` : null;
+  return recipe.images.length ? fileSrc(recipe.images[0]) : null;
 }
 
 // ---- state ----------------------------------------------------------------
@@ -73,6 +83,7 @@ let books: Book[] = [];
 let activeBookId: string | null = null;
 let activeBook: BookDetail | null = null;
 let editingId: string | null = null; // null => creating a new recipe
+let editingImages: string[] = []; // gallery of the recipe currently in the editor
 
 // ---- library --------------------------------------------------------------
 
@@ -182,33 +193,53 @@ async function saveBookOrder(recipeIds: string[]): Promise<void> {
 
 function openEditor(recipe: Recipe | null): void {
   editingId = recipe?.id ?? null;
+  editingImages = recipe ? [...recipe.images] : [];
   $("editorTitle").textContent = recipe ? "Edit recipe" : "New recipe";
   $<HTMLInputElement>("edTitle").value = recipe?.title ?? "";
   $<HTMLInputElement>("edCategory").value = recipe?.category ?? "";
   $<HTMLInputElement>("edServings").value = recipe?.servings ?? "";
+  $<HTMLInputElement>("edPrepTime").value = recipe?.prepTime ?? "";
+  $<HTMLInputElement>("edCookTime").value = recipe?.cookTime ?? "";
+  $<HTMLInputElement>("edTotalTime").value = recipe?.totalTime ?? "";
   $<HTMLTextAreaElement>("edIngredients").value = (recipe?.ingredients ?? []).join("\n");
   $<HTMLTextAreaElement>("edSteps").value = (recipe?.steps ?? []).join("\n");
+  $<HTMLTextAreaElement>("edNotes").value = (recipe?.notes ?? []).join("\n");
   $<HTMLInputElement>("edImageUrl").value = "";
   $<HTMLInputElement>("edImageFile").value = "";
   setStatus($("edImageStatus"), "");
 
-  // Image thumbnail + upload only make sense once the recipe exists (upload
-  // needs an id). For a new recipe, the URL field is used at creation.
-  const preview = $<HTMLImageElement>("edImagePreview");
-  const src = recipe ? imgSrc(recipe) : null;
-  if (src) {
-    preview.src = src;
-    preview.classList.remove("hidden");
-  } else {
-    preview.classList.add("hidden");
-  }
-  $("edUploadRow").classList.toggle("hidden", !recipe);
+  // Image management needs an id (upload/gallery ops hit /recipes/:id). For a new
+  // recipe the URL field is the create-time title image; upload is hidden until saved.
+  const existing = recipe !== null;
+  $("edUploadRow").classList.toggle("hidden", !existing);
+  $("edImageHint").classList.toggle("hidden", existing);
+  $<HTMLInputElement>("edImageUrl").placeholder = existing ? "Add image URL…" : "Title image URL…";
+  renderGallery();
   $("editorOverlay").classList.remove("hidden");
+}
+
+function renderGallery(): void {
+  const gallery = $("edGallery");
+  gallery.innerHTML = editingImages
+    .map((file, i) => {
+      const isTitle = i === 0;
+      return `<div class="gitem ${isTitle ? "title-img" : ""}" data-file="${esc(file)}">
+        <img src="${esc(fileSrc(file))}" alt="" />
+        ${isTitle ? `<div class="tag">Title</div>` : ""}
+        <div class="gactions">
+          <button data-act="up" ${i === 0 ? "disabled" : ""} title="Move earlier">↑</button>
+          <button data-act="down" ${i === editingImages.length - 1 ? "disabled" : ""} title="Move later">↓</button>
+          <button data-act="remove" title="Remove">✕</button>
+        </div>
+      </div>`;
+    })
+    .join("");
 }
 
 function closeEditor(): void {
   $("editorOverlay").classList.add("hidden");
   editingId = null;
+  editingImages = [];
 }
 
 function collectEditorFields() {
@@ -216,8 +247,12 @@ function collectEditorFields() {
     title: $<HTMLInputElement>("edTitle").value.trim(),
     category: $<HTMLInputElement>("edCategory").value.trim(),
     servings: $<HTMLInputElement>("edServings").value.trim(),
+    prepTime: $<HTMLInputElement>("edPrepTime").value.trim(),
+    cookTime: $<HTMLInputElement>("edCookTime").value.trim(),
+    totalTime: $<HTMLInputElement>("edTotalTime").value.trim(),
     ingredients: $<HTMLTextAreaElement>("edIngredients").value,
     steps: $<HTMLTextAreaElement>("edSteps").value,
+    notes: $<HTMLTextAreaElement>("edNotes").value,
   };
 }
 
@@ -242,17 +277,26 @@ async function saveEditor(): Promise<void> {
   }
 }
 
-async function setImageFromUrl(): Promise<void> {
+/** Apply an image mutation's result to the editor + library without closing. */
+function afterImageUpdate(updated: Recipe): void {
+  editingImages = [...updated.images];
+  renderGallery();
+  void loadRecipes();
+}
+
+async function addImageFromUrl(): Promise<void> {
   if (!editingId) return;
   const imageUrl = $<HTMLInputElement>("edImageUrl").value.trim();
   if (!imageUrl) return;
   setStatus($("edImageStatus"), "Downloading image…", "info");
   try {
-    const updated = await api<Recipe>(`/api/recipes/${editingId}/image`, {
-      method: "PUT",
+    const updated = await api<Recipe>(`/api/recipes/${editingId}/images`, {
+      method: "POST",
       body: JSON.stringify({ imageUrl }),
     });
+    $<HTMLInputElement>("edImageUrl").value = "";
     afterImageUpdate(updated);
+    setStatus($("edImageStatus"), "Image added.", "ok");
   } catch (err) {
     setStatus($("edImageStatus"), err instanceof Error ? err.message : "Failed.", "error");
   }
@@ -269,25 +313,29 @@ async function uploadImage(): Promise<void> {
   try {
     const fd = new FormData();
     fd.append("image", file);
-    const res = await fetch(`/api/recipes/${editingId}/image`, { method: "PUT", body: fd });
+    const res = await fetch(`/api/recipes/${editingId}/images`, { method: "POST", body: fd });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error((data as { error?: string }).error || "Upload failed.");
+    $<HTMLInputElement>("edImageFile").value = "";
     afterImageUpdate(data as Recipe);
+    setStatus($("edImageStatus"), "Image added.", "ok");
   } catch (err) {
     setStatus($("edImageStatus"), err instanceof Error ? err.message : "Failed.", "error");
   }
 }
 
-function afterImageUpdate(updated: Recipe): void {
-  const src = imgSrc(updated);
-  const preview = $<HTMLImageElement>("edImagePreview");
-  if (src) {
-    // cache-bust so the replaced image shows immediately
-    preview.src = `${src}?t=${updated.updatedAt}`;
-    preview.classList.remove("hidden");
+/** Persist the current gallery order/removal via PATCH { images }. */
+async function saveGallery(): Promise<void> {
+  if (!editingId) return;
+  try {
+    const updated = await api<Recipe>(`/api/recipes/${editingId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ images: editingImages }),
+    });
+    afterImageUpdate(updated);
+  } catch (err) {
+    setStatus($("edImageStatus"), err instanceof Error ? err.message : "Failed.", "error");
   }
-  setStatus($("edImageStatus"), "Image updated.", "ok");
-  void loadRecipes();
 }
 
 // ---- top-level actions ----------------------------------------------------
@@ -450,10 +498,29 @@ $("genPdfBtn").addEventListener("click", () => void generate("pdf"));
 
 $("edSaveBtn").addEventListener("click", () => void saveEditor());
 $("edCancelBtn").addEventListener("click", closeEditor);
-$("edSetImageUrlBtn").addEventListener("click", () => void setImageFromUrl());
+$("edAddImageUrlBtn").addEventListener("click", () => void addImageFromUrl());
 $("edUploadBtn").addEventListener("click", () => void uploadImage());
 $("editorOverlay").addEventListener("click", (e) => {
   if (e.target === $("editorOverlay")) closeEditor();
+});
+
+// Gallery: reorder / remove act on the local list, then persist via PATCH.
+$("edGallery").addEventListener("click", (e) => {
+  const target = e.target as HTMLElement;
+  const act = target.dataset.act;
+  const file = target.closest<HTMLElement>(".gitem")?.dataset.file;
+  if (!act || !file) return;
+  const i = editingImages.indexOf(file);
+  if (i < 0) return;
+  if (act === "remove") {
+    editingImages.splice(i, 1);
+  } else {
+    const j = act === "up" ? i - 1 : i + 1;
+    if (j < 0 || j >= editingImages.length) return;
+    [editingImages[i], editingImages[j]] = [editingImages[j], editingImages[i]];
+  }
+  renderGallery();
+  void saveGallery();
 });
 
 // ---- init -----------------------------------------------------------------
