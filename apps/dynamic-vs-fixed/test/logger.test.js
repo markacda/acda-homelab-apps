@@ -23,7 +23,13 @@ function fakeRes(overrides = {}) {
 }
 
 test("buildEntry captures the structured page-load fields", () => {
-  const entry = buildEntry(fakeReq(), fakeRes(), 12.345, "dynamic-vs-fixed", "2026-07-06T00:00:00.000Z");
+  const entry = buildEntry(
+    fakeReq(),
+    fakeRes(),
+    12.345,
+    "dynamic-vs-fixed",
+    "2026-07-06T00:00:00.000Z",
+  );
   assert.deepEqual(entry, {
     ts: "2026-07-06T00:00:00.000Z",
     app: "dynamic-vs-fixed",
