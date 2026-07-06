@@ -90,6 +90,45 @@ services:
       retries: 3
       start_period: 10s
 
+  log-viewer:
+    build:
+      context: .
+      dockerfile: apps/log-viewer/Dockerfile
+    container_name: log-viewer
+    labels:
+      - "homelab.name=Log Viewer"
+    ports:
+      - "6004:6004"
+    environment:
+      - NODE_ENV=production
+      - PORT=6004
+      - LOG_DIR=/app/logs
+      # Every app's log volume is mounted read-only under here, one subdir each.
+      - LOGS_ROOT=/logs
+    volumes:
+      # Read-only mounts of every app's access-log volume (incl. its own), so
+      # the viewer can read the full daily-rotated, gzipped 3-month history.
+      - atc-logs:/logs/atc:ro
+      - ev-crossover-logs:/logs/ev-crossover:ro
+      - dynamic-vs-fixed-logs:/logs/dynamic-vs-fixed:ro
+      - dashboard-logs:/logs/dashboard:ro
+      - log-viewer-logs:/logs/log-viewer:ro
+      # Read-write target for this app's own access log.
+      - log-viewer-logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:6004/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   dashboard:
     build:
       context: .
@@ -139,3 +178,4 @@ volumes:
   ev-crossover-logs:
   dynamic-vs-fixed-logs:
   dashboard-logs:
+  log-viewer-logs:

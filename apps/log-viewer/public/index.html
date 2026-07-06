@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Log Viewer — homelab access logs</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>📊 Log Viewer</h1>
+      <span id="meta" class="meta"></span>
+    </header>
+
+    <section class="cards" id="cards"></section>
+
+    <section class="panels">
+      <div class="panel">
+        <h2>Requests per app</h2>
+        <div id="perApp" class="table-wrap"></div>
+      </div>
+      <div class="panel">
+        <h2>Top endpoints</h2>
+        <div id="perEndpoint" class="table-wrap"></div>
+      </div>
+      <div class="panel">
+        <h2>Slowest endpoints</h2>
+        <div id="slowest" class="table-wrap"></div>
+      </div>
+      <div class="panel">
+        <h2>Status codes</h2>
+        <div id="statusDist" class="table-wrap"></div>
+      </div>
+    </section>
+
+    <section class="filters">
+      <input id="q" type="search" placeholder="Search url / ip / user-agent…" />
+      <select id="app" title="App"></select>
+      <select id="method" title="Method"></select>
+      <select id="statusClass" title="Status">
+        <option value="">All status</option>
+        <option value="2xx">2xx</option>
+        <option value="3xx">3xx</option>
+        <option value="4xx">4xx</option>
+        <option value="5xx">5xx</option>
+      </select>
+      <select id="range" title="Time range">
+        <option value="">All time</option>
+        <option value="1h">Last hour</option>
+        <option value="24h">Last 24h</option>
+        <option value="7d">Last 7 days</option>
+        <option value="30d">Last 30 days</option>
+      </select>
+      <button id="refresh" type="button">Refresh</button>
+      <label class="toggle">
+        <input id="auto" type="checkbox" />
+        Auto-refresh
+      </label>
+    </section>
+
+    <section class="logs">
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th data-sort="ts" class="sortable">Time</th>
+            <th data-sort="app" class="sortable">App</th>
+            <th>Method</th>
+            <th>URL</th>
+            <th data-sort="status" class="sortable">Status</th>
+            <th data-sort="durationMs" class="sortable">Duration</th>
+            <th>IP</th>
+            <th>User-Agent</th>
+          </tr>
+        </thead>
+        <tbody id="logBody"></tbody>
+      </table>
+      <div class="loadmore">
+        <button id="loadMore" type="button">Load more</button>
+        <span id="logMeta" class="meta"></span>
+      </div>
+    </section>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
