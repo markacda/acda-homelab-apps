@@ -54,6 +54,7 @@ in `server/` (entry `server/index.ts`) and its browser assets are vendored JS in
 
 **TypeScript / build model.** Every app extends `tsconfig.base.json` (strict,
 `nodenext`). Key constraints baked into the base config:
+
 - `erasableSyntaxOnly` — Node runs `.ts` sources directly via native
   type-stripping, so **no enums, namespaces, or parameter-properties**.
 - Relative imports are written with the **`.ts` extension** (e.g.
