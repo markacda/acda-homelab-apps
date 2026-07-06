@@ -10,7 +10,12 @@ RUN npm ci --omit=dev
 COPY . .
 
 ENV PORT=8080
+ENV LOG_DIR=/app/logs
 EXPOSE 8080
+
+# Writable log dir (the dashboard runs as root, so no chown needed). A named
+# volume mounted here persists the structured access logs.
+RUN mkdir -p /app/logs
 
 # NOTE: unlike the other apps, the dashboard runs as root. Its auto-discovery
 # reads the host's Docker socket (mounted read-only), which is owned by

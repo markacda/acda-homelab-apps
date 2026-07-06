@@ -41,6 +41,11 @@ EXPOSE 6001
 # Set environment to production
 ENV NODE_ENV=production
 ENV PORT=6001
+ENV LOG_DIR=/app/logs
+
+# Writable log dir owned by the non-root "node" user. A named volume mounted
+# here inherits this ownership on first use, so the app can write access logs.
+RUN mkdir -p /app/logs && chown node:node /app/logs
 
 # Run as non-root user for security
 USER node

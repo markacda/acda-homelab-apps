@@ -15,6 +15,7 @@
   "dependencies": {
     "dockerode": "^4.0.2",
     "express": "^4.19.2",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "rotating-file-stream": "^3.2.6"
   }
 }

@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { loadConfig, mergeApps } from "./lib/config.js";
 import { discoverApps } from "./lib/discovery.js";
 import { refreshHealth, getStatus, healthTarget } from "./lib/health.js";
+import { pageLoadLogger } from "./lib/logger.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = join(__dirname, "public");
@@ -13,6 +14,7 @@ const PORT = Number(process.env.PORT) || 8080;
 const config = loadConfig();
 const app = express();
 
+app.use(pageLoadLogger("dashboard"));
 app.use(express.static(PUBLIC_DIR));
 
 /** Build the current merged app list (discovery is cheap; re-run per request). */

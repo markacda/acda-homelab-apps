@@ -18,6 +18,9 @@ yarn-error.log
 .DS_Store
 Thumbs.db
 
+# Logs
+logs
+
 # Docker
 Dockerfile
 docker-compose.yml

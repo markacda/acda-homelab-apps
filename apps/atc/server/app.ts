@@ -1,17 +1,17 @@
 import express, { Express } from 'express';
 import cors from 'cors';
 import compression from 'compression';
-import morgan from 'morgan';
 import path from 'path';
 import corsOptions from './config/cors';
 import mainRoutes from './routes/index';
 import apiRoutes from './routes/api';
+import { pageLoadLogger } from './logger';
 
 const app: Express = express();
 
 // Middleware
 // To Do: maybe use helmet middleware for security headers
-app.use(morgan('[:date[iso]] :method :url :status :res[content-length] - :response-time ms')); // Request logging
+app.use(pageLoadLogger('atc')); // Structured per-request access logging to a rotating file
 app.use(cors(corsOptions));
 app.use(compression()); // Compress responses for better performance
 

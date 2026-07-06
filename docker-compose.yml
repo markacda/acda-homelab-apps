@@ -13,6 +13,9 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=6001
+      - LOG_DIR=/app/logs
+    volumes:
+      - atc-logs:/app/logs
     restart: unless-stopped
     healthcheck:
       test:
@@ -36,6 +39,9 @@ services:
       - "6002:6002"
     environment:
       - PORT=6002
+      - LOG_DIR=/app/logs
+    volumes:
+      - ev-crossover-logs:/app/logs
     restart: unless-stopped
     healthcheck:
       test:
@@ -60,8 +66,10 @@ services:
     environment:
       - PORT=6003
       - DATA_DIR=/app/data
+      - LOG_DIR=/app/logs
     volumes:
       - dynamic-vs-fixed-data:/app/data
+      - dynamic-vs-fixed-logs:/app/logs
     restart: unless-stopped
     healthcheck:
       test:
@@ -92,6 +100,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       # Config (manual tiles + overrides), read-only inside the container.
       - ./apps/dashboard/config:/app/config:ro
+      # Persistent structured access logs.
+      - dashboard-logs:/app/logs
     extra_hosts:
       # Lets the container reach services published on the host by name,
       # used for server-side health checks.
@@ -100,6 +110,7 @@ services:
       - NODE_ENV=production
       - HOST_ADDRESS=host.docker.internal
       - PORT=8080
+      - LOG_DIR=/app/logs
     restart: unless-stopped
     healthcheck:
       test:
@@ -116,3 +127,7 @@ services:
 
 volumes:
   dynamic-vs-fixed-data:
+  atc-logs:
+  ev-crossover-logs:
+  dynamic-vs-fixed-logs:
+  dashboard-logs:
