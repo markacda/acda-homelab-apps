@@ -1,11 +1,14 @@
 import express from "express";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { pageLoadLogger } from "./lib/logger.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 const PORT = process.env.PORT || 6002;
+
+app.use(pageLoadLogger("ev-crossover"));
 
 app.get("/healthz", (_req, res) => res.json({ status: "ok" }));
 

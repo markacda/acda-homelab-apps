@@ -53,6 +53,26 @@ npm test              # runs each app's tests (node --test)
 > app keeps its own `package-lock.json` for `npm ci` inside the image. The root
 > lockfile is what CI and local dev use.
 
+## Logging
+
+Every app writes a **structured access log** — one JSON object per request —
+capturing page loads and their timing. Fields: `ts`, `app`, `method`, `url`,
+`status`, `durationMs`, `ip`, `ua`, `referer`, `bytes`. Health-check requests
+(`/healthz`, `/health`) are excluded to keep the log to real traffic.
+
+Logs are written to `LOG_DIR` (`/app/logs` in Docker, backed by a per-app named
+volume) as `access.log`, rotated daily and gzipped, with the most recent ~90
+files kept — a **~3-month retention** window (via `rotating-file-stream`).
+
+Read an app's logs:
+
+```sh
+docker exec dynamic-vs-fixed cat /app/logs/access.log        # today
+docker exec dynamic-vs-fixed ls /app/logs                    # rotated + gzipped history
+```
+
+In local dev the log lands in `apps/<name>/logs/` (git-ignored).
+
 ## Adding a new app
 
 1. Create `apps/<name>/` with a `Dockerfile`, `package.json`, `server.js`, and a

@@ -5,11 +5,14 @@ import { dirname, join } from "node:path";
 import { parseHomewizardCsv } from "./lib/parseHomewizardCsv.js";
 import { fetchPriceData } from "./lib/energyzero.js";
 import { calculate } from "./lib/calculate.js";
+import { pageLoadLogger } from "./lib/logger.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 const PORT = process.env.PORT || 6003;
+
+app.use(pageLoadLogger("dynamic-vs-fixed"));
 
 const upload = multer({
   storage: multer.memoryStorage(),
