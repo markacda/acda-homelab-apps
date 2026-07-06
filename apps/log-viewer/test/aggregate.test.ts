@@ -27,13 +27,44 @@ const sample: AccessLogEntry[] = [
 ];
 
 test("filterEntries: by app", () => {
-  assert.equal(filterEntries(sample, { app: "atc" }).length, 2);
+  assert.equal(filterEntries(sample, { app: ["atc"] }).length, 2);
+});
+
+test("filterEntries: by multiple apps (match ANY)", () => {
+  assert.equal(filterEntries(sample, { app: ["atc", "ev"] }).length, 4);
+});
+
+test("filterEntries: empty app array means no filter", () => {
+  assert.equal(filterEntries(sample, { app: [] }).length, 4);
 });
 
 test("filterEntries: by statusClass", () => {
-  const errs = filterEntries(sample, { statusClass: "5xx" });
+  const errs = filterEntries(sample, { statusClass: ["5xx"] });
   assert.equal(errs.length, 1);
   assert.equal(errs[0].status, 500);
+});
+
+test("filterEntries: by multiple statusClasses (match ANY)", () => {
+  const errs = filterEntries(sample, { statusClass: ["4xx", "5xx"] });
+  assert.equal(errs.length, 2);
+});
+
+test("filterEntries: by method (case handled upstream)", () => {
+  assert.equal(filterEntries(sample, { method: ["GET"] }).length, 4);
+  assert.equal(filterEntries(sample, { method: ["POST"] }).length, 0);
+});
+
+test("filterEntries: excludeApp drops matching apps", () => {
+  const r = filterEntries(sample, { excludeApp: ["atc"] });
+  assert.equal(r.length, 2);
+  assert.ok(r.every((e) => e.app === "ev"));
+});
+
+test("filterEntries: excludeUa drops matching user-agents", () => {
+  const withBot = [...sample, entry({ app: "ev", ua: "homelab-dashboard-discovery-agent" })];
+  const r = filterEntries(withBot, { excludeUa: ["homelab-dashboard-discovery-agent"] });
+  assert.equal(r.length, 4);
+  assert.ok(r.every((e) => e.ua !== "homelab-dashboard-discovery-agent"));
 });
 
 test("filterEntries: by q substring over url", () => {

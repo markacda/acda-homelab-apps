@@ -39,15 +39,9 @@
 
     <section class="filters">
       <input id="q" type="search" placeholder="Search url / ip / user-agent…" />
-      <select id="app" title="App"></select>
-      <select id="method" title="Method"></select>
-      <select id="statusClass" title="Status">
-        <option value="">All status</option>
-        <option value="2xx">2xx</option>
-        <option value="3xx">3xx</option>
-        <option value="4xx">4xx</option>
-        <option value="5xx">5xx</option>
-      </select>
+      <div id="appDropdown" class="dropdown" data-all-label="All apps"></div>
+      <div id="methodDropdown" class="dropdown" data-all-label="All methods"></div>
+      <div id="statusDropdown" class="dropdown" data-all-label="All status"></div>
       <select id="range" title="Time range">
         <option value="">All time</option>
         <option value="1h">Last hour</option>
@@ -59,6 +53,14 @@
       <label class="toggle">
         <input id="auto" type="checkbox" />
         Auto-refresh
+      </label>
+      <label class="toggle">
+        <input id="showSelf" type="checkbox" />
+        Show log-viewer logs
+      </label>
+      <label class="toggle">
+        <input id="showDiscovery" type="checkbox" />
+        Show discovery agent
       </label>
     </section>
 

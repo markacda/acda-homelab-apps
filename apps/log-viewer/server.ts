@@ -37,21 +37,36 @@ function str(v: unknown): string | undefined {
   return typeof v === "string" && v.length > 0 ? v : undefined;
 }
 
+/** Split a comma-separated query param into a de-duped, non-empty string array. */
+function list(v: unknown): string[] {
+  const raw = str(v);
+  if (!raw) return [];
+  return [
+    ...new Set(
+      raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0),
+    ),
+  ];
+}
+
 const STATUS_CLASSES = new Set<StatusClass>(["2xx", "3xx", "4xx", "5xx"]);
 
 function parseFilter(query: Record<string, unknown>): LogFilter {
-  const statusClass = str(query.statusClass);
   const status = str(query.status);
   return {
-    app: str(query.app),
-    method: str(query.method)?.toUpperCase(),
-    statusClass: STATUS_CLASSES.has(statusClass as StatusClass)
-      ? (statusClass as StatusClass)
-      : undefined,
+    app: list(query.app),
+    method: list(query.method).map((m) => m.toUpperCase()),
+    statusClass: list(query.statusClass).filter((c): c is StatusClass =>
+      STATUS_CLASSES.has(c as StatusClass),
+    ),
     status: status !== undefined && Number.isFinite(Number(status)) ? Number(status) : undefined,
     q: str(query.q),
     from: str(query.from),
     to: str(query.to),
+    excludeApp: list(query.excludeApp),
+    excludeUa: list(query.excludeUa),
   };
 }
 

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { loadConfig, mergeApps } from "./lib/config.ts";
 import type { AppEntry } from "./lib/config.ts";
 import { discoverApps } from "./lib/discovery.ts";
-import { refreshHealth, getStatus, healthTarget } from "./lib/health.ts";
+import { refreshHealth, getStatus, healthTarget, isHealthStale } from "./lib/health.ts";
 import { pageLoadLogger } from "../../packages/access-log/logger.ts";
 
 // public/ resolves from the app root (cwd) — true both in dev (npm runs from
@@ -15,6 +15,14 @@ const PORT = Number(process.env.PORT) || 8080;
 
 const config = loadConfig();
 const app = express();
+
+const HEALTH_INTERVAL_MS = config.settings.healthCheckIntervalSeconds * 1000;
+// Consider a client "present" if it polled /api/apps within this window. The
+// browser client refreshes every 30s, so 2x the probe interval (min 60s) leaves
+// margin for a missed beat before we treat the dashboard as unwatched.
+const ACTIVE_WINDOW_MS = Math.max(HEALTH_INTERVAL_MS * 2, 60_000);
+// Epoch ms of the last /api/apps request; 0 means no client has been seen.
+let lastClientSeen = 0;
 
 app.use(pageLoadLogger("dashboard"));
 app.use(express.static(PUBLIC_DIR));
@@ -27,8 +35,14 @@ async function buildApps(): Promise<AppEntry[]> {
 
 app.get("/api/apps", async (_req, res) => {
   try {
+    lastClientSeen = Date.now();
     const apps = await buildApps();
     const hostAddress = config.settings.hostAddress;
+    // A freshly-opened dashboard (or one returning after an idle gap) may find a
+    // stale cache; probe now so the first render shows current status.
+    if (isHealthStale(apps, hostAddress, HEALTH_INTERVAL_MS)) {
+      await refreshHealth(apps, hostAddress);
+    }
     const enriched = apps.map((a) => {
       const { status, lastChecked } = getStatus(healthTarget(a, hostAddress));
       return {
@@ -54,6 +68,11 @@ app.get("/healthz", (_req, res) => res.json({ ok: true }));
 app.get("/", (_req, res) => res.sendFile(join(PUBLIC_DIR, "index.html")));
 
 async function healthLoop(): Promise<void> {
+  // Skip probing when nobody is watching — no client has fetched /api/apps
+  // within the active window. This keeps the dashboard from hammering every app
+  // (and flooding their access logs) around the clock. An on-demand probe in
+  // /api/apps covers the moment a client returns.
+  if (Date.now() - lastClientSeen > ACTIVE_WINDOW_MS) return;
   try {
     const apps = await buildApps();
     await refreshHealth(apps, config.settings.hostAddress);
@@ -67,7 +86,7 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(
     `[server] autoDiscover=${config.settings.autoDiscover} hostAddress=${config.settings.hostAddress}`,
   );
-  // Initial pass, then poll on the configured interval.
-  healthLoop();
-  setInterval(healthLoop, config.settings.healthCheckIntervalSeconds * 1000);
+  // Poll on the configured interval, but only probe while a client is watching
+  // (see healthLoop). No startup probe — it waits for the first client.
+  setInterval(healthLoop, HEALTH_INTERVAL_MS);
 });
