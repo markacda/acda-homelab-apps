@@ -1,7 +1,7 @@
 import express, { type Response } from "express";
 import multer from "multer";
 import { join } from "node:path";
-import { pageLoadLogger } from "../../packages/access-log/logger.ts";
+import { pageLoadLogger, installConsoleLogging } from "../../packages/access-log/logger.ts";
 import { fetchRecipeHtml } from "./lib/fetchRecipe.ts";
 import { parseRecipe } from "./lib/parseRecipe.ts";
 import { generateTex, generatePdf } from "./lib/generate.ts";
@@ -24,6 +24,9 @@ import {
   IMAGES_DIR,
 } from "./lib/store.ts";
 import type { Recipe, Book, RecipeInput } from "./lib/types.ts";
+
+// Mirror console.* output into the structured app.log (see log-viewer).
+installConsoleLogging("recipe-book");
 
 const app = express();
 const PORT = Number(process.env.PORT) || 6005;

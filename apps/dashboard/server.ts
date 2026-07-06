@@ -5,7 +5,10 @@ import { loadConfig, mergeApps } from "./lib/config.ts";
 import type { AppEntry } from "./lib/config.ts";
 import { discoverApps } from "./lib/discovery.ts";
 import { refreshHealth, getStatus, healthTarget, isHealthStale } from "./lib/health.ts";
-import { pageLoadLogger } from "../../packages/access-log/logger.ts";
+import { pageLoadLogger, installConsoleLogging } from "../../packages/access-log/logger.ts";
+
+// Mirror console.* output into the structured app.log (see log-viewer).
+installConsoleLogging("dashboard");
 
 // public/ resolves from the app root (cwd) — true both in dev (npm runs from
 // the app dir) and in Docker (WORKDIR /app) — so it works whether we run

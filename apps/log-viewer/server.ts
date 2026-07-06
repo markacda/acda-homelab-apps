@@ -1,10 +1,13 @@
 import express from "express";
 import { join } from "node:path";
-import { pageLoadLogger } from "../../packages/access-log/logger.ts";
-import { readAllEntries } from "./lib/ingest.ts";
-import type { AccessLogEntry } from "./lib/ingest.ts";
-import { filterEntries, computeStats } from "./lib/aggregate.ts";
-import type { LogFilter, StatusClass } from "./lib/aggregate.ts";
+import { pageLoadLogger, installConsoleLogging } from "../../packages/access-log/logger.ts";
+import { readAll } from "./lib/ingest.ts";
+import type { AccessLogEntry, AppLogEntry } from "./lib/ingest.ts";
+import { filterEntries, computeStats, filterAppLogs, computeLogStats } from "./lib/aggregate.ts";
+import type { LogFilter, StatusClass, AppLogFilter, LogLevel } from "./lib/aggregate.ts";
+
+// Mirror console.* output into the structured app.log (see below).
+installConsoleLogging("log-viewer");
 
 const app = express();
 const PORT = Number(process.env.PORT) || 6004;
@@ -17,12 +20,16 @@ const REFRESH_INTERVAL_MS = 15_000;
 app.use(pageLoadLogger("log-viewer"));
 
 // In-memory view of the parsed logs, rebuilt periodically (see refresh()).
+// `entries` holds HTTP access records; `logs` holds application (console) records.
 let entries: AccessLogEntry[] = [];
+let logs: AppLogEntry[] = [];
 let lastRefresh: string | null = null;
 
 async function refresh(): Promise<void> {
   try {
-    entries = await readAllEntries(LOGS_ROOT);
+    const parsed = await readAll(LOGS_ROOT);
+    entries = parsed.requests;
+    logs = parsed.logs;
     lastRefresh = new Date().toISOString();
   } catch (err) {
     console.error(`[ingest] refresh failed: ${(err as Error).message}`);
@@ -84,6 +91,33 @@ function sortEntries(list: AccessLogEntry[], field: SortField, dir: "asc" | "des
   });
 }
 
+const LOG_LEVELS = new Set<LogLevel>(["log", "info", "warn", "error", "debug"]);
+
+function parseLogFilter(query: Record<string, unknown>): AppLogFilter {
+  return {
+    app: list(query.app),
+    level: list(query.level).filter((l): l is LogLevel => LOG_LEVELS.has(l as LogLevel)),
+    q: str(query.q),
+    from: str(query.from),
+    to: str(query.to),
+    excludeApp: list(query.excludeApp),
+  };
+}
+
+type LogSortField = "ts" | "level" | "app";
+const LOG_SORT_FIELDS = new Set<LogSortField>(["ts", "level", "app"]);
+
+/** logs are stored ts-desc; only re-sort when a different order is asked. */
+function sortLogs(list: AppLogEntry[], field: LogSortField, dir: "asc" | "desc") {
+  if (field === "ts" && dir === "desc") return list; // already in this order
+  const mult = dir === "asc" ? 1 : -1;
+  return [...list].sort((a, b) => {
+    const av = a[field] ?? "";
+    const bv = b[field] ?? "";
+    return av < bv ? -mult : av > bv ? mult : 0;
+  });
+}
+
 // ---- API ------------------------------------------------------------------
 
 app.get("/api/logs", (req, res) => {
@@ -132,6 +166,54 @@ app.get("/api/meta", (_req, res) => {
   });
 });
 
+// ---- application-log API (mirrors the request API above) ------------------
+
+app.get("/api/app-logs", (req, res) => {
+  const filtered = filterAppLogs(logs, parseLogFilter(req.query));
+
+  const [rawField, rawDir] = (str(req.query.sort) || "ts:desc").split(":");
+  const field = LOG_SORT_FIELDS.has(rawField as LogSortField) ? (rawField as LogSortField) : "ts";
+  const dir: "asc" | "desc" = rawDir === "asc" ? "asc" : "desc";
+  const sorted = sortLogs(filtered, field, dir);
+
+  const limit = Math.min(Math.max(Number(str(req.query.limit)) || 100, 1), 1000);
+  const offset = Math.max(Number(str(req.query.offset)) || 0, 0);
+
+  res.json({
+    total: sorted.length,
+    limit,
+    offset,
+    lastRefresh,
+    entries: sorted.slice(offset, offset + limit),
+  });
+});
+
+app.get("/api/app-logs/stats", (req, res) => {
+  const filtered = filterAppLogs(logs, parseLogFilter(req.query));
+  res.json({ lastRefresh, stats: computeLogStats(filtered) });
+});
+
+app.get("/api/app-logs/meta", (_req, res) => {
+  const apps = new Set<string>();
+  const levels = new Set<LogLevel>();
+  let min: string | null = null;
+  let max: string | null = null;
+  for (const e of logs) {
+    apps.add(e.app);
+    levels.add(e.level);
+    if (min === null || e.ts < min) min = e.ts;
+    if (max === null || e.ts > max) max = e.ts;
+  }
+  res.json({
+    apps: [...apps].sort(),
+    levels: [...levels].sort(),
+    count: logs.length,
+    from: min,
+    to: max,
+    lastRefresh,
+  });
+});
+
 app.get("/healthz", (_req, res) => res.json({ status: "ok" }));
 
 // public/ resolves from the app root (cwd) — true both in dev (npm runs from
@@ -141,6 +223,6 @@ app.use(express.static(join(process.cwd(), "public")));
 app.listen(PORT, "0.0.0.0", async () => {
   console.log(`log-viewer listening on http://0.0.0.0:${PORT} (LOGS_ROOT=${LOGS_ROOT})`);
   await refresh();
-  console.log(`[ingest] loaded ${entries.length} entries`);
+  console.log(`[ingest] loaded ${entries.length} requests, ${logs.length} app-log entries`);
   setInterval(refresh, REFRESH_INTERVAL_MS);
 });

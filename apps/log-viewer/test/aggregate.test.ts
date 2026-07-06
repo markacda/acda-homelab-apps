@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { filterEntries, computeStats } from "../lib/aggregate.ts";
-import type { AccessLogEntry } from "../lib/ingest.ts";
+import { filterEntries, computeStats, filterAppLogs, computeLogStats } from "../lib/aggregate.ts";
+import type { AccessLogEntry, AppLogEntry } from "../lib/ingest.ts";
 
 function entry(over: Partial<AccessLogEntry>): AccessLogEntry {
   return {
@@ -105,4 +105,87 @@ test("computeStats: status distribution sorted ascending", () => {
     s.statusDistribution.map((d) => d.status),
     [200, 404, 500],
   );
+});
+
+// ---- application logs -----------------------------------------------------
+
+function logEntry(over: Partial<AppLogEntry>): AppLogEntry {
+  return {
+    ts: "2026-07-06T10:00:00.000Z",
+    app: "atc",
+    level: "info",
+    message: "hello world",
+    params: [],
+    ...over,
+  };
+}
+
+const logSample: AppLogEntry[] = [
+  logEntry({ app: "atc", level: "info", message: "starting up", ts: "2026-07-06T10:00:00Z" }),
+  logEntry({ app: "atc", level: "error", message: "fetch failed", ts: "2026-07-06T10:01:00Z" }),
+  logEntry({ app: "ev", level: "warn", message: "config missing", ts: "2026-07-06T10:02:00Z" }),
+  logEntry({ app: "ev", level: "debug", message: "trace details", ts: "2026-07-06T10:03:00Z" }),
+];
+
+test("filterAppLogs: by app", () => {
+  assert.equal(filterAppLogs(logSample, { app: ["atc"] }).length, 2);
+});
+
+test("filterAppLogs: by level (match ANY)", () => {
+  const r = filterAppLogs(logSample, { level: ["error", "warn"] });
+  assert.equal(r.length, 2);
+});
+
+test("filterAppLogs: by q substring over message (case-insensitive)", () => {
+  assert.equal(filterAppLogs(logSample, { q: "FAILED" }).length, 1);
+});
+
+test("filterAppLogs: excludeApp drops matching apps", () => {
+  const r = filterAppLogs(logSample, { excludeApp: ["atc"] });
+  assert.equal(r.length, 2);
+  assert.ok(r.every((e) => e.app === "ev"));
+});
+
+test("filterAppLogs: by time range (inclusive)", () => {
+  const r = filterAppLogs(logSample, { from: "2026-07-06T10:01:00Z", to: "2026-07-06T10:02:00Z" });
+  assert.equal(r.length, 2);
+});
+
+test("computeLogStats: overall banded counts", () => {
+  const s = computeLogStats(logSample);
+  assert.equal(s.overall.count, 4);
+  assert.equal(s.overall.errorCount, 1);
+  assert.equal(s.overall.warnCount, 1);
+  assert.equal(s.overall.infoCount, 2); // info + debug
+});
+
+test("computeLogStats: perApp with error/warn breakdown", () => {
+  const s = computeLogStats(logSample);
+  const atc = s.perApp.find((a) => a.app === "atc")!;
+  assert.equal(atc.count, 2);
+  assert.equal(atc.errorCount, 1);
+  assert.equal(atc.warnCount, 0);
+  const ev = s.perApp.find((a) => a.app === "ev")!;
+  assert.equal(ev.warnCount, 1);
+});
+
+test("computeLogStats: overTime is stacked by band and sorted ascending", () => {
+  const s = computeLogStats(logSample);
+  const totals = s.overTime.reduce(
+    (acc, b) => ({
+      error: acc.error + b.error,
+      warn: acc.warn + b.warn,
+      info: acc.info + b.info,
+    }),
+    { error: 0, warn: 0, info: 0 },
+  );
+  assert.deepEqual(totals, { error: 1, warn: 1, info: 2 });
+  const buckets = s.overTime.map((b) => b.bucket);
+  assert.deepEqual([...buckets].sort(), buckets);
+});
+
+test("computeLogStats: levelDistribution covers all present levels", () => {
+  const s = computeLogStats(logSample);
+  const levels = s.levelDistribution.map((d) => d.level).sort();
+  assert.deepEqual(levels, ["debug", "error", "info", "warn"]);
 });

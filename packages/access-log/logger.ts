@@ -1,5 +1,6 @@
 import { createStream } from "rotating-file-stream";
 import { join } from "node:path";
+import { format } from "node:util";
 import type { IncomingHttpHeaders } from "node:http";
 import type { RequestHandler } from "express";
 
@@ -8,19 +9,32 @@ import type { RequestHandler } from "express";
 // ~3-month retention window. LOG_DIR is a persistent volume in Docker.
 const LOG_DIR = process.env.LOG_DIR || join(process.cwd(), "logs");
 
+// Shared rotation options for both the access log and the app (console) log.
+const ROTATE_OPTS = {
+  interval: "1d", // rotate daily
+  path: LOG_DIR,
+  maxFiles: 90, // keep ~90 days -> 3-month retention
+  compress: "gzip", // gzip rotated files to save disk on the Pi
+} as const;
+
 // Lazily open the rotating stream on first write, so importing this module
 // (e.g. to unit-test buildEntry) has no filesystem side effects.
 let stream: ReturnType<typeof createStream> | undefined;
 function logStream(): ReturnType<typeof createStream> {
   if (!stream) {
-    stream = createStream("access.log", {
-      interval: "1d", // rotate daily
-      path: LOG_DIR,
-      maxFiles: 90, // keep ~90 days -> 3-month retention
-      compress: "gzip", // gzip rotated files to save disk on the Pi
-    });
+    stream = createStream("access.log", ROTATE_OPTS);
   }
   return stream;
+}
+
+// Second rotating stream for application (console) logs, kept in the same
+// LOG_DIR so it rides the Log Viewer's existing read-only volume mounts.
+let appStream: ReturnType<typeof createStream> | undefined;
+function appLogStream(): ReturnType<typeof createStream> {
+  if (!appStream) {
+    appStream = createStream("app.log", ROTATE_OPTS);
+  }
+  return appStream;
 }
 
 // Health-check polls hit every 30s; keep them out of the page-load log.
@@ -91,4 +105,78 @@ export function pageLoadLogger(app: string): RequestHandler {
     });
     next();
   };
+}
+
+// ---- application (console) logging ----------------------------------------
+
+// The console methods we mirror into app.log. `erasableSyntaxOnly` forbids
+// enums, so this is a plain const tuple.
+export const LOG_LEVELS = ["log", "info", "warn", "error", "debug"] as const;
+export type LogLevel = (typeof LOG_LEVELS)[number];
+
+// A structured application-log record: one JSON object per line in app.log.
+// Distinct from AccessLogEntry (which has `status`) by its `level`/`message`.
+export interface AppLogEntry {
+  ts: string;
+  app: string;
+  level: LogLevel;
+  message: string; // human-readable, util.format(...args)
+  params: unknown[]; // JSON-safe per-argument values, for structured display
+}
+
+/** Make a single console argument JSON-safe for the `params` array. */
+function safeParam(arg: unknown): unknown {
+  if (arg instanceof Error) {
+    return { name: arg.name, message: arg.message, stack: arg.stack };
+  }
+  if (arg === null || typeof arg !== "object") return arg; // primitives pass through
+  try {
+    // Round-trip through JSON so only serializable data survives (drops
+    // functions, handles nested structures, and surfaces any toJSON()).
+    return JSON.parse(JSON.stringify(arg));
+  } catch {
+    return String(arg); // circular refs / non-serializable -> best-effort string
+  }
+}
+
+/**
+ * Build a structured application-log entry from console arguments.
+ * Pure and side-effect free so it can be unit-tested (inject `nowIso`).
+ */
+export function buildAppLogEntry(
+  level: LogLevel,
+  args: unknown[],
+  app: string,
+  nowIso: string = new Date().toISOString(),
+): AppLogEntry {
+  return {
+    ts: nowIso,
+    app,
+    level,
+    message: format(...args),
+    params: args.map(safeParam),
+  };
+}
+
+let consoleInstalled = false;
+
+/**
+ * Wrap console.{log,info,warn,error,debug} so each call ALSO writes a structured
+ * AppLogEntry line to app.log, in addition to its normal stdout/stderr output.
+ * Idempotent; call once at app startup before other code logs.
+ */
+export function installConsoleLogging(app: string): void {
+  if (consoleInstalled) return;
+  consoleInstalled = true;
+  for (const level of LOG_LEVELS) {
+    const original = console[level].bind(console);
+    console[level] = (...args: unknown[]): void => {
+      original(...args); // keep the normal stdout/stderr output intact
+      try {
+        appLogStream().write(JSON.stringify(buildAppLogEntry(level, args, app)) + "\n");
+      } catch {
+        // Logging must never crash the app; drop the line on any write error.
+      }
+    };
+  }
 }

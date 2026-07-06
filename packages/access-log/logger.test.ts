@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildEntry } from "./logger.ts";
+import { buildEntry, buildAppLogEntry } from "./logger.ts";
 
 // Minimal req/res doubles — buildEntry only reads these fields.
 function fakeReq(overrides = {}) {
@@ -47,4 +47,44 @@ test("buildEntry tolerates missing optional fields", () => {
   assert.equal(entry.ua, null);
   assert.equal(entry.referer, null);
   assert.equal(entry.bytes, null);
+});
+
+test("buildAppLogEntry formats a message and keeps structured params", () => {
+  const entry = buildAppLogEntry(
+    "info",
+    ["Fetching %s (attempt %d)", "http://x/y", 2],
+    "test-app",
+    "2026-07-06T00:00:00.000Z",
+  );
+  assert.deepEqual(entry, {
+    ts: "2026-07-06T00:00:00.000Z",
+    app: "test-app",
+    level: "info",
+    message: "Fetching http://x/y (attempt 2)",
+    params: ["Fetching %s (attempt %d)", "http://x/y", 2],
+  });
+});
+
+test("buildAppLogEntry serializes Error args into name/message/stack", () => {
+  const err = new Error("boom");
+  const entry = buildAppLogEntry("error", ["calculate failed:", err], "test-app");
+  assert.equal(entry.level, "error");
+  assert.ok(entry.message.startsWith("calculate failed: Error: boom"));
+  const serialized = entry.params[1] as { name: string; message: string; stack?: string };
+  assert.equal(serialized.name, "Error");
+  assert.equal(serialized.message, "boom");
+  assert.equal(typeof serialized.stack, "string");
+});
+
+test("buildAppLogEntry keeps plain objects and tolerates circular refs", () => {
+  const circular: Record<string, unknown> = { a: 1 };
+  circular.self = circular;
+  const entry = buildAppLogEntry(
+    "log",
+    [{ ok: true }, circular],
+    "test-app",
+    "2026-07-06T00:00:00.000Z",
+  );
+  assert.deepEqual(entry.params[0], { ok: true });
+  assert.equal(typeof entry.params[1], "string"); // circular -> best-effort string
 });
