@@ -1,30 +1,106 @@
 %% =====================================================================
-%% recipe-book — DOCUMENT TEMPLATE (placeholder)
+%% recipe-book — DOCUMENT TEMPLATE
 %%
-%% Replace this whole preamble with your own predetermined layout. The
-%% generator needs exactly two things somewhere in this file (do not write
-%% either of them anywhere else, including in comments):
-%%   - a bookTitle token   (the book name is substituted for it)
-%%   - a RECIPES marker     (the rendered recipes are substituted for it)
-%% They appear once each below. Everything else (document class, packages,
-%% styling) is yours to define.
+%% Ported from a hand-built receptenboek. Compiled with Tectonic, which uses
+%% XeTeX, so fontspec + the bundled Spartan
+%% TTFs work. The generator fills three things (described by name; do NOT write
+%% the literal tokens/marker anywhere else, including comments):
+%%   - a fontDir token   -> absolute path to the bundled font directory
+%%   - a bookTitle token  -> the book's name
+%%   - a RECIPES marker    -> the category sections + rendered recipes
+%% Everything else below is the layout; edit freely.
 %% =====================================================================
-\documentclass[a4paper,11pt]{article}
+\documentclass{article}
 
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
-\usepackage{graphicx}
-\usepackage[margin=2.5cm]{geometry}
+% Dutch hyphenation / labels
+\usepackage[dutch]{babel}
+
+% Break lines eagerly so they don't overflow into the neighbouring column
+\sloppy
+
+% Spartan display font (bundled TTFs; Path is injected at generation time)
+\usepackage{fontspec}
+\setmainfont{Spartan}[
+    Path={{fontDir}},
+    Scale=0.9,
+    Extension=.ttf,
+    UprightFont=*-Regular,
+    BoldFont=*-ExtraBold,
+    ItalicFont=*-Regular,       % no italic cut shipped
+    BoldItalicFont=*-ExtraBold  % no bold-italic cut shipped
+]
+
+% Two-column layout with a vertical rule between the columns
+\usepackage{paracol}
+\columnratio{0.35}
+\usepackage{color}
+\setlength{\columnseprule}{0.4pt}
+\setlength{\columnsep}{4em}
+\def\columnseprulecolor{\color{black}}
+
+% Shift the column separator rule towards the right (80% / 20%)
+\usepackage{xpatch}
+\makeatletter
+\xpatchcmd{\pcol@hfil}{.5}{.8}{}{}
+\xpatchcmd{\pcol@hfil}{.5}{.8}{}{}
+\xpatchcmd{\pcol@hfil}{.5}{.2}{}{}
+\xpatchcmd{\pcol@hfil}{.5}{.2}{}{}
+\makeatother
+
+% Coloured table rows + a centered X column type (Y) for tabularx
+\usepackage[table]{xcolor}
+\usepackage{tabularx}
+\newcolumntype{Y}{>{\centering\arraybackslash}X}
+
+% Page margins
+\usepackage{geometry}
+\geometry{
+    a4paper,
+    total={170mm,257mm},
+    left=20mm,
+    top=20mm,
+}
+
+% Section title styling
+\usepackage{setspace}
+\usepackage{titlesec}
+\titleformat{\section}[block]{\Large\bfseries\filcenter}{}{1em}{}
+\newcommand{\sectionfont}{\Large\bfseries\filcenter\uppercase}
+\titleformat{\subsection}
+    {\titlerule
+     \vspace{1.1em}
+     \sectionfont}
+    {\thesection}{1em}
+    {\sectionfont}[\vspace{0.6em}\titlerule]
+\titlespacing*{\subsection}{0pt}{1.5em}{0pt}
+
+% No numbers in the table of contents
+\setcounter{secnumdepth}{0}
+
+% Smaller bullets at the first itemize level
+\renewcommand\labelitemi{\tiny$\bullet$}
+
+% Tighter itemize spacing
 \usepackage{enumitem}
-\usepackage{parskip}
+\setlist[itemize]{noitemsep, topsep=0pt}
+
+% No paragraph indentation
+\setlength{\parindent}{0pt}
+
+% Images (paths are absolute, injected per recipe)
+\usepackage{graphicx}
+
+% Degree and other symbols
+\usepackage{gensymb}
 
 \title{{{bookTitle}}}
+\author{}
 \date{}
 
 \begin{document}
+
 \maketitle
 \tableofcontents
-\clearpage
 
 %%RECIPES%%
 

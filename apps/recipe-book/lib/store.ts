@@ -5,7 +5,7 @@ import type { Recipe, Book, RecipeInput } from "./types.ts";
 
 // JSON-file persistence on a Docker volume (no database), mirroring the pattern
 // in apps/dynamic-vs-fixed/lib/energyzero.ts. Layout under DATA_DIR:
-//   recipes/<id>.json   images/<id>.<ext>   books/<id>.json   output/<id>.{tex,pdf}
+//   recipes/<id>.json   images/<id>-<short>.<ext>   books/<id>.json   output/<id>.{tex,pdf}
 export const DATA_DIR = process.env.DATA_DIR || join(process.cwd(), "data");
 export const RECIPES_DIR = join(DATA_DIR, "recipes");
 export const IMAGES_DIR = join(DATA_DIR, "images");
@@ -71,10 +71,14 @@ export async function createRecipe(input: RecipeInput): Promise<Recipe> {
     sourceUrl: input.sourceUrl ?? null,
     title: input.title,
     imageUrl: input.imageUrl ?? null,
-    imageFile: null,
+    images: [],
     ingredients: input.ingredients,
     steps: input.steps,
     servings: input.servings,
+    prepTime: input.prepTime,
+    cookTime: input.cookTime,
+    totalTime: input.totalTime,
+    notes: input.notes,
     category: input.category,
     createdAt: ts,
     updatedAt: ts,
@@ -84,13 +88,13 @@ export async function createRecipe(input: RecipeInput): Promise<Recipe> {
 
 export async function deleteRecipe(id: string): Promise<void> {
   const recipe = await getRecipe(id);
-  if (recipe?.imageFile) await removeImage(recipe.imageFile);
+  for (const filename of recipe?.images ?? []) await deleteImageFile(filename);
   await unlink(join(RECIPES_DIR, `${id}.json`)).catch(() => {});
 }
 
 // ---- images ---------------------------------------------------------------
 
-async function removeImage(filename: string): Promise<void> {
+async function deleteImageFile(filename: string): Promise<void> {
   await unlink(join(IMAGES_DIR, filename)).catch(() => {});
 }
 
@@ -113,34 +117,51 @@ export function imageExt(contentType: string | null, url: string | null): string
   return null;
 }
 
-/** Persist an image buffer for a recipe, replacing any prior image. Returns the stored filename. */
-export async function saveImageBuffer(
-  recipeId: string,
-  buffer: Buffer,
-  ext: string,
-): Promise<string> {
+/** Write an image buffer under a unique filename and return it (no recipe update). */
+async function writeImageFile(recipeId: string, buffer: Buffer, ext: string): Promise<string> {
   await ensureDir(IMAGES_DIR);
-  const filename = `${recipeId}${ext}`;
+  const filename = `${recipeId}-${randomUUID().slice(0, 8)}${ext}`;
   await writeFile(join(IMAGES_DIR, filename), buffer);
   return filename;
 }
 
+/** Append an uploaded image to a recipe's gallery. Returns the updated recipe. */
+export async function addImageBuffer(recipe: Recipe, buffer: Buffer, ext: string): Promise<Recipe> {
+  const filename = await writeImageFile(recipe.id, buffer, ext);
+  recipe.images.push(filename);
+  return saveRecipe(recipe);
+}
+
 /**
- * Download a remote image for a recipe and store it locally. Returns the stored
- * filename, or null if the URL is unreachable or the format is unsupported
- * (webp/svg) — callers treat a null as "no embeddable image".
+ * Download a remote image and append it to a recipe's gallery. Returns the updated
+ * recipe, or null if the URL is unreachable or the format is unsupported (webp/svg).
  */
-export async function downloadImage(recipeId: string, url: string): Promise<string | null> {
+export async function addImageFromUrl(recipe: Recipe, url: string): Promise<Recipe | null> {
   try {
     const res = await fetch(url, { headers: { "User-Agent": BROWSER_UA } });
     if (!res.ok) return null;
     const ext = imageExt(res.headers.get("content-type"), url);
     if (!ext) return null;
     const buffer = Buffer.from(await res.arrayBuffer());
-    return await saveImageBuffer(recipeId, buffer, ext);
+    return await addImageBuffer(recipe, buffer, ext);
   } catch {
     return null;
   }
+}
+
+/**
+ * Set a recipe's image order to `filenames` (must be a permutation/subset of its
+ * current images). Any image no longer referenced has its file deleted. Returns
+ * the updated recipe.
+ */
+export async function setImages(recipe: Recipe, filenames: string[]): Promise<Recipe> {
+  const current = new Set(recipe.images);
+  const next = filenames.filter((f) => current.has(f));
+  for (const f of recipe.images) {
+    if (!next.includes(f)) await deleteImageFile(f);
+  }
+  recipe.images = next;
+  return saveRecipe(recipe);
 }
 
 // Shared with fetchRecipe.ts; a realistic UA lifts some CDN/bot gates.

@@ -74,6 +74,11 @@
           /></label>
           <label>Servings<input id="edServings" type="text" placeholder="e.g. 4 personen" /></label>
         </div>
+        <div class="row3">
+          <label>Prep time<input id="edPrepTime" type="text" placeholder="e.g. 10 min" /></label>
+          <label>Cook time<input id="edCookTime" type="text" placeholder="e.g. 30 min" /></label>
+          <label>Total time<input id="edTotalTime" type="text" placeholder="e.g. 40 min" /></label>
+        </div>
         <label
           >Ingredients <span class="meta">(one per line)</span>
           <textarea id="edIngredients" rows="6"></textarea>
@@ -82,22 +87,25 @@
           >Steps <span class="meta">(one per line)</span>
           <textarea id="edSteps" rows="8"></textarea>
         </label>
+        <label
+          >Notes <span class="meta">(one per line, optional)</span>
+          <textarea id="edNotes" rows="3"></textarea>
+        </label>
 
         <div id="edImageBlock">
-          <h3>Image</h3>
-          <div class="image-row">
-            <img id="edImagePreview" alt="" class="thumb hidden" />
-            <div class="image-controls">
-              <div class="row">
-                <input id="edImageUrl" type="url" placeholder="Image URL…" />
-                <button id="edSetImageUrlBtn" type="button" class="secondary">Set from URL</button>
-              </div>
-              <div class="row" id="edUploadRow">
-                <input id="edImageFile" type="file" accept="image/jpeg,image/png" />
-                <button id="edUploadBtn" type="button" class="secondary">Upload</button>
-              </div>
+          <h3>Images <span class="meta">(first is the title image)</span></h3>
+          <div id="edGallery" class="gallery"></div>
+          <div class="image-controls">
+            <div class="row">
+              <input id="edImageUrl" type="url" placeholder="Image URL…" />
+              <button id="edAddImageUrlBtn" type="button" class="secondary">Add from URL</button>
+            </div>
+            <div class="row" id="edUploadRow">
+              <input id="edImageFile" type="file" accept="image/jpeg,image/png" />
+              <button id="edUploadBtn" type="button" class="secondary">Upload</button>
             </div>
           </div>
+          <p id="edImageHint" class="meta hidden">Save the new recipe first, then add images.</p>
           <p id="edImageStatus" class="status"></p>
         </div>
 

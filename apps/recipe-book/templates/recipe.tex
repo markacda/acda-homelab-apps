@@ -1,29 +1,69 @@
 %% =====================================================================
-%% recipe-book — PER-RECIPE TEMPLATE (placeholder)
+%% recipe-book — PER-RECIPE TEMPLATE
 %%
-%% Rendered once per recipe and inserted into book.tex. Replace the body
-%% below with your predetermined per-page layout. The generator substitutes
-%% five double-brace tokens (do not repeat them in comments); each is already
-%% LaTeX-escaped where it is free text:
-%%   title        - the recipe title
-%%   categoryLine - an italic category line, or empty
-%%   image        - an includegraphics command, or empty
-%%   ingredients  - \item lines (wrap them in your own itemize)
-%%   steps        - \item lines (wrap them in your own enumerate)
+%% Ported from a hand-built per-recipe template. Rendered once per recipe and
+%% inserted under its category section. The generator fills these tokens
+%% (described by name; do not repeat the literal tokens in comments). Free text
+%% is already LaTeX-escaped; list/section tokens are pre-built blocks:
+%%   category    - uppercase category label text (or empty)
+%%   title       - recipe title
+%%   servings    - "personen" line (or empty)
+%%   ingredients - \item lines for the itemize
+%%   notesBlock  - the whole Notities section, or empty
+%%   extraImages - \includegraphics lines for the extra photos, or empty
+%%   prepTime / cookTime / totalTime - time-table cells
+%%   titleImage  - \includegraphics for the title image, or empty
+%%   steps       - \item lines for the enumerate
 %% =====================================================================
-\section{{{title}}}
-{{categoryLine}}
+\newpage
 
-{{image}}
+\begin{center}
+    \uppercase{{{category}}}
+    \subsection{{{title}}}
+\end{center}
 
-\subsection*{Ingredi\"enten}
-\begin{itemize}[leftmargin=*]
+\vspace{0.5cm}
+
+\begin{paracol}{2}
+
+\uppercase{\textbf{Ingrediënten}}
+
+\vspace{0.25cm}
+
+{{servings}}
+
+\vspace{0.5cm}
+
+\begin{itemize}
+    \setlength\itemsep{0em}
 {{ingredients}}
 \end{itemize}
 
-\subsection*{Bereiding}
-\begin{enumerate}[leftmargin=*]
+{{notesBlock}}
+
+{{extraImages}}
+
+\switchcolumn
+
+{\renewcommand{\arraystretch}{2}
+    \begin{tabularx}{\linewidth}{YYY}
+        \rowcolor[RGB]{236, 234, 231}
+        Voorbereiding: & Bereiding: & Totale tijd: \\
+        {{prepTime}} & {{cookTime}} & {{totalTime}} \\
+        \hline
+    \end{tabularx}
+}
+
+\vspace{0.25cm}
+
+{{titleImage}}
+
+\vspace{0.5cm}
+
+\uppercase{\textbf{Bereiden}}
+\vspace{0.25cm}
+\begin{enumerate}
 {{steps}}
 \end{enumerate}
 
-\clearpage
+\end{paracol}
