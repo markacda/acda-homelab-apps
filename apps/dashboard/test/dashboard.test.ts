@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { mergeApps } from "../lib/config.ts";
-import { healthTarget } from "../lib/health.ts";
+import { healthTarget, isHealthStale, DISCOVERY_UA } from "../lib/health.ts";
 
 const baseConfig = { apps: [], overrides: {} };
 
@@ -56,4 +56,21 @@ test("healthTarget prefers explicit url, then host+port", () => {
     "http://host.docker.internal:8123",
   );
   assert.equal(healthTarget({}, "host.docker.internal"), null);
+});
+
+test("isHealthStale: never-probed targets are stale", () => {
+  // A fresh cache has no entry for this URL, so it counts as stale.
+  assert.equal(
+    isHealthStale([{ url: "http://never-probed.local" }], "host.docker.internal", 30_000),
+    true,
+  );
+});
+
+test("isHealthStale: apps with no probeable target are not stale", () => {
+  assert.equal(isHealthStale([{}], "host.docker.internal", 30_000), false);
+  assert.equal(isHealthStale([], "host.docker.internal", 30_000), false);
+});
+
+test("DISCOVERY_UA is the recognizable discovery-agent name", () => {
+  assert.equal(DISCOVERY_UA, "homelab-dashboard-discovery-agent");
 });

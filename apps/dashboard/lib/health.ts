@@ -2,6 +2,12 @@ import type { AppEntry } from "./config.ts";
 
 const CHECK_TIMEOUT_MS = 3000;
 
+// Sent as the User-Agent on every outgoing health probe so these requests are
+// recognizable in each app's access log (instead of undici's default "node").
+// The log-viewer hides this UA by default; if you change it here, update the
+// literal in apps/log-viewer as well (the two apps share it by convention).
+export const DISCOVERY_UA = "homelab-dashboard-discovery-agent";
+
 export interface HealthStatus {
   status: "up" | "down" | "unknown";
   lastChecked: string | null;
@@ -26,12 +32,38 @@ export function getStatus(target: string | null): HealthStatus {
   return statusCache.get(target) || { status: "unknown", lastChecked: null };
 }
 
+/**
+ * True if the cache lacks a fresh probe result for any of these apps — i.e. a
+ * target has never been checked or its last check is older than `maxAgeMs`.
+ * Used to trigger an on-demand refresh when a client opens the dashboard after
+ * the probe loop has been idle.
+ */
+export function isHealthStale(apps: AppEntry[], hostAddress: string, maxAgeMs: number): boolean {
+  const now = Date.now();
+  const targets = [
+    ...new Set(
+      apps.map((a) => healthTarget(a, hostAddress)).filter((t): t is string => Boolean(t)),
+    ),
+  ];
+  if (targets.length === 0) return false;
+  return targets.some((target) => {
+    const cached = statusCache.get(target);
+    if (!cached?.lastChecked) return true;
+    return now - Date.parse(cached.lastChecked) > maxAgeMs;
+  });
+}
+
 async function probe(target: string): Promise<"up" | "down"> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), CHECK_TIMEOUT_MS);
   try {
     // Any HTTP response (incl. 4xx/5xx) means the service is reachable.
-    await fetch(target, { method: "GET", signal: controller.signal, redirect: "manual" });
+    await fetch(target, {
+      method: "GET",
+      signal: controller.signal,
+      redirect: "manual",
+      headers: { "user-agent": DISCOVERY_UA },
+    });
     return "up";
   } catch {
     return "down";
