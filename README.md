@@ -5,12 +5,13 @@ each on its own port, all aggregated by a single `docker-compose.yml`.
 
 ## Port map
 
-| Port            | App                | Description                                                                                                            |
-| --------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| 80 / 443 / 8080 | `dashboard`        | Landing page: tiled dashboard that auto-discovers the other apps via the Docker socket and health-checks them          |
-| 6001            | `atc`              | Live aircraft-tracking frontend (airplanes.live), TypeScript/Express server + static map UI                            |
-| 6002            | `ev-crossover`     | Electricity price (€/kWh) at which charging is cheaper than petrol                                                     |
-| 6003            | `dynamic-vs-fixed` | Whether a dynamic (hourly-market) energy contract beats your fixed one, from HomeWizard usage + EnergyZero prices (NL) |
+| Port            | App                | Description                                                                                                               |
+| --------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| 80 / 443 / 8080 | `dashboard`        | Landing page: tiled dashboard that auto-discovers the other apps via the Docker socket and health-checks them             |
+| 6001            | `atc`              | Live aircraft-tracking frontend (airplanes.live), TypeScript/Express server + static map UI                               |
+| 6002            | `ev-crossover`     | Electricity price (€/kWh) at which charging is cheaper than petrol                                                        |
+| 6003            | `dynamic-vs-fixed` | Whether a dynamic (hourly-market) energy contract beats your fixed one, from HomeWizard usage + EnergyZero prices (NL)    |
+| 6004            | `log-viewer`       | Browse, search, filter and aggregate the structured access logs written by every app (per-app/per-endpoint stats, errors) |
 
 ## Run all apps
 
@@ -83,6 +84,12 @@ docker exec dynamic-vs-fixed ls /app/logs                    # rotated + gzipped
 ```
 
 In local dev the log lands in `apps/<name>/logs/` (git-ignored).
+
+Or use the **`log-viewer`** app (port 6004): it mounts every app's log volume
+read-only and serves a scrollable, searchable, filterable UI over the full
+3-month history, with accumulated stats (avg response time and request counts
+per app and per endpoint, error counts/rates, status distribution, and more).
+In dev, point it at the repo's logs with `LOGS_ROOT=./apps npm run dev -w log-viewer`.
 
 ## Adding a new app
 
