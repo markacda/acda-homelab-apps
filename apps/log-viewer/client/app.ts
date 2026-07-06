@@ -146,8 +146,7 @@ function checkboxDropdown(
     return options.length > 0 && checked.size === options.length;
   }
   function updateSummary(): void {
-    toggle.textContent =
-      checked.size === 0 || isAll() ? allLabel : `${checked.size} selected`;
+    toggle.textContent = checked.size === 0 || isAll() ? allLabel : `${checked.size} selected`;
     master.checked = isAll();
     master.indeterminate = checked.size > 0 && !isAll();
   }
@@ -185,9 +184,7 @@ function checkboxDropdown(
     setOptions(values: string[]): void {
       const wasAll = options.length === 0 || isAll();
       options = values;
-      checked = wasAll
-        ? new Set(values)
-        : new Set([...checked].filter((v) => values.includes(v)));
+      checked = wasAll ? new Set(values) : new Set([...checked].filter((v) => values.includes(v)));
       render();
     },
     selected(): string[] {

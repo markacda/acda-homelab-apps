@@ -41,7 +41,14 @@ function str(v: unknown): string | undefined {
 function list(v: unknown): string[] {
   const raw = str(v);
   if (!raw) return [];
-  return [...new Set(raw.split(",").map((s) => s.trim()).filter((s) => s.length > 0))];
+  return [
+    ...new Set(
+      raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0),
+    ),
+  ];
 }
 
 const STATUS_CLASSES = new Set<StatusClass>(["2xx", "3xx", "4xx", "5xx"]);
