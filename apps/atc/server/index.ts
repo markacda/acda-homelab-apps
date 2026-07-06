@@ -1,5 +1,9 @@
 import app from "./app.ts";
 import path from "path";
+import { installConsoleLogging } from "../../../packages/access-log/logger.ts";
+
+// Mirror console.* output into the structured app.log (see log-viewer).
+installConsoleLogging("atc");
 
 const PORT: number = parseInt(process.env.PORT || "6001", 10);
 

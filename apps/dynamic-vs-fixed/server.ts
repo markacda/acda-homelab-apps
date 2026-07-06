@@ -4,7 +4,10 @@ import { join } from "node:path";
 import { parseHomewizardCsv } from "./lib/parseHomewizardCsv.ts";
 import { fetchPriceData } from "./lib/energyzero.ts";
 import { calculate } from "./lib/calculate.ts";
-import { pageLoadLogger } from "../../packages/access-log/logger.ts";
+import { pageLoadLogger, installConsoleLogging } from "../../packages/access-log/logger.ts";
+
+// Mirror console.* output into the structured app.log (see log-viewer).
+installConsoleLogging("dynamic-vs-fixed");
 
 const app = express();
 const PORT = Number(process.env.PORT) || 6003;

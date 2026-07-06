@@ -4,8 +4,8 @@ import { mkdtemp, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
-import { parseLines, readAllEntries } from "../lib/ingest.ts";
-import type { AccessLogEntry } from "../lib/ingest.ts";
+import { parseLines, parseAll, readAllEntries, readAll } from "../lib/ingest.ts";
+import type { AccessLogEntry, AppLogEntry } from "../lib/ingest.ts";
 
 function entry(over: Partial<AccessLogEntry>): AccessLogEntry {
   return {
@@ -58,4 +58,62 @@ test("readAllEntries reads plain + gzipped files recursively, sorted ts desc", a
 test("readAllEntries returns [] when root is missing", async () => {
   const all = await readAllEntries(join(tmpdir(), "does-not-exist-logview-xyz"));
   assert.deepEqual(all, []);
+});
+
+function appLog(over: Partial<AppLogEntry>): AppLogEntry {
+  return {
+    ts: "2026-07-06T10:00:00.000Z",
+    app: "atc",
+    level: "info",
+    message: "hello",
+    params: [],
+    ...over,
+  };
+}
+
+test("parseAll splits request and app-log lines by shape", () => {
+  const req = entry({ url: "/a" });
+  const log = appLog({ level: "error", message: "boom" });
+  const text = [
+    JSON.stringify(req),
+    JSON.stringify(log),
+    "", // blank
+    "{not json",
+    '{"ts":"x"}', // neither shape (no status, no level/message)
+  ].join("\n");
+  const { requests, logs } = parseAll(text);
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].url, "/a");
+  assert.equal(logs.length, 1);
+  assert.equal(logs[0].message, "boom");
+  assert.equal(logs[0].level, "error");
+});
+
+test("readAll returns both kinds, each sorted ts desc, from mixed files", async () => {
+  const root = await mkdtemp(join(tmpdir(), "logview-mixed-"));
+  await mkdir(join(root, "atc"), { recursive: true });
+
+  const req = entry({ app: "atc", ts: "2026-07-06T12:00:00.000Z", url: "/new" });
+  await writeFile(join(root, "atc", "access.log"), JSON.stringify(req) + "\n");
+
+  const olderLog = appLog({ app: "atc", ts: "2026-07-06T09:00:00.000Z", message: "old" });
+  const newerLog = appLog({ app: "atc", ts: "2026-07-06T11:00:00.000Z", message: "new" });
+  await writeFile(
+    join(root, "atc", "app.log"),
+    JSON.stringify(olderLog) + "\n" + JSON.stringify(newerLog) + "\n",
+  );
+
+  const { requests, logs } = await readAll(root);
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].url, "/new");
+  assert.equal(logs.length, 2);
+  assert.equal(logs[0].message, "new"); // newest first
+  assert.equal(logs[1].message, "old");
+});
+
+test("parseLines still returns only request entries (back-compat)", () => {
+  const text = [JSON.stringify(entry({ url: "/x" })), JSON.stringify(appLog({}))].join("\n");
+  const out = parseLines(text);
+  assert.equal(out.length, 1);
+  assert.equal(out[0].url, "/x");
 });
