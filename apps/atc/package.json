@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "ATC Frontend - Aircraft Tracking Application",
   "type": "module",
-  "main": "dist/index.js",
+  "main": "dist/apps/atc/server/index.js",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "node dist/apps/atc/server/index.js",
     "dev": "node --watch server/index.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"

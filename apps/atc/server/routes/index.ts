@@ -6,7 +6,7 @@ const router: Router = express.Router();
 
 // Serve index.html for root path
 router.get("/", (_req: Request, res: Response) => {
-  res.sendFile(path.join(import.meta.dirname, "..", "..", "src", "index.html"));
+  res.sendFile(path.join(process.cwd(), "src", "index.html"));
 });
 
 // Health check endpoint

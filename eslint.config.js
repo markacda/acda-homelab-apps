@@ -34,6 +34,7 @@ export default [
       "apps/atc/server/**/*.ts",
       "apps/*/lib/**/*.ts",
       "apps/*/test/**/*.ts",
+      "packages/*/**/*.ts",
       "*.config.js",
     ],
     languageOptions: { globals: { ...globals.node } },

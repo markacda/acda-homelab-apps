@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildEntry } from "../lib/logger.ts";
+import { buildEntry } from "./logger.ts";
 
 // Minimal req/res doubles — buildEntry only reads these fields.
 function fakeReq(overrides = {}) {
@@ -23,16 +23,10 @@ function fakeRes(overrides = {}) {
 }
 
 test("buildEntry captures the structured page-load fields", () => {
-  const entry = buildEntry(
-    fakeReq(),
-    fakeRes(),
-    12.345,
-    "dynamic-vs-fixed",
-    "2026-07-06T00:00:00.000Z",
-  );
+  const entry = buildEntry(fakeReq(), fakeRes(), 12.345, "test-app", "2026-07-06T00:00:00.000Z");
   assert.deepEqual(entry, {
     ts: "2026-07-06T00:00:00.000Z",
-    app: "dynamic-vs-fixed",
+    app: "test-app",
     method: "GET",
     url: "/index.html",
     status: 200,
@@ -47,7 +41,7 @@ test("buildEntry captures the structured page-load fields", () => {
 test("buildEntry tolerates missing optional fields", () => {
   const req = fakeReq({ ip: undefined, socket: {}, headers: {} });
   const res = fakeRes({ statusCode: 404, getHeader: () => undefined });
-  const entry = buildEntry(req, res, 0, "dynamic-vs-fixed", "2026-07-06T00:00:00.000Z");
+  const entry = buildEntry(req, res, 0, "test-app", "2026-07-06T00:00:00.000Z");
   assert.equal(entry.status, 404);
   assert.equal(entry.ip, null);
   assert.equal(entry.ua, null);

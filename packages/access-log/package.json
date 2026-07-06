@@ -1,0 +1,21 @@
+{
+  "name": "@homelab/access-log",
+  "version": "1.0.0",
+  "description": "Shared structured per-request access-logging middleware for the homelab apps",
+  "private": true,
+  "type": "module",
+  "main": "logger.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "rotating-file-stream": "^3.2.6"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^24.0.0",
+    "express": "^5.1.0",
+    "typescript": "^5.9.3"
+  }
+}

@@ -5,7 +5,7 @@ import { loadConfig, mergeApps } from "./lib/config.ts";
 import type { AppEntry } from "./lib/config.ts";
 import { discoverApps } from "./lib/discovery.ts";
 import { refreshHealth, getStatus, healthTarget } from "./lib/health.ts";
-import { pageLoadLogger } from "./lib/logger.ts";
+import { pageLoadLogger } from "../../packages/access-log/logger.ts";
 
 // public/ resolves from the app root (cwd) — true both in dev (npm runs from
 // the app dir) and in Docker (WORKDIR /app) — so it works whether we run

@@ -1,6 +1,6 @@
 import express from "express";
 import { join } from "node:path";
-import { pageLoadLogger } from "./lib/logger.ts";
+import { pageLoadLogger } from "../../packages/access-log/logger.ts";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 6002;
