@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildEntry } from "../lib/logger.js";
+import { buildEntry } from "../lib/logger.ts";
 
 // Minimal req/res doubles — buildEntry only reads these fields.
 function fakeReq(overrides = {}) {
@@ -17,7 +17,7 @@ function fakeReq(overrides = {}) {
 function fakeRes(overrides = {}) {
   return {
     statusCode: 200,
-    getHeader: (name) => (name === "content-length" ? "1234" : undefined),
+    getHeader: (name: string) => (name === "content-length" ? "1234" : undefined),
     ...overrides,
   };
 }

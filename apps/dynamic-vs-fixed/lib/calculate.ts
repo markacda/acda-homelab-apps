@@ -1,15 +1,107 @@
 import { DateTime } from "luxon";
+import type { ParsedCsv } from "./parseHomewizardCsv.ts";
 
-const ZONE = "Europe/Amsterdam";
+/** Market price lookups consumed by {@link calculate}. */
+export interface MarketPrices {
+  elecByHour: Map<number, number>; // epoch millis of hour start -> €/kWh (excl VAT & tax)
+  gasByDate: Map<string, number>; // 'yyyy-MM-dd' (Amsterdam) -> €/m³ (excl VAT & tax)
+}
 
-function mean(values) {
+/** Raw tariff/tax inputs (from the form / JSON body); coerced defensively below. */
+export interface CalcParams {
+  fixedDayTariff?: number | string;
+  fixedNightTariff?: number | string;
+  fixedGasPrice?: number | string;
+  elecEnergyTax?: number | string;
+  gasEnergyTax?: number | string;
+  elecMarkup?: number | string;
+  gasMarkup?: number | string;
+  vatPct?: number | string;
+  dayStartHour?: number | string;
+  dayEndHour?: number | string;
+  weekendAllNight?: boolean;
+  includeGas?: boolean;
+}
+
+interface ResolvedParams {
+  fixedDayTariff: number;
+  fixedNightTariff: number;
+  fixedGasPrice: number;
+  elecEnergyTax: number;
+  gasEnergyTax: number;
+  elecMarkup: number;
+  gasMarkup: number;
+  vatPct: number;
+  dayStartHour: number;
+  dayEndHour: number;
+  weekendAllNight: boolean;
+  includeGas: boolean;
+}
+
+interface MonthBucket {
+  fixedElec: number;
+  dynElecMarket: number;
+  kwh: number;
+  fixedGas: number;
+  dynGasMarket: number;
+  gasM3: number;
+}
+
+export interface MonthlyRow {
+  month: string;
+  kwh: number;
+  gasM3: number;
+  fixed: number;
+  dynamic: number;
+  difference: number;
+}
+
+/** Result of {@link calculate}. */
+export interface CalcResult {
+  coverage: {
+    periodStart: string | null;
+    periodEnd: string | null;
+    spanDays: number;
+    annualized: boolean;
+    annualFactor: number;
+    intervals: number;
+    missingElecHours: number;
+    missingGasDays: number;
+  };
+  usage: {
+    totalKwh: number;
+    kwhDay: number;
+    kwhNight: number;
+    totalGasM3: number;
+    includeGas: boolean;
+  };
+  period: {
+    fixed: number;
+    dynamic: number;
+    difference: number;
+    fixedElec: number;
+    dynamicElec: number;
+    fixedGas: number;
+    dynamicGas: number;
+  };
+  annual: {
+    fixed: number;
+    dynamic: number;
+    difference: number;
+    dynamicCheaper: boolean;
+    pctVsFixed: number;
+  };
+  monthly: MonthlyRow[];
+}
+
+function mean(values: number[]): number {
   if (values.length === 0) return 0;
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
 
 // Is this interval billed at the DAY (peak) tariff for the fixed contract?
 // Default NL convention: day = weekdays 07:00–23:00; nights + weekends = night (dal).
-function isDayTariff(dt, p) {
+function isDayTariff(dt: DateTime, p: ResolvedParams): boolean {
   const weekday = dt.weekday; // 1=Mon .. 7=Sun
   if (p.weekendAllNight && (weekday === 6 || weekday === 7)) return false;
   const h = dt.hour;
@@ -18,13 +110,9 @@ function isDayTariff(dt, p) {
 
 /**
  * Compute fixed vs dynamic contract cost over the CSV period.
- *
- * @param {object} parsed  result of parseHomewizardCsv (intervals, hasGas)
- * @param {object} prices  result of fetchPriceData (elecByHour, gasByDate)
- * @param {object} params  tariffs + tax/VAT/markup + day/night window
  */
-export function calculate(parsed, prices, params) {
-  const p = {
+export function calculate(parsed: ParsedCsv, prices: MarketPrices, params: CalcParams): CalcResult {
+  const p: ResolvedParams = {
     fixedDayTariff: num(params.fixedDayTariff),
     fixedNightTariff: num(params.fixedNightTariff),
     fixedGasPrice: num(params.fixedGasPrice),
@@ -44,8 +132,8 @@ export function calculate(parsed, prices, params) {
   const avgMarketGas = mean([...prices.gasByDate.values()]);
 
   // Per-month buckets: { fixed, dynamic } all-in euro totals.
-  const months = new Map();
-  const bucket = (key) => {
+  const months = new Map<string, MonthBucket>();
+  const bucket = (key: string): MonthBucket => {
     let b = months.get(key);
     if (!b) {
       b = { fixedElec: 0, dynElecMarket: 0, kwh: 0, fixedGas: 0, dynGasMarket: 0, gasM3: 0 };
@@ -62,7 +150,7 @@ export function calculate(parsed, prices, params) {
   let missingGasDays = 0;
 
   for (const iv of parsed.intervals) {
-    const dt = iv.start instanceof DateTime ? iv.start : DateTime.fromISO(iv.start, { zone: ZONE });
+    const dt = iv.start;
     const monthKey = dt.toFormat("yyyy-MM");
     const b = bucket(monthKey);
 
@@ -100,7 +188,7 @@ export function calculate(parsed, prices, params) {
   }
 
   // Roll monthly buckets up into all-in totals (single ×VAT at the end).
-  const monthly = [];
+  const monthly: MonthlyRow[] = [];
   let fixedElec = 0;
   let dynElec = 0;
   let fixedGas = 0;
@@ -131,8 +219,8 @@ export function calculate(parsed, prices, params) {
   const dynamicTotal = dynElec + dynGas;
 
   // Annualize.
-  const start = toDT(parsed.periodStart);
-  const end = toDT(parsed.periodEnd);
+  const start = parsed.periodStart;
+  const end = parsed.periodEnd;
   const spanDays = Math.max(end.diff(start, "days").days, 1 / 24);
   const annualFactor = spanDays >= 1 ? 365 / spanDays : 1;
 
@@ -174,18 +262,15 @@ export function calculate(parsed, prices, params) {
   };
 }
 
-function num(v) {
+function num(v: number | string | undefined): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 }
-function intOr(v, d) {
-  const n = parseInt(v, 10);
+function intOr(v: number | string | undefined, d: number): number {
+  const n = parseInt(String(v), 10);
   return Number.isFinite(n) ? n : d;
 }
-function round(n, dp = 2) {
+function round(n: number, dp = 2): number {
   const f = 10 ** dp;
   return Math.round(n * f) / f;
-}
-function toDT(v) {
-  return v instanceof DateTime ? v : DateTime.fromISO(v, { zone: ZONE });
 }

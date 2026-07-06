@@ -1,16 +1,13 @@
-import express from "express";
+import express, { type Request, type Response } from "express";
 import multer from "multer";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
-import { parseHomewizardCsv } from "./lib/parseHomewizardCsv.js";
-import { fetchPriceData } from "./lib/energyzero.js";
-import { calculate } from "./lib/calculate.js";
-import { pageLoadLogger } from "./lib/logger.js";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
+import { join } from "node:path";
+import { parseHomewizardCsv } from "./lib/parseHomewizardCsv.ts";
+import { fetchPriceData } from "./lib/energyzero.ts";
+import { calculate } from "./lib/calculate.ts";
+import { pageLoadLogger } from "./lib/logger.ts";
 
 const app = express();
-const PORT = process.env.PORT || 6003;
+const PORT = Number(process.env.PORT) || 6003;
 
 app.use(pageLoadLogger("dynamic-vs-fixed"));
 
@@ -21,12 +18,16 @@ const upload = multer({
 
 app.get("/healthz", (_req, res) => res.json({ status: "ok" }));
 
-app.use(express.static(join(__dirname, "public")));
+// public/ resolves from the app root (cwd) — true both in dev (npm runs from
+// the app dir) and in Docker (WORKDIR /app) — so it works whether we run
+// server.ts directly or the compiled dist/server.js.
+app.use(express.static(join(process.cwd(), "public")));
 
-app.post("/api/calculate", upload.single("csv"), async (req, res) => {
+app.post("/api/calculate", upload.single("csv"), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: "No CSV file uploaded." });
+      res.status(400).json({ error: "No CSV file uploaded." });
+      return;
     }
     const params = JSON.parse(req.body.params || "{}");
 
@@ -48,7 +49,7 @@ app.post("/api/calculate", upload.single("csv"), async (req, res) => {
     });
   } catch (err) {
     console.error("calculate failed:", err);
-    res.status(400).json({ error: err.message || "Calculation failed." });
+    res.status(400).json({ error: err instanceof Error ? err.message : "Calculation failed." });
   }
 });
 

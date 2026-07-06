@@ -1,0 +1,12 @@
+{
+  // Node side: server + lib + tests. Compiles to dist/ for production
+  // (npm start runs dist/server.js). The test importing ../client/crossover.ts
+  // pulls that pure module into the program, so it is type-checked here too.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": ".",
+    "types": ["node"]
+  },
+  "include": ["server.ts", "lib/**/*.ts", "test/**/*.ts"]
+}

@@ -15,7 +15,7 @@ const NUMBER_FIELDS = [
 ];
 const BOOL_FIELDS = ["includeGas", "weekendAllNight"];
 
-const DEFAULTS = {
+const DEFAULTS: Record<string, number | boolean> = {
   fixedDayTariff: 0.35,
   fixedNightTariff: 0.3,
   fixedGasPrice: 1.3,
@@ -30,25 +30,63 @@ const DEFAULTS = {
   weekendAllNight: true,
 };
 
-const el = (id) => document.getElementById(id);
-const eur = (n) =>
+// Shape of the /api/calculate response (subset the UI renders).
+interface CalcResponse {
+  result: {
+    annual: {
+      dynamicCheaper: boolean;
+      difference: number;
+      pctVsFixed: number;
+      fixed: number;
+      dynamic: number;
+    };
+    period: {
+      fixedElec: number;
+      dynamicElec: number;
+      fixedGas: number;
+      dynamicGas: number;
+      fixed: number;
+      dynamic: number;
+    };
+    usage: { includeGas: boolean; totalKwh: number; totalGasM3: number };
+    coverage: {
+      intervals: number;
+      spanDays: number;
+      annualized: boolean;
+      missingElecHours: number;
+    };
+    monthly: Array<{
+      month: string;
+      kwh: number;
+      gasM3: number;
+      fixed: number;
+      dynamic: number;
+      difference: number;
+    }>;
+  };
+  meta: { mapping: unknown };
+}
+
+const el = (id: string) => document.getElementById(id) as HTMLElement;
+const inp = (id: string) => document.getElementById(id) as HTMLInputElement;
+const eur = (n: number) =>
   "€" + Number(n).toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-function load() {
-  let saved = {};
+function load(): void {
+  let saved: Record<string, unknown> = {};
   try {
-    saved = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+    saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") || {};
   } catch {
     saved = {};
   }
-  for (const id of NUMBER_FIELDS) el(id).value = saved[id] ?? DEFAULTS[id];
-  for (const id of BOOL_FIELDS) el(id).checked = saved[id] ?? DEFAULTS[id];
+  for (const id of NUMBER_FIELDS) inp(id).value = String(saved[id] ?? DEFAULTS[id]);
+  for (const id of BOOL_FIELDS) inp(id).checked = Boolean(saved[id] ?? DEFAULTS[id]);
 }
 
-function save() {
-  const data = {};
-  for (const id of NUMBER_FIELDS) data[id] = el(id).value;
-  for (const id of BOOL_FIELDS) data[id] = el(id).checked;
+function save(): void {
+  const data: Record<string, string | boolean> = {};
+  for (const id of NUMBER_FIELDS) data[id] = inp(id).value;
+  for (const id of BOOL_FIELDS) data[id] = inp(id).checked;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
@@ -56,21 +94,21 @@ function save() {
   }
 }
 
-function collectParams() {
-  const p = {};
-  for (const id of NUMBER_FIELDS) p[id] = parseFloat(el(id).value);
-  for (const id of BOOL_FIELDS) p[id] = el(id).checked;
+function collectParams(): Record<string, number | boolean> {
+  const p: Record<string, number | boolean> = {};
+  for (const id of NUMBER_FIELDS) p[id] = parseFloat(inp(id).value);
+  for (const id of BOOL_FIELDS) p[id] = inp(id).checked;
   return p;
 }
 
-function setStatus(msg, kind = "info") {
+function setStatus(msg: string, kind = "info"): void {
   const s = el("status");
   s.hidden = !msg;
   s.textContent = msg || "";
   s.className = "status " + kind;
 }
 
-function render({ result, meta }) {
+function render({ result, meta }: CalcResponse): void {
   el("result").hidden = false;
 
   const a = result.annual;
@@ -85,9 +123,13 @@ function render({ result, meta }) {
     (cheaper ? "saved per year with dynamic" : "extra per year with dynamic") +
     ` (${a.pctVsFixed}% vs fixed)`;
 
-  const rows = [
+  const rows: Array<[string, number, number]> = [
     ["Electricity", result.period.fixedElec, result.period.dynamicElec],
-    ...(result.usage.includeGas ? [["Gas", result.period.fixedGas, result.period.dynamicGas]] : []),
+    ...(result.usage.includeGas
+      ? ([["Gas", result.period.fixedGas, result.period.dynamicGas]] as Array<
+          [string, number, number]
+        >)
+      : []),
     ["Total (period)", result.period.fixed, result.period.dynamic],
     ["Total (annualized)", a.fixed, a.dynamic],
   ];
@@ -126,13 +168,13 @@ el("calc").addEventListener("submit", async (e) => {
   e.preventDefault();
   save();
 
-  const file = el("csv").files[0];
+  const file = inp("csv").files?.[0];
   if (!file) {
     setStatus("Please choose your HomeWizard CSV export first.", "error");
     return;
   }
 
-  const btn = el("submitBtn");
+  const btn = el("submitBtn") as HTMLButtonElement;
   btn.disabled = true;
   setStatus("Reading CSV and fetching historic prices… this can take a moment.", "info");
 
@@ -149,7 +191,7 @@ el("calc").addEventListener("submit", async (e) => {
     render(data);
     el("result").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (err) {
-    setStatus(err.message, "error");
+    setStatus(err instanceof Error ? err.message : String(err), "error");
   } finally {
     btn.disabled = false;
   }

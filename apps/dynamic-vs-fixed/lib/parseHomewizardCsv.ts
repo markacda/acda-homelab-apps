@@ -5,7 +5,54 @@ const ZONE = "Europe/Amsterdam";
 // Timestamp formats seen in HomeWizard exports (local Amsterdam time).
 const TS_FORMATS = ["yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm", "yyyy-MM-dd"];
 
-function detectDelimiter(headerLine) {
+/** One usage interval, starting at `start`, differenced from cumulative meter readings. */
+export interface Interval {
+  start: DateTime;
+  kwh: number;
+  kwhT1: number;
+  kwhT2: number;
+  gasM3: number;
+}
+
+/** Detected source columns, echoed back for debugging. */
+export interface ColumnMapping {
+  headers: string[];
+  time: string;
+  importT1: string | null;
+  importT2: string | null;
+  importTotal: string | null;
+  gas: string | null;
+}
+
+/** Result of {@link parseHomewizardCsv}. */
+export interface ParsedCsv {
+  intervals: Interval[];
+  hasTariffSplit: boolean;
+  hasGas: boolean;
+  mapping: ColumnMapping;
+  rowCount: number;
+  skippedRows: number;
+  periodStart: DateTime;
+  periodEnd: DateTime;
+}
+
+interface ColumnIndices {
+  time: number;
+  importT1: number;
+  importT2: number;
+  importTotal: number;
+  gas: number;
+}
+
+interface Row {
+  time: DateTime;
+  t1: number | null;
+  t2: number | null;
+  total: number | null;
+  gas: number | null;
+}
+
+function detectDelimiter(headerLine: string): string {
   const candidates = [";", ",", "\t"];
   let best = ",";
   let bestCount = -1;
@@ -19,13 +66,13 @@ function detectDelimiter(headerLine) {
   return best;
 }
 
-function splitLine(line, delimiter) {
+function splitLine(line: string, delimiter: string): string[] {
   // HomeWizard exports are simple (no quoted fields with embedded delimiters),
   // but tolerate optional surrounding quotes.
   return line.split(delimiter).map((c) => c.trim().replace(/^"|"$/g, ""));
 }
 
-function parseTimestamp(raw) {
+function parseTimestamp(raw: string): DateTime | null {
   const value = raw.trim();
   for (const fmt of TS_FORMATS) {
     const dt = DateTime.fromFormat(value, fmt, { zone: ZONE });
@@ -35,7 +82,7 @@ function parseTimestamp(raw) {
   return iso.isValid ? iso : null;
 }
 
-function parseNumber(raw) {
+function parseNumber(raw: string | null | undefined): number | null {
   if (raw == null) return null;
   let s = String(raw).trim();
   if (s === "") return null;
@@ -48,8 +95,8 @@ function parseNumber(raw) {
 }
 
 // Classify each header into a logical role.
-function classifyColumns(headers) {
-  const map = {
+function classifyColumns(headers: string[]): ColumnIndices {
+  const map: ColumnIndices = {
     time: -1,
     importT1: -1,
     importT2: -1,
@@ -87,18 +134,8 @@ function classifyColumns(headers) {
 /**
  * Parse a HomeWizard Energy CSV export (cumulative meter readings) into
  * per-interval usage. Consecutive cumulative rows are differenced.
- *
- * Returns:
- *   {
- *     intervals: [{ start: DateTime, kwh, kwhT1, kwhT2, gasM3 }],
- *     hasTariffSplit: boolean,   // meter T1/T2 registers available
- *     hasGas: boolean,
- *     mapping: {...},            // detected column indices (for debugging)
- *     rowCount, skippedRows,
- *     periodStart, periodEnd,    // DateTime bounds
- *   }
  */
-export function parseHomewizardCsv(text) {
+export function parseHomewizardCsv(text: string): ParsedCsv {
   const lines = text
     .split(/\r?\n/)
     .map((l) => l.trim())
@@ -122,7 +159,7 @@ export function parseHomewizardCsv(text) {
   const hasGas = map.gas !== -1;
 
   // Parse cumulative rows.
-  const rows = [];
+  const rows: Row[] = [];
   let skippedRows = 0;
   for (let i = 1; i < lines.length; i++) {
     const cells = splitLine(lines[i], delimiter);
@@ -144,13 +181,13 @@ export function parseHomewizardCsv(text) {
 
   // Difference consecutive readings. Usage between row[i-1] and row[i] is
   // attributed to the interval starting at row[i-1].time.
-  const diff = (prev, cur) => {
+  const diff = (prev: number | null, cur: number | null): number => {
     if (prev == null || cur == null) return 0;
     const d = cur - prev;
     return d >= 0 ? d : 0; // negative => meter reset / gap => skip
   };
 
-  const intervals = [];
+  const intervals: Interval[] = [];
   for (let i = 1; i < rows.length; i++) {
     const prev = rows[i - 1];
     const cur = rows[i];

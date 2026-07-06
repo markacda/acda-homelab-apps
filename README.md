@@ -35,23 +35,34 @@ so install everything once from the root:
 npm install           # installs deps for all apps
 ```
 
-Run a single app:
+The apps are TypeScript. In dev, Node runs the `.ts` sources directly (native
+type-stripping, Node ≥24) and restarts on change:
 
 ```sh
-npm start -w ev-crossover      # serves on http://localhost:6002
+npm run dev -w ev-crossover    # runs server.ts, serves on http://localhost:6002
 ```
 
-Lint, format and test across all apps:
+Browser assets under `public/` are compiled from `client/*.ts` by the build, so
+run the build once to (re)generate them (or to run the production output):
+
+```sh
+npm run build -w ev-crossover  # compiles server -> dist/ and client -> public/
+npm start -w ev-crossover      # runs the compiled dist/server.js
+```
+
+Lint, format, type-check and test across all apps:
 
 ```sh
 npm run lint
 npm run format        # or: npm run format:check
+npm run typecheck     # tsc --noEmit per app
 npm test              # runs each app's tests (node --test)
 ```
 
-> Docker still builds each app in isolation (`build: ./apps/<name>`), so every
-> app keeps its own `package-lock.json` for `npm ci` inside the image. The root
-> lockfile is what CI and local dev use.
+> Docker builds each app image from the **repo-root context** (`docker build -f
+apps/<name>/Dockerfile .`) so the shared `tsconfig.base.json` is reachable. The
+> build stage compiles the TypeScript to `dist/`; the image then installs its own
+> production deps. The root lockfile is what CI and local dev use.
 
 ## Logging
 
@@ -75,8 +86,9 @@ In local dev the log lands in `apps/<name>/logs/` (git-ignored).
 
 ## Adding a new app
 
-1. Create `apps/<name>/` with a `Dockerfile`, `package.json`, `server.js`, and a
-   `public/` folder (copy `apps/ev-crossover` as a template). It is picked up by
+1. Create `apps/<name>/` with a `Dockerfile`, `package.json`, `server.ts`,
+   `tsconfig.json`/`tsconfig.build.json`/`tsconfig.client.json`, and `client/` +
+   `public/` folders (copy `apps/ev-crossover` as a template). It is picked up by
    the workspace automatically.
 2. Have the server listen on `process.env.PORT` and bind `0.0.0.0`.
 3. Add a service to the root `docker-compose.yml` on the next free port (6003, 6004…).

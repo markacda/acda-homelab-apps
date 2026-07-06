@@ -1,0 +1,11 @@
+{
+  // Node side: server + lib + tests. Compiles to dist/ for production
+  // (npm start runs dist/server.js).
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": ".",
+    "types": ["node"]
+  },
+  "include": ["server.ts", "lib/**/*.ts", "test/**/*.ts"]
+}

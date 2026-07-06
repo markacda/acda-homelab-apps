@@ -1,10 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { crossoverPrice } from "../public/crossover.js";
+import { crossoverPrice } from "../client/crossover.ts";
 
 test("computes the crossover price from the defaults", () => {
   // (1.95 × 400) / (15 × 60) = 780 / 900 = 0.8666...
   const price = crossoverPrice({ petrolPrice: 1.95, consumption: 15, capacity: 60, range: 400 });
+  assert(price !== null);
   assert.equal(Math.round(price * 1000) / 1000, 0.867);
 });
 

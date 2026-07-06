@@ -1,34 +1,36 @@
-import { crossoverPrice } from "./crossover.js";
+import { crossoverPrice } from "./crossover.ts";
 
 const STORAGE_KEY = "ev-crossover:v1";
 
 const FIELDS = ["petrolPrice", "consumption", "capacity", "range"];
 
-const DEFAULTS = {
+const DEFAULTS: Record<string, number> = {
   petrolPrice: 1.95, // € per litre
   consumption: 15, // km per litre
   capacity: 60, // kWh
   range: 400, // km
 };
 
-const inputs = Object.fromEntries(FIELDS.map((id) => [id, document.getElementById(id)]));
-const resultValue = document.getElementById("resultValue");
-const resultText = document.getElementById("resultText");
+const inputs: Record<string, HTMLInputElement> = Object.fromEntries(
+  FIELDS.map((id) => [id, document.getElementById(id) as HTMLInputElement]),
+);
+const resultValue = document.getElementById("resultValue") as HTMLElement;
+const resultText = document.getElementById("resultText") as HTMLElement;
 
-function load() {
-  let saved = {};
+function load(): void {
+  let saved: Record<string, string | number> = {};
   try {
-    saved = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+    saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") || {};
   } catch {
     saved = {};
   }
   for (const id of FIELDS) {
     const value = saved[id] ?? DEFAULTS[id];
-    inputs[id].value = value;
+    inputs[id].value = String(value);
   }
 }
 
-function save() {
+function save(): void {
   const data = Object.fromEntries(FIELDS.map((id) => [id, inputs[id].value]));
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -37,7 +39,7 @@ function save() {
   }
 }
 
-function compute() {
+function compute(): void {
   const crossover = crossoverPrice({
     petrolPrice: inputs.petrolPrice.value,
     consumption: inputs.consumption.value,
@@ -58,7 +60,7 @@ function compute() {
     `Above that, petrol wins.`;
 }
 
-function onInput() {
+function onInput(): void {
   save();
   compute();
 }

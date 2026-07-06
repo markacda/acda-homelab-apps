@@ -1,16 +1,27 @@
 import js from "@eslint/js";
+import tseslint from "typescript-eslint";
 import globals from "globals";
 import prettier from "eslint-config-prettier";
 
 export default [
   {
-    // atc keeps its own TypeScript toolchain and ships vendored frontend libs,
-    // so it is excluded from the monorepo's JS lint/format.
-    ignores: ["**/node_modules/**", "**/data/**", "apps/atc/**"],
+    // Build output, data volumes and dependencies are never linted. atc's
+    // src/js/** is vendored/browser JavaScript with no build pipeline, so it
+    // stays excluded; the rest of atc (server/**) is now linted like every app.
+    ignores: [
+      "**/node_modules/**",
+      "**/data/**",
+      "**/dist/**",
+      // Compiled browser bundles emitted from client/*.ts — lint the .ts source,
+      // not the generated output.
+      "apps/*/public/*.js",
+      "apps/atc/src/**",
+    ],
   },
   js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
-    files: ["**/*.js"],
+    files: ["**/*.ts"],
     languageOptions: {
       ecmaVersion: 2024,
       sourceType: "module",
@@ -18,12 +29,18 @@ export default [
   },
   {
     // Server, shared libs and tests run on Node.
-    files: ["apps/*/server.js", "apps/*/lib/**/*.js", "apps/*/test/**/*.js", "*.config.js"],
+    files: [
+      "apps/*/server.ts",
+      "apps/atc/server/**/*.ts",
+      "apps/*/lib/**/*.ts",
+      "apps/*/test/**/*.ts",
+      "*.config.js",
+    ],
     languageOptions: { globals: { ...globals.node } },
   },
   {
-    // Everything under public/ runs in the browser.
-    files: ["apps/*/public/**/*.js"],
+    // Everything under client/ compiles to public/ and runs in the browser.
+    files: ["apps/*/client/**/*.ts"],
     languageOptions: { globals: { ...globals.browser } },
   },
   // Turn off stylistic rules that conflict with Prettier.

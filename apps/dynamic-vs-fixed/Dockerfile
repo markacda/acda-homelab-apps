@@ -1,13 +1,23 @@
+# Built from the repo root so the shared ../../tsconfig.base.json is in context:
+#   docker build -f apps/dynamic-vs-fixed/Dockerfile .
+
+# Build stage — compile the TypeScript server (dist/) and client bundle (public/).
+FROM node:24-alpine AS builder
+WORKDIR /repo
+COPY tsconfig.base.json ./
+WORKDIR /repo/apps/dynamic-vs-fixed
+COPY apps/dynamic-vs-fixed/package.json ./
+RUN npm install
+COPY apps/dynamic-vs-fixed/ ./
+RUN npm run build
+
+# Production stage — ships compiled JS + prod dependencies only.
 FROM node:24-alpine
-
 WORKDIR /app
-
-# Install dependencies first for better layer caching
-COPY package*.json ./
-RUN npm ci --omit=dev
-
-# Copy the rest of the app
-COPY . .
+COPY apps/dynamic-vs-fixed/package.json ./
+RUN npm install --omit=dev
+COPY --from=builder /repo/apps/dynamic-vs-fixed/dist ./dist
+COPY --from=builder /repo/apps/dynamic-vs-fixed/public ./public
 
 ENV PORT=6003
 ENV DATA_DIR=/app/data
@@ -20,4 +30,4 @@ EXPOSE 6003
 RUN mkdir -p /app/data /app/logs && chown node:node /app/data /app/logs
 USER node
 
-CMD ["node", "server.js"]
+CMD ["node", "dist/server.js"]
