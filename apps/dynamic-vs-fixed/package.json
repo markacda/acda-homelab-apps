@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "description": "Compare a fixed vs dynamic (hourly-market) NL energy contract using HomeWizard usage data",
   "type": "module",
-  "main": "dist/server.js",
+  "main": "dist/apps/dynamic-vs-fixed/server.js",
   "scripts": {
     "dev": "node --watch server.ts",
     "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.client.json",
-    "start": "node dist/server.js",
+    "start": "node dist/apps/dynamic-vs-fixed/server.js",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.client.json --noEmit",
     "test": "node --test",
     "clean": "rm -rf dist public/*.js"

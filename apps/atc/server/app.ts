@@ -6,7 +6,7 @@ import path from "path";
 import corsOptions from "./config/cors.ts";
 import mainRoutes from "./routes/index.ts";
 import apiRoutes from "./routes/api.ts";
-import { pageLoadLogger } from "./logger.ts";
+import { pageLoadLogger } from "../../../packages/access-log/logger.ts";
 
 const app: Express = express();
 
@@ -16,9 +16,11 @@ app.use(pageLoadLogger("atc")); // Structured per-request access logging to a ro
 app.use(cors(corsOptions));
 app.use(compression()); // Compress responses for better performance
 
-// Serve static files from src directory
+// Serve static files from the src directory. Resolve from the app root (cwd) —
+// true both in dev (npm runs from the app dir) and in Docker (WORKDIR /app) — so
+// it works regardless of where the compiled server.js nests under dist/.
 app.use(
-  express.static(path.join(import.meta.dirname, "..", "src"), {
+  express.static(path.join(process.cwd(), "src"), {
     maxAge: "1d", // Cache static assets for 1 day
     etag: true,
   }),

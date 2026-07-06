@@ -5,6 +5,13 @@
 FROM node:24-alpine AS builder
 WORKDIR /repo
 COPY tsconfig.base.json ./
+# Shared access-log middleware. server.ts imports it by relative path
+# (../../packages/access-log/logger.ts) and tsc compiles it into this app's
+# dist/, so its deps must be installed here for that compile to resolve.
+WORKDIR /repo/packages/access-log
+COPY packages/access-log/package.json ./
+RUN npm install
+COPY packages/access-log/ ./
 WORKDIR /repo/apps/dynamic-vs-fixed
 COPY apps/dynamic-vs-fixed/package.json ./
 RUN npm install
@@ -30,4 +37,4 @@ EXPOSE 6003
 RUN mkdir -p /app/data /app/logs && chown node:node /app/data /app/logs
 USER node
 
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/apps/dynamic-vs-fixed/server.js"]

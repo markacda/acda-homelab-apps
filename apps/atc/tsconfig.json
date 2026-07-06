@@ -1,8 +1,10 @@
 {
+  // No rootDir: app.ts imports the shared logger from ../../../packages, which
+  // sits above the app dir, so the common source root is the repo root and the
+  // build nests as dist/apps/atc/server/index.js (see package.json "start").
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./server",
     "types": ["node"]
   },
   "include": ["server/**/*"],

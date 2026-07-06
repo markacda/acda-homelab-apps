@@ -6,6 +6,13 @@ FROM node:24-alpine AS builder
 WORKDIR /repo
 # Shared base tsconfig that this app's tsconfig extends via ../../.
 COPY tsconfig.base.json ./
+# Shared access-log middleware. server.ts imports it by relative path
+# (../../packages/access-log/logger.ts) and tsc compiles it into this app's
+# dist/, so its deps must be installed here for that compile to resolve.
+WORKDIR /repo/packages/access-log
+COPY packages/access-log/package.json ./
+RUN npm install
+COPY packages/access-log/ ./
 WORKDIR /repo/apps/ev-crossover
 # Manifest first for dependency-layer caching.
 COPY apps/ev-crossover/package.json ./
@@ -33,4 +40,4 @@ RUN mkdir -p /app/logs && chown node:node /app/logs
 # Drop root privileges (the base image ships a non-root "node" user).
 USER node
 
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/apps/ev-crossover/server.js"]

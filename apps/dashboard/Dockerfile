@@ -5,6 +5,13 @@
 FROM node:24-alpine AS builder
 WORKDIR /repo
 COPY tsconfig.base.json ./
+# Shared access-log middleware. server.ts imports it by relative path
+# (../../packages/access-log/logger.ts) and tsc compiles it into this app's
+# dist/, so its deps must be installed here for that compile to resolve.
+WORKDIR /repo/packages/access-log
+COPY packages/access-log/package.json ./
+RUN npm install
+COPY packages/access-log/ ./
 WORKDIR /repo/apps/dashboard
 COPY apps/dashboard/package.json ./
 RUN npm install
@@ -33,4 +40,4 @@ RUN mkdir -p /app/logs
 # root:docker — an unprivileged user gets EACCES and discovery silently returns
 # no containers, leaving only the manually-configured tiles.
 
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/apps/dashboard/server.js"]

@@ -1,0 +1,11 @@
+{
+  // Standalone type-check + test target for the shared logger. The apps compile
+  // logger.ts into their own dist/ (they import it by relative path), so this
+  // project never emits — it only type-checks the source and its test.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["*.ts"]
+}
