@@ -1,44 +1,27 @@
-# Build stage
+# Built from the repo root so the shared ../../tsconfig.base.json is in context:
+#   docker build -f apps/atc/Dockerfile .
+
+# Build stage — compile the TypeScript backend to dist/.
 FROM node:24-alpine AS builder
-
-# Set working directory
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-COPY tsconfig.json ./
-
-# Install all dependencies (including devDependencies for TypeScript compilation)
-RUN npm ci
-
-# Copy TypeScript source files
-COPY server ./server
-
-# Build TypeScript to JavaScript
+WORKDIR /repo
+COPY tsconfig.base.json ./
+WORKDIR /repo/apps/atc
+COPY apps/atc/package.json ./
+RUN npm install
+# server/ (compiled) + tsconfig; src/ is static frontend, excluded by tsconfig.
+COPY apps/atc/ ./
 RUN npm run build
 
-# Production stage
+# Production stage — compiled JS + static frontend + prod dependencies only.
 FROM node:24-alpine
-
-# Set working directory
 WORKDIR /app
+COPY apps/atc/package.json ./
+RUN npm install --omit=dev
+# Compiled backend and the static frontend it serves (resolved at ../src).
+COPY --from=builder /repo/apps/atc/dist ./dist
+COPY apps/atc/src ./src
 
-# Copy package files
-COPY package*.json ./
-
-# Install production dependencies only
-RUN npm ci --only=production
-
-# Copy compiled JavaScript from build stage
-COPY --from=builder /app/dist ./dist
-
-# Copy static frontend files
-COPY src ./src
-
-# Expose port 6001
 EXPOSE 6001
-
-# Set environment to production
 ENV NODE_ENV=production
 ENV PORT=6001
 ENV LOG_DIR=/app/logs

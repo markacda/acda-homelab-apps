@@ -1,0 +1,13 @@
+{
+  // Browser side: compiles client/*.ts -> public/*.js (served static by
+  // express.static). DOM libs only, no Node types.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "outDir": "./public",
+    "rootDir": "./client",
+    "types": [],
+    "sourceMap": false
+  },
+  "include": ["client/**/*.ts"]
+}

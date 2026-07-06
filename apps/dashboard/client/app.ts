@@ -1,19 +1,34 @@
+interface AppTile {
+  name?: string;
+  url?: string | null;
+  port?: number | null;
+  icon?: string | null;
+  group?: string | null;
+  status?: string | null;
+  lastChecked?: string | null;
+}
+
+interface ApiResponse {
+  title?: string;
+  apps?: AppTile[];
+}
+
 const REFRESH_MS = 30_000;
 
-const titleEl = document.getElementById("title");
-const metaEl = document.getElementById("meta");
-const contentEl = document.getElementById("content");
+const titleEl = document.getElementById("title") as HTMLElement;
+const metaEl = document.getElementById("meta") as HTMLElement;
+const contentEl = document.getElementById("content") as HTMLElement;
 
 /** Build the click-through URL. Prefer an explicit url; otherwise use the
  * browser's current hostname + the published port so links work from any
  * client on the network. */
-function resolveHref(app) {
+function resolveHref(app: AppTile): string {
   if (app.url) return app.url;
   if (app.port) return `${location.protocol}//${location.hostname}:${app.port}`;
   return "#";
 }
 
-function iconEl(app) {
+function iconEl(app: AppTile): HTMLElement {
   if (app.icon && /^(https?:\/\/|\/)/.test(app.icon)) {
     const img = document.createElement("img");
     img.className = "tile-icon";
@@ -37,14 +52,14 @@ function iconEl(app) {
   return letterIcon(app.name);
 }
 
-function letterIcon(name) {
+function letterIcon(name?: string): HTMLDivElement {
   const wrap = document.createElement("div");
   wrap.className = "tile-icon";
   wrap.textContent = (name || "?").trim().charAt(0).toUpperCase();
   return wrap;
 }
 
-function tileEl(app) {
+function tileEl(app: AppTile): HTMLAnchorElement {
   const href = resolveHref(app);
   const a = document.createElement("a");
   a.className = "tile";
@@ -73,7 +88,7 @@ function tileEl(app) {
   return a;
 }
 
-function render(data) {
+function render(data: ApiResponse): void {
   const { title, apps } = data;
   if (title) {
     titleEl.textContent = title;
@@ -90,11 +105,11 @@ function render(data) {
 
   const hasGroups = apps.some((a) => a.group);
   if (hasGroups) {
-    const groups = new Map();
+    const groups = new Map<string, AppTile[]>();
     for (const app of apps) {
       const key = app.group || "Other";
       if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(app);
+      groups.get(key)!.push(app);
     }
     for (const [group, list] of [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
       const h = document.createElement("h2");
@@ -117,13 +132,13 @@ function render(data) {
   metaEl.textContent = `${apps.length} app${apps.length === 1 ? "" : "s"} · ${up} up`;
 }
 
-async function refresh() {
+async function refresh(): Promise<void> {
   try {
     const res = await fetch("/api/apps");
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    render(await res.json());
+    render((await res.json()) as ApiResponse);
   } catch (err) {
-    contentEl.innerHTML = `<p class="placeholder">Failed to load apps: ${err.message}</p>`;
+    contentEl.innerHTML = `<p class="placeholder">Failed to load apps: ${(err as Error).message}</p>`;
   }
 }
 

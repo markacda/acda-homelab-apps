@@ -1,10 +1,53 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import yaml from "js-yaml";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const DEFAULT_CONFIG_PATH = join(__dirname, "..", "config", "config.yaml");
+// config/ lives at the app root and is a read-only mounted volume in Docker, so
+// resolve it from cwd (the app dir in dev, /app in the container) rather than
+// relative to this file — which moves into dist/lib/ once compiled.
+const DEFAULT_CONFIG_PATH = join(process.cwd(), "config", "config.yaml");
+
+export interface Settings {
+  title: string;
+  hostAddress: string;
+  healthCheckIntervalSeconds: number;
+  autoDiscover: boolean;
+}
+
+export interface DiscoveryConfig {
+  requireLabel: boolean;
+  ignore: string[];
+}
+
+/** A dashboard tile — produced by discovery, config, or the two merged. */
+export interface AppEntry {
+  source?: string;
+  containerName?: string;
+  name?: string;
+  url?: string | null;
+  port?: number | null;
+  icon?: string | null;
+  group?: string | null;
+  hidden?: boolean;
+}
+
+/** Per-container/app override block from config.yaml. */
+export type AppOverride = Partial<AppEntry>;
+
+export interface Config {
+  settings: Settings;
+  discovery: DiscoveryConfig;
+  apps: AppEntry[];
+  overrides: Record<string, AppOverride>;
+}
+
+/** Shape of the raw parsed YAML before normalization (everything optional). */
+interface RawConfig {
+  settings?: Partial<Settings> & Record<string, unknown>;
+  discovery?: Partial<DiscoveryConfig> & Record<string, unknown>;
+  apps?: unknown;
+  overrides?: unknown;
+}
 
 const DEFAULTS = {
   settings: {
@@ -12,13 +55,13 @@ const DEFAULTS = {
     hostAddress: "host.docker.internal",
     healthCheckIntervalSeconds: 30,
     autoDiscover: true,
-  },
+  } satisfies Settings,
   discovery: {
     requireLabel: false,
-    ignore: [],
-  },
-  apps: [],
-  overrides: {},
+    ignore: [] as string[],
+  } satisfies DiscoveryConfig,
+  apps: [] as AppEntry[],
+  overrides: {} as Record<string, AppOverride>,
 };
 
 /**
@@ -26,23 +69,27 @@ const DEFAULTS = {
  * used, i.e. auto-discovery-only mode). Environment variables override the
  * matching settings when present.
  */
-export function loadConfig(configPath = process.env.CONFIG_PATH || DEFAULT_CONFIG_PATH) {
-  let raw = {};
+export function loadConfig(
+  configPath: string = process.env.CONFIG_PATH || DEFAULT_CONFIG_PATH,
+): Config {
+  let raw: RawConfig = {};
   try {
     const text = readFileSync(configPath, "utf8");
-    raw = yaml.load(text) || {};
+    raw = (yaml.load(text) as RawConfig) || {};
   } catch (err) {
-    if (err.code === "ENOENT") {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
       console.warn(
         `[config] ${configPath} not found — running with defaults (auto-discovery only).`,
       );
     } else {
-      console.error(`[config] Failed to read ${configPath}: ${err.message}. Using defaults.`);
+      console.error(
+        `[config] Failed to read ${configPath}: ${(err as Error).message}. Using defaults.`,
+      );
     }
   }
 
-  const settings = { ...DEFAULTS.settings, ...(raw.settings || {}) };
-  const discovery = { ...DEFAULTS.discovery, ...(raw.discovery || {}) };
+  const settings: Settings = { ...DEFAULTS.settings, ...(raw.settings || {}) };
+  const discovery: DiscoveryConfig = { ...DEFAULTS.discovery, ...(raw.discovery || {}) };
 
   // Environment overrides
   if (process.env.HOST_ADDRESS) settings.hostAddress = process.env.HOST_ADDRESS;
@@ -58,8 +105,11 @@ export function loadConfig(configPath = process.env.CONFIG_PATH || DEFAULT_CONFI
   discovery.requireLabel = discovery.requireLabel === true;
   discovery.ignore = Array.isArray(discovery.ignore) ? discovery.ignore.map(String) : [];
 
-  const apps = Array.isArray(raw.apps) ? raw.apps : [];
-  const overrides = raw.overrides && typeof raw.overrides === "object" ? raw.overrides : {};
+  const apps = Array.isArray(raw.apps) ? (raw.apps as AppEntry[]) : [];
+  const overrides =
+    raw.overrides && typeof raw.overrides === "object"
+      ? (raw.overrides as Record<string, AppOverride>)
+      : {};
 
   return { settings, discovery, apps, overrides };
 }
@@ -69,7 +119,7 @@ export function loadConfig(configPath = process.env.CONFIG_PATH || DEFAULT_CONFI
  * their port; url-based apps sort by the port in the url (defaulting to 443 for
  * https and 80 for http). Anything without a target sorts last.
  */
-function portRank(app) {
+function portRank(app: AppEntry): number {
   if (app.port) return Number(app.port);
   if (app.url) {
     try {
@@ -84,7 +134,7 @@ function portRank(app) {
 }
 
 /** Order apps by port/url, tie-breaking on the link target then the name. */
-function compareByTarget(a, b) {
+function compareByTarget(a: AppEntry, b: AppEntry): number {
   const rank = portRank(a) - portRank(b);
   if (rank !== 0) return rank;
   const target = (a.url || "").localeCompare(b.url || "");
@@ -97,11 +147,16 @@ function compareByTarget(a, b) {
  * Order: discovered → apply per-container overrides (incl. `hidden`) →
  * append manual apps → dedupe by url (falling back to name) → sort by url/port.
  */
-export function mergeApps(discovered, config) {
-  const merged = [];
+export function mergeApps(
+  discovered: AppEntry[],
+  config: Pick<Config, "apps" | "overrides">,
+): AppEntry[] {
+  const merged: AppEntry[] = [];
 
   for (const app of discovered) {
-    const override = config.overrides[app.containerName] || config.overrides[app.name];
+    const override =
+      (app.containerName ? config.overrides[app.containerName] : undefined) ||
+      (app.name ? config.overrides[app.name] : undefined);
     if (override && override.hidden === true) continue;
     merged.push({ ...app, ...(override || {}) });
   }
@@ -113,8 +168,8 @@ export function mergeApps(discovered, config) {
   }
 
   // Dedupe, keeping the first occurrence.
-  const seen = new Set();
-  const result = [];
+  const seen = new Set<string>();
+  const result: AppEntry[] = [];
   for (const app of merged) {
     const key = (app.url || app.name || "").toLowerCase();
     if (key && seen.has(key)) continue;

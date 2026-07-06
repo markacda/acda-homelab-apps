@@ -1,6 +1,10 @@
 node_modules
 package-lock.json
 data
+dist
 
-# atc keeps its own toolchain / vendored frontend libs — skip lint/formatting
-apps/atc
+# Compiled client output (generated from client/*.ts)
+apps/*/public/*.js
+
+# atc ships vendored frontend libs / browser JS with no build pipeline
+apps/atc/src

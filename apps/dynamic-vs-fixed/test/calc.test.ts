@@ -1,11 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DateTime } from "luxon";
-import { parseHomewizardCsv } from "../lib/parseHomewizardCsv.js";
-import { calculate } from "../lib/calculate.js";
+import { parseHomewizardCsv } from "../lib/parseHomewizardCsv.ts";
+import { calculate } from "../lib/calculate.ts";
 
 const ZONE = "Europe/Amsterdam";
-const hourKey = (local) =>
+const hourKey = (local: string) =>
   DateTime.fromFormat(local, "yyyy-MM-dd HH:mm", { zone: ZONE }).startOf("hour").toMillis();
 
 // Cumulative HomeWizard-style export (T1 = low, T2 = high, plus gas).
@@ -88,7 +88,7 @@ test("meter reset / negative diff is treated as zero, not negative usage", () =>
   assert.equal(round(parsed.intervals[1].kwh, 3), 0.5);
 });
 
-function round(n, dp) {
+function round(n: number, dp: number) {
   const f = 10 ** dp;
   return Math.round(n * f) / f;
 }

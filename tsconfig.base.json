@@ -1,0 +1,29 @@
+{
+  // Shared strict baseline for every workspace. Apps extend this and set their
+  // own outDir/rootDir/lib/include. See individual apps for details.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": true,
+    // Node runs .ts directly via native type-stripping, so only erasable syntax
+    // is allowed (no enums/namespaces/parameter-properties).
+    "erasableSyntaxOnly": true,
+    // Write ".ts" in relative imports (runs as-is under Node); tsc rewrites the
+    // extensions to ".js" when it emits to dist/, keeping the output valid ESM.
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    "sourceMap": true,
+    "declaration": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
+  }
+}

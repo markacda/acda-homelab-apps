@@ -31,14 +31,17 @@ A web-based aircraft tracking application with real-time data visualization usin
 ## 🔧 Prerequisites
 
 ### For Local Development
+
 - **Node.js 24+** - [Download here](https://nodejs.org/)
 - npm (comes with Node.js)
 
 ### For Docker Deployment
+
 - **Docker** - [Install Docker](https://docs.docker.com/get-docker/)
 - **Docker Compose** (included with Docker Desktop)
 
 ### For Raspberry Pi 5
+
 - Raspberry Pi OS (64-bit recommended)
 - Docker installed on Raspberry Pi
 - SSH access to Raspberry Pi
@@ -64,21 +67,20 @@ This compiles TypeScript files from `server/` to JavaScript in `dist/`.
 ### 3. Start the Server
 
 **Option A: Run Compiled JavaScript**
+
 ```bash
 npm start
 ```
 
-**Option B: Run TypeScript Directly (Development)**
+**Option B: Run TypeScript Directly with Auto-Reload (Development)**
+
 ```bash
 npm run dev
 ```
 
-**Option C: Run with Auto-Reload (Recommended for Development)**
-```bash
-npm run dev:watch
-```
-
-This will automatically restart the server when you make changes to TypeScript files.
+Node runs the `.ts` sources directly via native type-stripping (Node ≥24) and
+`--watch` restarts the server when you change a TypeScript file — no `ts-node`
+or `nodemon` required.
 
 ### 4. Access the Application
 
@@ -89,6 +91,7 @@ This will automatically restart the server when you make changes to TypeScript f
 If you want to use a different port:
 
 **Set environment variable**
+
 ```bash
 # Windows
 set PORT=3000 && npm start
@@ -102,6 +105,7 @@ Then access at `http://localhost:3000`
 ### 5. Verify Node Version
 
 Check your Node.js version (must be 24+):
+
 ```bash
 node --version
 ```
@@ -128,30 +132,35 @@ server/
 ### Development Workflow
 
 1. **Edit TypeScript files** in the `server/` directory
-2. **Auto-compile and run** with `npm run dev:watch`
+2. **Run with auto-reload** using `npm run dev`
 3. **Build for production** with `npm run build`
 4. **Test production build** with `npm start`
 
 ### TypeScript Configuration
 
-The project uses strict TypeScript settings defined in `tsconfig.json`:
+`tsconfig.json` extends the monorepo's shared `../../tsconfig.base.json` (strict
+settings) and adds only the atc-specific paths:
+
 - **Target**: ES2022
-- **Module**: CommonJS
-- **Strict Mode**: Enabled
+- **Module / resolution**: NodeNext (ESM — the app is `"type": "module"`)
+- **Strict Mode**: Enabled (via the shared base)
 - **Source Maps**: Generated for debugging
-- **Output**: `dist/` directory
+- **Output**: `dist/` directory (`rootDir` is `server/`)
+
+Relative imports use explicit `.ts` extensions; the base enables
+`rewriteRelativeImportExtensions`, so `tsc` rewrites them to `.js` in `dist/`.
 
 ### Available Scripts
 
-- `npm run build` - Compile TypeScript to JavaScript
-- `npm run dev` - Run server with ts-node (no compilation)
-- `npm run dev:watch` - Run with auto-reload on file changes
-- `npm start` - Run compiled JavaScript from dist/
-- `npm run clean` - Remove dist/ directory
+- `npm run build` - Compile TypeScript to JavaScript (`dist/`)
+- `npm run dev` - Run `server/index.ts` directly with `node --watch` (native type-stripping)
+- `npm run typecheck` - Type-check with `tsc --noEmit`
+- `npm start` - Run compiled JavaScript from `dist/`
+- `npm run clean` - Remove `dist/` directory
 
 ### Type Definitions
 
-All Express types are included via `@types/express`, `@types/node`, `@types/cors`, `@types/compression`, and `@types/morgan`.
+Express types are included via `@types/express`, `@types/node`, `@types/cors`, and `@types/compression`.
 
 ## 🐳 Docker Deployment
 
@@ -196,16 +205,19 @@ docker compose down
 For quick deployment, use the provided scripts that automatically pull the latest code, rebuild, and restart:
 
 **Linux/Mac:**
+
 ```bash
 ./deploy.sh
 ```
 
 This script can be made executable with the following command:
+
 ```bash
 chmod +x deploy.sh
 ```
 
 These scripts execute:
+
 1. `git pull` - Pull latest changes
 2. `docker compose build` - Build the image
 3. `docker compose up -d` - Start container in detached mode
@@ -276,10 +288,10 @@ In `docker-compose.yml`, you can adjust resource limits:
 deploy:
   resources:
     limits:
-      cpus: '2.0'
+      cpus: "2.0"
       memory: 512M
     reservations:
-      cpus: '0.5'
+      cpus: "0.5"
       memory: 128M
 ```
 
@@ -288,14 +300,14 @@ deploy:
 The server is configured to allow CORS for `api.airplanes.live`. To modify CORS settings, edit `server/config/cors.ts`:
 
 ```typescript
-import { CorsOptions } from 'cors';
+import { CorsOptions } from "cors";
 
 const corsOptions: CorsOptions = {
   origin: function (origin, callback) {
     // Add your custom logic here
     callback(null, true);
   },
-  credentials: true
+  credentials: true,
 };
 
 export default corsOptions;
@@ -317,16 +329,19 @@ The application includes a built-in proxy for `api.airplanes.live` API calls wit
   - Works around CORS restrictions if any
 
 **Example**:
+
 ```
 GET http://localhost:6001/api/airplanes/51.9082/-3.1966/50
 ```
 
 This will fetch aircraft data for:
+
 - Latitude: 51.9082
 - Longitude: -3.1966
 - Radius: 50 nautical miles
 
 **Validation**:
+
 - Latitude: -90 to 90
 - Longitude: -180 to 180
 - Radius: 1 to 250 nautical miles
@@ -363,11 +378,9 @@ atc/
 │   ├── images/               # Images and icons
 │   ├── geojson/              # GeoJSON map overlays
 │   └── flags/                # Country flags
-├── tsconfig.json              # TypeScript configuration
-├── nodemon.json               # Nodemon configuration for auto-reload
+├── tsconfig.json              # TypeScript config (extends ../../tsconfig.base.json)
 ├── package.json               # Node.js dependencies and scripts
-├── Dockerfile                 # Multi-stage Docker build
-├── docker-compose.yml         # Docker Compose configuration
+├── Dockerfile                 # Multi-stage Docker build (repo-root context)
 └── .dockerignore              # Docker ignore rules
 ```
 
@@ -386,17 +399,14 @@ atc/
 # Build TypeScript to JavaScript
 npm run build
 
-# Run with TypeScript directly (no build needed)
+# Run the TypeScript directly with auto-reload (no build needed)
 npm run dev
-
-# Run with auto-reload on file changes
-npm run dev:watch
 
 # Clean build artifacts
 npm run clean
 
 # Type-check without building
-npx tsc --noEmit
+npm run typecheck
 ```
 
 ### Docker Commands
@@ -460,6 +470,7 @@ vcgencmd measure_temp
 **Problem**: ARM64 compatibility issues.
 
 **Solution**: The Dockerfile uses `node:24-alpine` which supports ARM64. Ensure your Raspberry Pi is running 64-bit OS:
+
 ```bash
 uname -m  # Should show "aarch64"
 ```
@@ -469,6 +480,7 @@ uname -m  # Should show "aarch64"
 **Problem**: Port already in use.
 
 **Solution**: Check what's using the host port 6001:
+
 ```bash
 # Linux/Mac
 sudo lsof -i :6001
@@ -488,6 +500,7 @@ netstat -ano | findstr :6001
 **Problem**: Build fails with TypeScript errors.
 
 **Solution**:
+
 ```bash
 # Check TypeScript version
 npx tsc --version
@@ -501,12 +514,13 @@ npm run clean && npm run build
 
 ### Development Server Won't Start
 
-**Problem**: `npm run dev` or `npm run dev:watch` fails.
+**Problem**: `npm run dev` fails.
 
 **Solution**:
+
 1. Ensure all dependencies are installed: `npm install`
-2. Check if TypeScript files have syntax errors
-3. Verify `ts-node` is installed: `npm list ts-node`
+2. Check if TypeScript files have syntax errors: `npm run typecheck`
+3. Ensure Node is ≥24 (native TypeScript type-stripping): `node --version`
 4. Try running with compiled JavaScript instead: `npm run build && npm start`
 
 ### Missing Type Definitions
@@ -514,6 +528,7 @@ npm run clean && npm run build
 **Problem**: TypeScript can't find types for installed packages.
 
 **Solution**:
+
 ```bash
 # Install missing type definitions
 npm install --save-dev @types/packagename
@@ -527,10 +542,11 @@ npm install --save-dev @types/express @types/node
 **Problem**: Container uses too much memory.
 
 **Solution**: Adjust limits in `docker-compose.yml`:
+
 ```yaml
 resources:
   limits:
-    memory: 256M  # Reduce from 512M
+    memory: 256M # Reduce from 512M
 ```
 
 ### Cannot Connect to Application
@@ -538,6 +554,7 @@ resources:
 **Problem**: Application not accessible from network.
 
 **Solution**:
+
 1. Check if container is running: `docker compose ps`
 2. Check firewall rules
 3. Ensure correct IP address
@@ -548,7 +565,7 @@ resources:
 ### General
 
 1. **Use production builds**: Always run `npm run build` before deploying to production
-2. **TypeScript overhead**: Development mode (`npm run dev`) uses ts-node which is slower - use compiled JavaScript in production
+2. **TypeScript overhead**: Development mode (`npm run dev`) strips types at load time, which is slightly slower - use the compiled JavaScript in production
 3. **Enable compression**: Already configured in `server/app.ts`
 4. **Cache static assets**: Configured with 1-day cache in Express static middleware
 5. **Monitor build times**: Multi-stage Docker builds compile TypeScript only once during image creation
@@ -579,6 +596,7 @@ resources:
 ### TypeScript Migration
 
 The backend server has been fully migrated to TypeScript for improved:
+
 - **Type Safety**: Catch errors at compile time instead of runtime
 - **Developer Experience**: Better IDE autocompletion and inline documentation
 - **Code Quality**: Enforced strict typing and best practices

@@ -1,5 +1,7 @@
 import { createStream } from "rotating-file-stream";
 import { join } from "node:path";
+import type { IncomingHttpHeaders } from "node:http";
+import type { RequestHandler } from "express";
 
 // Structured per-request access log. One JSON object per line, written to a
 // daily-rotated file. Old files are gzipped and only ~90 are kept, giving a
@@ -8,8 +10,8 @@ const LOG_DIR = process.env.LOG_DIR || join(process.cwd(), "logs");
 
 // Lazily open the rotating stream on first write, so importing this module
 // (e.g. to unit-test buildEntry) has no filesystem side effects.
-let stream;
-function logStream() {
+let stream: ReturnType<typeof createStream> | undefined;
+function logStream(): ReturnType<typeof createStream> {
   if (!stream) {
     stream = createStream("access.log", {
       interval: "1d", // rotate daily
@@ -24,11 +26,46 @@ function logStream() {
 // Health-check polls hit every 30s; keep them out of the page-load log.
 const SKIP_PATHS = new Set(["/healthz", "/health"]);
 
+// buildEntry only reads these fields, so it accepts anything structurally
+// compatible: a real Express req/res and the lightweight test doubles alike.
+interface LoggableRequest {
+  method?: string;
+  originalUrl?: string;
+  url?: string;
+  ip?: string;
+  socket?: { remoteAddress?: string };
+  headers?: IncomingHttpHeaders;
+}
+
+interface LoggableResponse {
+  statusCode: number;
+  getHeader?: (name: string) => number | string | string[] | undefined;
+}
+
+export interface AccessLogEntry {
+  ts: string;
+  app: string;
+  method: string | undefined;
+  url: string | undefined;
+  status: number;
+  durationMs: number;
+  ip: string | null;
+  ua: string | null;
+  referer: string | null;
+  bytes: number | null;
+}
+
 /**
  * Build a structured access-log entry from a finished request/response.
  * Pure and side-effect free so it can be unit-tested without a real socket.
  */
-export function buildEntry(req, res, durationMs, app, nowIso = new Date().toISOString()) {
+export function buildEntry(
+  req: LoggableRequest,
+  res: LoggableResponse,
+  durationMs: number,
+  app: string,
+  nowIso: string = new Date().toISOString(),
+): AccessLogEntry {
   return {
     ts: nowIso,
     app,
@@ -44,7 +81,7 @@ export function buildEntry(req, res, durationMs, app, nowIso = new Date().toISOS
 }
 
 /** Express middleware that writes one JSON line per request to the rotating log. */
-export function pageLoadLogger(app) {
+export function pageLoadLogger(app: string): RequestHandler {
   return (req, res, next) => {
     if (SKIP_PATHS.has(req.path)) return next();
     const start = process.hrtime.bigint();

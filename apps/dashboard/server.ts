@@ -1,14 +1,16 @@
 import express from "express";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
-import { loadConfig, mergeApps } from "./lib/config.js";
-import { discoverApps } from "./lib/discovery.js";
-import { refreshHealth, getStatus, healthTarget } from "./lib/health.js";
-import { pageLoadLogger } from "./lib/logger.js";
+import { loadConfig, mergeApps } from "./lib/config.ts";
+import type { AppEntry } from "./lib/config.ts";
+import { discoverApps } from "./lib/discovery.ts";
+import { refreshHealth, getStatus, healthTarget } from "./lib/health.ts";
+import { pageLoadLogger } from "./lib/logger.ts";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const PUBLIC_DIR = join(__dirname, "public");
+// public/ resolves from the app root (cwd) — true both in dev (npm runs from
+// the app dir) and in Docker (WORKDIR /app) — so it works whether we run
+// server.ts directly or the compiled dist/server.js.
+const PUBLIC_DIR = join(process.cwd(), "public");
 const PORT = Number(process.env.PORT) || 8080;
 
 const config = loadConfig();
@@ -18,7 +20,7 @@ app.use(pageLoadLogger("dashboard"));
 app.use(express.static(PUBLIC_DIR));
 
 /** Build the current merged app list (discovery is cheap; re-run per request). */
-async function buildApps() {
+async function buildApps(): Promise<AppEntry[]> {
   const discovered = await discoverApps(config);
   return mergeApps(discovered, config);
 }
@@ -41,7 +43,7 @@ app.get("/api/apps", async (_req, res) => {
     });
     res.json({ title: config.settings.title, apps: enriched });
   } catch (err) {
-    console.error(`[api] /api/apps failed: ${err.message}`);
+    console.error(`[api] /api/apps failed: ${(err as Error).message}`);
     res.status(500).json({ error: "Failed to build app list" });
   }
 });
@@ -51,12 +53,12 @@ app.get("/healthz", (_req, res) => res.json({ ok: true }));
 // Serve the dashboard shell for the root.
 app.get("/", (_req, res) => res.sendFile(join(PUBLIC_DIR, "index.html")));
 
-async function healthLoop() {
+async function healthLoop(): Promise<void> {
   try {
     const apps = await buildApps();
     await refreshHealth(apps, config.settings.hostAddress);
   } catch (err) {
-    console.error(`[health] refresh failed: ${err.message}`);
+    console.error(`[health] refresh failed: ${(err as Error).message}`);
   }
 }
 

@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { mergeApps } from "../lib/config.js";
-import { healthTarget } from "../lib/health.js";
+import { mergeApps } from "../lib/config.ts";
+import { healthTarget } from "../lib/health.ts";
 
 const baseConfig = { apps: [], overrides: {} };
 

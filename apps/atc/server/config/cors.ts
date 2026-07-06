@@ -1,4 +1,4 @@
-import { CorsOptions } from 'cors';
+import type { CorsOptions } from "cors";
 
 const corsOptions: CorsOptions = {
   origin: function (origin, callback) {
@@ -8,7 +8,7 @@ const corsOptions: CorsOptions = {
     // Allow all origins for the frontend, but configure proxy if needed
     callback(null, true);
   },
-  credentials: true
+  credentials: true,
 };
 
 export default corsOptions;
