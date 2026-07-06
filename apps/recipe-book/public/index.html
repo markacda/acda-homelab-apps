@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Recipe Book — Allerhande to PDF</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍲</text></svg>"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>🍲 Recipe Book</h1>
+      <span class="meta">Import Allerhande recipes, build books, export LaTeX / PDF</span>
+    </header>
+
+    <div class="layout">
+      <!-- Left column: add + library -->
+      <div class="col">
+        <section class="panel">
+          <h2>Add a recipe</h2>
+          <div class="row">
+            <input id="importUrl" type="url" placeholder="Paste an Albert Heijn recipe URL…" />
+            <button id="importBtn" type="button">Import</button>
+          </div>
+          <div class="row">
+            <button id="newRecipeBtn" type="button" class="secondary">+ Add manually</button>
+          </div>
+          <p id="addStatus" class="status"></p>
+        </section>
+
+        <section class="panel">
+          <h2>Library <span id="libCount" class="meta"></span></h2>
+          <div id="library" class="cards-grid"></div>
+        </section>
+      </div>
+
+      <!-- Right column: books -->
+      <div class="col">
+        <section class="panel">
+          <h2>Recipe books</h2>
+          <div class="row">
+            <select id="bookSelect" title="Select a book"></select>
+            <button id="newBookBtn" type="button">New</button>
+            <button id="renameBookBtn" type="button" class="secondary">Rename</button>
+            <button id="deleteBookBtn" type="button" class="danger">Delete</button>
+          </div>
+
+          <div id="bookView" class="hidden">
+            <h3 id="bookTitle"></h3>
+            <ol id="bookPages" class="pages"></ol>
+            <div class="row">
+              <button id="genTexBtn" type="button">Generate .tex</button>
+              <button id="genPdfBtn" type="button">Generate PDF</button>
+              <a id="downloadLink" class="hidden" target="_blank" rel="noopener"></a>
+            </div>
+            <p id="genStatus" class="status"></p>
+          </div>
+          <p id="noBook" class="meta">Create a book to start adding recipes.</p>
+        </section>
+      </div>
+    </div>
+
+    <!-- Recipe editor overlay -->
+    <div id="editorOverlay" class="overlay hidden">
+      <div class="editor panel">
+        <h2 id="editorTitle">Edit recipe</h2>
+        <label>Title<input id="edTitle" type="text" /></label>
+        <div class="row2">
+          <label
+            >Category<input id="edCategory" type="text" placeholder="e.g. Hoofdgerecht"
+          /></label>
+          <label>Servings<input id="edServings" type="text" placeholder="e.g. 4 personen" /></label>
+        </div>
+        <label
+          >Ingredients <span class="meta">(one per line)</span>
+          <textarea id="edIngredients" rows="6"></textarea>
+        </label>
+        <label
+          >Steps <span class="meta">(one per line)</span>
+          <textarea id="edSteps" rows="8"></textarea>
+        </label>
+
+        <div id="edImageBlock">
+          <h3>Image</h3>
+          <div class="image-row">
+            <img id="edImagePreview" alt="" class="thumb hidden" />
+            <div class="image-controls">
+              <div class="row">
+                <input id="edImageUrl" type="url" placeholder="Image URL…" />
+                <button id="edSetImageUrlBtn" type="button" class="secondary">Set from URL</button>
+              </div>
+              <div class="row" id="edUploadRow">
+                <input id="edImageFile" type="file" accept="image/jpeg,image/png" />
+                <button id="edUploadBtn" type="button" class="secondary">Upload</button>
+              </div>
+            </div>
+          </div>
+          <p id="edImageStatus" class="status"></p>
+        </div>
+
+        <div class="row editor-actions">
+          <button id="edSaveBtn" type="button">Save</button>
+          <button id="edCancelBtn" type="button" class="secondary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+{
+  // Node side: server + lib + tests. Compiles to dist/ for production.
+  // No rootDir: server.ts imports the shared logger from ../../packages, which
+  // sits above the app dir, so the common source root is the repo root and the
+  // build nests as dist/apps/recipe-book/server.js (see package.json "start").
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "types": ["node"]
+  },
+  "include": ["server.ts", "lib/**/*.ts", "test/**/*.ts"]
+}

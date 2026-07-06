@@ -5,13 +5,14 @@ each on its own port, all aggregated by a single `docker-compose.yml`.
 
 ## Port map
 
-| Port            | App                | Description                                                                                                               |
-| --------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| 80 / 443 / 8080 | `dashboard`        | Landing page: tiled dashboard that auto-discovers the other apps via the Docker socket and health-checks them             |
-| 6001            | `atc`              | Live aircraft-tracking frontend (airplanes.live), TypeScript/Express server + static map UI                               |
-| 6002            | `ev-crossover`     | Electricity price (€/kWh) at which charging is cheaper than petrol                                                        |
-| 6003            | `dynamic-vs-fixed` | Whether a dynamic (hourly-market) energy contract beats your fixed one, from HomeWizard usage + EnergyZero prices (NL)    |
-| 6004            | `log-viewer`       | Browse, search, filter and aggregate the structured access logs written by every app (per-app/per-endpoint stats, errors) |
+| Port            | App                | Description                                                                                                                 |
+| --------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| 80 / 443 / 8080 | `dashboard`        | Landing page: tiled dashboard that auto-discovers the other apps via the Docker socket and health-checks them               |
+| 6001            | `atc`              | Live aircraft-tracking frontend (airplanes.live), TypeScript/Express server + static map UI                                 |
+| 6002            | `ev-crossover`     | Electricity price (€/kWh) at which charging is cheaper than petrol                                                          |
+| 6003            | `dynamic-vs-fixed` | Whether a dynamic (hourly-market) energy contract beats your fixed one, from HomeWizard usage + EnergyZero prices (NL)      |
+| 6004            | `log-viewer`       | Browse, search, filter and aggregate the structured access logs written by every app (per-app/per-endpoint stats, errors)   |
+| 6005            | `recipe-book`      | Import Albert Heijn (Allerhande) recipes into a shared library, assemble named recipe books, and export them as LaTeX / PDF |
 
 ## Run all apps
 
