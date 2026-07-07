@@ -2,7 +2,7 @@ import express from "express";
 import type { Express, RequestHandler, ErrorRequestHandler } from "express";
 import type { Server } from "node:http";
 import { join } from "node:path";
-import { pageLoadLogger, installConsoleLogging } from "../access-log/logger.ts";
+import { pageLoadLogger, installConsoleLogging, closeLogStreams } from "../access-log/logger.ts";
 
 // Shared Express bootstrap. Folds together the ritual every app's server.ts used
 // to repeat: install console logging, create the app, mount the access logger
@@ -30,14 +30,28 @@ export function healthHandler(): RequestHandler {
 }
 
 /**
- * Terminal Express error handler. Logs the error (so it lands in app.log) and
- * responds `500 { error }` unless the response has already started. Mount LAST,
- * after all routes and static middleware.
+ * Error-logging middleware. Catches every unhandled exception, logs it at
+ * `error` level (so it lands in app.log), and re-forwards it via next(err) so a
+ * downstream handler can still respond. Passing the raw Error object to
+ * console.error is deliberate: access-log's safeParam serializes it to
+ * { name, message, stack }, capturing the stack trace in the app-log params.
+ * Mount BEFORE errorHandler. Express 5 forwards both sync and async route
+ * errors here automatically.
  */
-export function errorHandler(name: string): ErrorRequestHandler {
-  return (err, _req, res, _next) => {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error(`[${name}] unhandled error: ${message}`);
+export function errorLogger(name: string): ErrorRequestHandler {
+  return (err, _req, _res, next) => {
+    console.error(`[${name}] unhandled error`, err);
+    next(err);
+  };
+}
+
+/**
+ * Terminal Express error handler. Responds `500 { error }` unless the response
+ * has already started. Mount LAST, after all routes and static middleware
+ * (errorLogger handles the logging).
+ */
+export function errorHandler(_name: string): ErrorRequestHandler {
+  return (_err, _req, res, _next) => {
     if (res.headersSent) return;
     res.status(500).json({ error: "Internal server error" });
   };
@@ -71,6 +85,7 @@ export function startServer(app: Express, opts: StartOptions): Server {
   const dir = staticDir === undefined ? join(process.cwd(), "public") : staticDir;
   if (dir) app.use(express.static(dir));
 
+  app.use(errorLogger(name));
   app.use(errorHandler(name));
 
   const server = app.listen(port, "0.0.0.0", () => {
@@ -97,12 +112,13 @@ function installGracefulShutdown(server: Server, name: string): void {
       }, SHUTDOWN_TIMEOUT_MS);
       timer.unref(); // don't keep the process alive just for the timer
       server.close((err) => {
-        clearTimeout(timer);
-        if (err) {
-          console.error(`${name} error during shutdown: ${err.message}`);
-          process.exit(1);
-        }
-        process.exit(0);
+        if (err) console.error(`${name} error during shutdown: ${err.message}`);
+        // Flush buffered log writes before exiting so the tail isn't lost. The
+        // timeout above still stands guard in case the flush itself hangs.
+        void closeLogStreams().finally(() => {
+          clearTimeout(timer);
+          process.exit(err ? 1 : 0);
+        });
       });
     });
   }

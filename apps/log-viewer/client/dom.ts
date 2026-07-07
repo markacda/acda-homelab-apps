@@ -44,15 +44,23 @@ export function pill(text: string, cls: string): HTMLElement {
 
 // ---- summary card ---------------------------------------------------------
 
-export function card(label: string, value: string, cls = "", title = ""): HTMLElement {
-  const attrs: Record<string, string> = { class: `card ${cls}` };
+export function card(
+  label: string,
+  value: string,
+  cls = "",
+  title = "",
+  onClick?: () => void,
+): HTMLElement {
+  const attrs: Record<string, string> = { class: `card ${cls}${onClick ? " clickable" : ""}` };
   if (title) attrs.title = title;
-  return el(
+  const node = el(
     "div",
     attrs,
     el("div", { class: "card-value" }, value),
     el("div", { class: "card-label" }, label),
   );
+  if (onClick) node.addEventListener("click", onClick);
+  return node;
 }
 
 // ---- stat table -----------------------------------------------------------
@@ -90,6 +98,9 @@ export function table(
 export interface CheckboxDropdown {
   /** Replace the option list, preserving selection (see below for "all"). */
   setOptions(values: string[]): void;
+  /** Programmatically set the selection (intersected with current options). Does
+   * NOT fire onChange — the caller drives any reload itself. */
+  setSelected(values: string[]): void;
   /** Selected values for the query; empty array means "no filter" (all). */
   selected(): string[];
 }
@@ -169,6 +180,10 @@ export function checkboxDropdown(
       const wasAll = options.length === 0 || isAll();
       options = values;
       checked = wasAll ? new Set(values) : new Set([...checked].filter((v) => values.includes(v)));
+      render();
+    },
+    setSelected(values: string[]): void {
+      checked = new Set(values.filter((v) => options.includes(v)));
       render();
     },
     selected(): string[] {

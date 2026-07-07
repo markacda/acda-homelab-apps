@@ -215,8 +215,14 @@ export function mountRequests(root: HTMLElement): () => void {
         s.overall.errorRate ? "warn" : "",
         failing,
       ),
-      card("5xx", String(s.overall.count5xx), s.overall.count5xx ? "bad" : ""),
-      card("4xx", String(s.overall.count4xx)),
+      card("5xx", String(s.overall.count5xx), s.overall.count5xx ? "bad" : "", "", () => {
+        statusDropdown.setSelected(["5xx"]);
+        refresh();
+      }),
+      card("4xx", String(s.overall.count4xx), "", "", () => {
+        statusDropdown.setSelected(["4xx"]);
+        refresh();
+      }),
     );
   }
   function renderStatTables(s: Stats): void {
