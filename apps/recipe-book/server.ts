@@ -1,7 +1,8 @@
 import express, { type Response } from "express";
-import multer from "multer";
 import { join } from "node:path";
-import { pageLoadLogger, installConsoleLogging } from "../../packages/access-log/logger.ts";
+import { createApp, startServer } from "../../packages/server-kit/app.ts";
+import { optStr, toStringArray } from "../../packages/http-utils/index.ts";
+import { memoryUpload } from "../../packages/http-utils/upload.ts";
 import { fetchRecipeHtml } from "./lib/fetchRecipe.ts";
 import { parseRecipe } from "./lib/parseRecipe.ts";
 import { generateTex, generatePdf } from "./lib/generate.ts";
@@ -25,41 +26,12 @@ import {
 } from "./lib/store.ts";
 import type { Recipe, Book, RecipeInput } from "./lib/types.ts";
 
-// Mirror console.* output into the structured app.log (see log-viewer).
-installConsoleLogging("recipe-book");
-
-const app = express();
-const PORT = Number(process.env.PORT) || 6005;
-
-app.use(pageLoadLogger("recipe-book"));
+const app = createApp("recipe-book");
 app.use(express.json({ limit: "1mb" }));
 
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // recipe photos are small
-});
-
-app.get("/healthz", (_req, res) => res.json({ status: "ok" }));
+const upload = memoryUpload({ fileSizeMB: 10 }); // recipe photos are small
 
 // ---- input helpers --------------------------------------------------------
-
-/** Coerce a body value (string[] or newline-separated string) to a trimmed string[]. */
-function toStringArray(v: unknown): string[] {
-  if (Array.isArray(v)) {
-    return v.map((x) => (typeof x === "string" ? x.trim() : "")).filter(Boolean);
-  }
-  if (typeof v === "string") {
-    return v
-      .split(/\r?\n+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
-  return [];
-}
-
-function optStr(v: unknown): string | undefined {
-  return typeof v === "string" && v.trim() ? v.trim() : undefined;
-}
 
 /** Build a validated RecipeInput from a request body, or throw a 400-worthy error. */
 function toRecipeInput(body: Record<string, unknown>): RecipeInput {
@@ -307,12 +279,7 @@ app.get("/api/books/:id/download/:format", async (req, res) => {
 });
 
 // Serve downloaded recipe images from the data volume at /images/<file>.
+// (public/ is served by startServer.)
 app.use("/images", express.static(IMAGES_DIR));
 
-// public/ resolves from the app root (cwd) — true both in dev (npm runs from the
-// app dir) and in Docker (WORKDIR /app).
-app.use(express.static(join(process.cwd(), "public")));
-
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`recipe-book listening on http://0.0.0.0:${PORT}`);
-});
+startServer(app, { name: "recipe-book", port: Number(process.env.PORT) || 6005 });

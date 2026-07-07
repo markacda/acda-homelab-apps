@@ -6,8 +6,9 @@ import prettier from "eslint-config-prettier";
 export default [
   {
     // Build output, data volumes and dependencies are never linted. atc's
-    // src/js/** is vendored/browser JavaScript with no build pipeline, so it
-    // stays excluded; the rest of atc (server/**) is now linted like every app.
+    // public/ is vendored/browser JavaScript + assets with no build pipeline, so
+    // it stays excluded; the rest of atc (server.ts + lib/) is linted like every
+    // app.
     ignores: [
       "**/node_modules/**",
       "**/data/**",
@@ -15,7 +16,7 @@ export default [
       // Compiled browser bundles emitted from client/*.ts — lint the .ts source,
       // not the generated output.
       "apps/*/public/*.js",
-      "apps/atc/src/**",
+      "apps/atc/public/**",
     ],
   },
   js.configs.recommended,
@@ -31,7 +32,6 @@ export default [
     // Server, shared libs and tests run on Node.
     files: [
       "apps/*/server.ts",
-      "apps/atc/server/**/*.ts",
       "apps/*/lib/**/*.ts",
       "apps/*/test/**/*.ts",
       "packages/*/**/*.ts",
@@ -43,6 +43,18 @@ export default [
     // Everything under client/ compiles to public/ and runs in the browser.
     files: ["apps/*/client/**/*.ts"],
     languageOptions: { globals: { ...globals.browser } },
+  },
+  {
+    // Honour the repo-wide `_`-prefix convention for intentionally-unused
+    // bindings — e.g. `(_req, res)` handlers and the required-but-unused `_next`
+    // 4th arg of an Express error handler (Express detects them by arity).
+    files: ["**/*.ts"],
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
+      ],
+    },
   },
   // Turn off stylistic rules that conflict with Prettier.
   prettier,

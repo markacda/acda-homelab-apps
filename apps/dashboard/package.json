@@ -2,6 +2,7 @@
   "name": "dashboard",
   "version": "1.0.0",
   "description": "Tiled homelab dashboard with Docker auto-discovery and server-side health checks",
+  "private": true,
   "type": "module",
   "main": "dist/apps/dashboard/server.js",
   "scripts": {

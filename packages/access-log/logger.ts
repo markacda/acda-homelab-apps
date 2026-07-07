@@ -4,6 +4,8 @@ import { format } from "node:util";
 import type { IncomingHttpHeaders } from "node:http";
 import type { RequestHandler } from "express";
 
+export { DISCOVERY_UA } from "./constants.ts";
+
 // Structured per-request access log. One JSON object per line, written to a
 // daily-rotated file. Old files are gzipped and only ~90 are kept, giving a
 // ~3-month retention window. LOG_DIR is a persistent volume in Docker.

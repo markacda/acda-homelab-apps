@@ -7,4 +7,4 @@ dist
 apps/*/public/*.js
 
 # atc ships vendored frontend libs / browser JS with no build pipeline
-apps/atc/src
+apps/atc/public

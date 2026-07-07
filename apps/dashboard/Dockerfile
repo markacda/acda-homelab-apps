@@ -12,6 +12,11 @@ WORKDIR /repo/packages/access-log
 COPY packages/access-log/package.json ./
 RUN npm install
 COPY packages/access-log/ ./
+# Shared server-kit bootstrap (createApp/startServer), imported by server.ts.
+WORKDIR /repo/packages/server-kit
+COPY packages/server-kit/package.json ./
+RUN npm install
+COPY packages/server-kit/ ./
 WORKDIR /repo/apps/dashboard
 COPY apps/dashboard/package.json ./
 RUN npm install
@@ -39,5 +44,8 @@ RUN mkdir -p /app/logs
 # reads the host's Docker socket (mounted read-only), which is owned by
 # root:docker — an unprivileged user gets EACCES and discovery silently returns
 # no containers, leaving only the manually-configured tiles.
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "fetch('http://localhost:8080/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 CMD ["node", "dist/apps/dashboard/server.js"]

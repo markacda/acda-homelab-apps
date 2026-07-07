@@ -5,17 +5,22 @@
 FROM node:24-alpine AS builder
 WORKDIR /repo
 COPY tsconfig.base.json ./
-# Shared access-log middleware. app.ts imports it by relative path
-# (../../../packages/access-log/logger.ts) and tsc compiles it into this app's
+# Shared access-log middleware. server.ts imports it by relative path
+# (../../packages/access-log/logger.ts) and tsc compiles it into this app's
 # dist/, so its deps must be installed here for that compile to resolve.
 WORKDIR /repo/packages/access-log
 COPY packages/access-log/package.json ./
 RUN npm install
 COPY packages/access-log/ ./
+# Shared server-kit bootstrap (createApp/startServer), imported by server.ts.
+WORKDIR /repo/packages/server-kit
+COPY packages/server-kit/package.json ./
+RUN npm install
+COPY packages/server-kit/ ./
 WORKDIR /repo/apps/atc
 COPY apps/atc/package.json ./
 RUN npm install
-# server/ (compiled) + tsconfig; src/ is static frontend, excluded by tsconfig.
+# server.ts + lib/ (compiled) + tsconfig; public/ is static frontend, not compiled.
 COPY apps/atc/ ./
 RUN npm run build
 
@@ -24,9 +29,9 @@ FROM node:24-alpine
 WORKDIR /app
 COPY apps/atc/package.json ./
 RUN npm install --omit=dev
-# Compiled backend and the static frontend it serves (resolved at ../src).
+# Compiled backend and the static frontend it serves (resolved at ./public).
 COPY --from=builder /repo/apps/atc/dist ./dist
-COPY apps/atc/src ./src
+COPY apps/atc/public ./public
 
 EXPOSE 6001
 ENV NODE_ENV=production
@@ -41,4 +46,7 @@ RUN mkdir -p /app/logs && chown node:node /app/logs
 USER node
 
 # Start the server with compiled JavaScript
-CMD ["node", "dist/apps/atc/server/index.js"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "fetch('http://localhost:6001/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+CMD ["node", "dist/apps/atc/server.js"]
