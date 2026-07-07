@@ -1,9 +1,12 @@
-import type { Recipe, Book } from "./types.ts";
+import type { RecipeData } from "../../Domain/Aggregates/recipe.ts";
+import type { BookData } from "../../Domain/Aggregates/book.ts";
 
 // Pure LaTeX rendering: turn a book + its resolved recipes into a .tex document
 // by filling placeholder tokens in the (user-owned) templates. No filesystem
-// access here so it can be unit-tested; generate.ts loads the template files,
-// supplies the absolute font/image paths, and runs Tectonic.
+// access here so it can be unit-tested; the Tectonic renderer loads the template
+// files, supplies the absolute font/image paths, and runs Tectonic.
+// Typed against the aggregates' plain-data shapes (RecipeData/BookData) so it
+// stays a pure function; Recipe/Book instances satisfy those shapes.
 
 export interface Templates {
   /** Document skeleton with {{fontDir}} + {{bookTitle}} tokens and a %%RECIPES%% marker. */
@@ -56,7 +59,7 @@ function includegraphics(imagesDir: string, file: string): string {
 }
 
 /** Render a single recipe block from the recipe template. */
-export function renderRecipe(recipe: Recipe, templates: Templates, paths: RenderPaths): string {
+export function renderRecipe(recipe: RecipeData, templates: Templates, paths: RenderPaths): string {
   const [titleFile, ...extraFiles] = recipe.images;
 
   const notesBlock =
@@ -96,7 +99,7 @@ export function renderRecipe(recipe: Recipe, templates: Templates, paths: Render
 }
 
 /** A recipe's category, normalized for grouping; blank categories fall under "Overig". */
-function groupKey(recipe: Recipe): string {
+function groupKey(recipe: RecipeData): string {
   return recipe.category?.trim() || "Overig";
 }
 
@@ -107,13 +110,13 @@ function groupKey(recipe: Recipe): string {
  * contents like the original hand-built book.
  */
 export function renderBook(
-  book: Book,
-  recipes: Recipe[],
+  book: BookData,
+  recipes: RecipeData[],
   templates: Templates,
   paths: RenderPaths,
 ): string {
   const order: string[] = [];
-  const byCategory = new Map<string, Recipe[]>();
+  const byCategory = new Map<string, RecipeData[]>();
   for (const recipe of recipes) {
     const key = groupKey(recipe);
     if (!byCategory.has(key)) {

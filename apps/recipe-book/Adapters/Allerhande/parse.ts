@@ -1,20 +1,10 @@
+import type { ParsedRecipe } from "../../Ports/Allerhande/recipe-source.ts";
+
 // Pure extraction of a schema.org Recipe from a page's JSON-LD. Allerhande (and
 // most recipe sites) embed a <script type="application/ld+json"> block with the
 // Recipe structured data; we parse that rather than scraping the rendered HTML,
 // so no HTML-parsing dependency is needed. Everything here is side-effect free
 // and unit-tested with a crafted fixture.
-
-export interface ParsedRecipe {
-  title: string;
-  imageUrl: string | null;
-  ingredients: string[];
-  steps: string[];
-  servings?: string;
-  prepTime?: string;
-  cookTime?: string;
-  totalTime?: string;
-  category?: string;
-}
 
 /**
  * Turn an ISO-8601 duration (e.g. "PT1H15M", "PT30M", "PT2H") into a short Dutch

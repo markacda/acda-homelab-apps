@@ -1,11 +1,12 @@
 {
   // Node side: server + lib + tests. Compiles to dist/ for production.
-  // No rootDir: server.ts imports the shared logger from ../../packages, which
-  // sits above the app dir, so the common source root is the repo root and the
-  // build nests as dist/apps/dynamic-vs-fixed/server.js (see package.json "start").
+  // rootDir is pinned to "../.." (repo root) so that, even though server.ts now
+  // imports the shared kit from ../Common (a sibling under apps/), the emit still
+  // nests the build as dist/apps/dynamic-vs-fixed/server.js (see package.json "start").
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
+    "rootDir": "../..",
     "types": ["node"]
   },
   "include": ["server.ts", "lib/**/*.ts", "test/**/*.ts"]

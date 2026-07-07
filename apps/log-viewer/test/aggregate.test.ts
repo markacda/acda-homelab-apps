@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { filterEntries, computeStats, filterAppLogs, computeLogStats } from "../lib/aggregate.ts";
 import type { AccessLogEntry, AppLogEntry } from "../lib/ingest.ts";
-import { DISCOVERY_UA } from "../../../packages/access-log/constants.ts";
+import { DISCOVERY_UA } from "../../Common/access-log/constants.ts";
 
 function entry(over: Partial<AccessLogEntry>): AccessLogEntry {
   return {

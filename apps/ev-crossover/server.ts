@@ -1,4 +1,4 @@
-import { createApp, startServer } from "../../packages/server-kit/app.ts";
+import { createApp, startServer } from "../Common/server-kit/app.ts";
 
 // No API routes — this app is a static calculator page. createApp mounts the
 // access logger; startServer adds /healthz, serves public/, and listens.

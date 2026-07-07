@@ -4,7 +4,7 @@ import cors from "cors";
 import compression from "compression";
 import corsOptions from "./lib/config/cors.ts";
 import apiRoutes from "./lib/routes/api.ts";
-import { createApp, startServer } from "../../packages/server-kit/app.ts";
+import { createApp, startServer } from "../Common/server-kit/app.ts";
 
 const app = createApp("atc");
 

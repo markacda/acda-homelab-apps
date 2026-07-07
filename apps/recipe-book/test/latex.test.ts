@@ -1,8 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { escapeLatex, renderRecipe, renderBook } from "../lib/latex.ts";
-import type { Templates, RenderPaths } from "../lib/latex.ts";
-import type { Recipe, Book } from "../lib/types.ts";
+import { escapeLatex, renderRecipe, renderBook } from "../Adapters/Tectonic/latex-renderer.ts";
+import type { Templates, RenderPaths } from "../Adapters/Tectonic/latex-renderer.ts";
+import type { RecipeData } from "../Domain/Aggregates/recipe.ts";
+import type { BookData } from "../Domain/Aggregates/book.ts";
 
 const TEMPLATES: Templates = {
   book: "font={{fontDir}}\n\\title{{{bookTitle}}}\n\\begin{document}\n%%RECIPES%%\n\\end{document}",
@@ -18,7 +19,7 @@ const TEMPLATES: Templates = {
 
 const PATHS: RenderPaths = { fontDir: "/app/templates/font/", imagesDir: "/data/images" };
 
-function recipe(overrides: Partial<Recipe> = {}): Recipe {
+function recipe(overrides: Partial<RecipeData> = {}): RecipeData {
   return {
     id: "r1",
     sourceUrl: null,
@@ -96,7 +97,7 @@ test("renderRecipe: notes block only present when notes exist", () => {
 });
 
 test("renderBook injects fontDir/title and groups recipes by category into sections", () => {
-  const book: Book = {
+  const book: BookData = {
     id: "b1",
     name: "My Book",
     recipeIds: ["r1", "r2", "r3"],
@@ -122,7 +123,7 @@ test("renderBook injects fontDir/title and groups recipes by category into secti
 });
 
 test("renderBook falls back to 'Overig' for uncategorized recipes", () => {
-  const book: Book = {
+  const book: BookData = {
     id: "b1",
     name: "B",
     recipeIds: ["r1"],

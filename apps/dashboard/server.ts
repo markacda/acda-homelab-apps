@@ -4,7 +4,7 @@ import { loadConfig, mergeApps } from "./lib/config.ts";
 import type { AppEntry } from "./lib/config.ts";
 import { discoverApps } from "./lib/discovery.ts";
 import { refreshHealth, getStatus, healthTarget, isHealthStale } from "./lib/health.ts";
-import { createApp, startServer } from "../../packages/server-kit/app.ts";
+import { createApp, startServer } from "../Common/server-kit/app.ts";
 
 // public/ resolves from the app root (cwd) — true both in dev (npm runs from
 // the app dir) and in Docker (WORKDIR /app) — so it works whether we run
