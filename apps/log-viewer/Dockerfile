@@ -1,7 +1,7 @@
 # Built from the repo root so the shared ../../tsconfig.base.json is in context:
 #   docker build -f apps/log-viewer/Dockerfile .
 
-# Build stage — compile the TypeScript server (dist/) and client bundle (public/).
+# Build stage — compile the TypeScript server (dist/) and client bundle (Web/public/).
 FROM node:24-alpine AS builder
 WORKDIR /repo
 # Shared base tsconfig that this app's tsconfig extends via ../../.
@@ -27,7 +27,7 @@ WORKDIR /repo/apps/log-viewer
 # Manifest first for dependency-layer caching.
 COPY apps/log-viewer/package.json ./
 RUN npm install
-# App sources (server, lib, client, tsconfigs, public static assets).
+# App sources (server, DDD layers, Web client, tsconfigs, static assets).
 COPY apps/log-viewer/ ./
 RUN npm run build
 
@@ -37,7 +37,8 @@ WORKDIR /app
 COPY apps/log-viewer/package.json ./
 RUN npm install --omit=dev
 COPY --from=builder /repo/apps/log-viewer/dist ./dist
-COPY --from=builder /repo/apps/log-viewer/public ./public
+# Client assets are served from Web/public (see server.ts staticDir).
+COPY --from=builder /repo/apps/log-viewer/Web/public ./Web/public
 
 ENV PORT=6004
 ENV LOG_DIR=/app/logs
