@@ -4,8 +4,9 @@ import { mkdtemp, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
-import { parseLines, parseAll, readAllEntries, readAll } from "../lib/ingest.ts";
-import type { AccessLogEntry, AppLogEntry } from "../lib/ingest.ts";
+import { parseLines, parseAll } from "../Adapters/FileLogStore/parse.ts";
+import { FileLogStore } from "../Adapters/FileLogStore/file-log-store.ts";
+import type { AccessLogEntry, AppLogEntry } from "../Domain/ValueObjects/log-entry.ts";
 
 function entry(over: Partial<AccessLogEntry>): AccessLogEntry {
   return {
@@ -48,7 +49,7 @@ test("readAllEntries reads plain + gzipped files recursively, sorted ts desc", a
     gzipSync(Buffer.from(JSON.stringify(older) + "\n")),
   );
 
-  const all = await readAllEntries(root);
+  const all = await new FileLogStore(root).readAllEntries();
   assert.equal(all.length, 2);
   // Newest first.
   assert.equal(all[0].url, "/new");
@@ -56,7 +57,7 @@ test("readAllEntries reads plain + gzipped files recursively, sorted ts desc", a
 });
 
 test("readAllEntries returns [] when root is missing", async () => {
-  const all = await readAllEntries(join(tmpdir(), "does-not-exist-logview-xyz"));
+  const all = await new FileLogStore(join(tmpdir(), "does-not-exist-logview-xyz")).readAllEntries();
   assert.deepEqual(all, []);
 });
 
@@ -103,7 +104,7 @@ test("readAll returns both kinds, each sorted ts desc, from mixed files", async 
     JSON.stringify(olderLog) + "\n" + JSON.stringify(newerLog) + "\n",
   );
 
-  const { requests, logs } = await readAll(root);
+  const { requests, logs } = await new FileLogStore(root).readAll();
   assert.equal(requests.length, 1);
   assert.equal(requests[0].url, "/new");
   assert.equal(logs.length, 2);

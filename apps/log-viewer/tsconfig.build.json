@@ -1,7 +1,14 @@
 {
-  // Production build: emit only the runtime code (server + lib) to dist/.
-  // Tests are still type-checked via tsconfig.json (npm run typecheck) but are
-  // never emitted, keeping dist/ (and the prod image) free of test files.
+  // Production build: emit only the runtime code (server + the DDD layers) to
+  // dist/. Tests are still type-checked via tsconfig.json (npm run typecheck) but
+  // are never emitted, keeping dist/ (and the prod image) free of test files.
   "extends": "./tsconfig.json",
-  "include": ["server.ts", "lib/**/*.ts"]
+  "include": [
+    "server.ts",
+    "Domain/**/*.ts",
+    "Application/**/*.ts",
+    "Adapters/**/*.ts",
+    "Ports/**/*.ts",
+    "Models/**/*.ts"
+  ]
 }

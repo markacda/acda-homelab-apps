@@ -4,8 +4,10 @@ This repo is migrating its apps to a **Domain-Driven-Design / Clean-Architecture
 layout — the layered Ports/Adapters/Domain/Application shape common on .NET projects,
 adapted pragmatically to Node/Express/TypeScript. `apps/recipe-book` is the **reference
 implementation**; copy it when building a new app or migrating an existing one.
-`apps/dynamic-vs-fixed` has since been migrated too (a stateless calculation pipeline: no
-aggregate/repository, but external Homewizard-parser and EnergyZero ports). The remaining
+`apps/dynamic-vs-fixed` (a stateless calculation pipeline: no aggregate/repository, but
+external Homewizard-parser and EnergyZero ports) and `apps/log-viewer` (a read-only
+analytics app: a `LogStore` port + `FileLogStore` adapter, a background ingest service, and
+a query/read model over the in-memory view) have since been migrated too. The remaining
 apps still use the older flat `server.ts` + `lib/` layout and will be migrated in follow-up
 passes.
 
