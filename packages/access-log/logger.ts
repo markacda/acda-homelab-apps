@@ -39,6 +39,19 @@ function appLogStream(): ReturnType<typeof createStream> {
   return appStream;
 }
 
+/**
+ * Flush and close both rotating log streams, resolving once the OS has the
+ * buffered data. Call on graceful shutdown so the tail of the log isn't lost
+ * when the process exits. A no-op (resolves immediately) if neither stream was
+ * ever opened.
+ */
+export function closeLogStreams(): Promise<void> {
+  const open = [stream, appStream].filter((s): s is NonNullable<typeof s> => Boolean(s));
+  return Promise.all(open.map((s) => new Promise<void>((resolve) => s.end(resolve)))).then(
+    () => undefined,
+  );
+}
+
 // Health-check polls hit every 30s; keep them out of the page-load log.
 const SKIP_PATHS = new Set(["/healthz", "/health"]);
 
