@@ -1,27 +1,13 @@
 import { DateTime } from "luxon";
-import type { ParsedCsv } from "./parseHomewizardCsv.ts";
+import type { UsageData } from "../ValueObjects/usage.ts";
+import type { MarketPrices } from "../ValueObjects/market-prices.ts";
+import type { CalcParams } from "../ValueObjects/tariff-params.ts";
+import type { CalcResult, MonthlyRow } from "../ValueObjects/calc-result.ts";
 
-/** Market price lookups consumed by {@link calculate}. */
-export interface MarketPrices {
-  elecByHour: Map<number, number>; // epoch millis of hour start -> €/kWh (excl VAT & tax)
-  gasByDate: Map<string, number>; // 'yyyy-MM-dd' (Amsterdam) -> €/m³ (excl VAT & tax)
-}
-
-/** Raw tariff/tax inputs (from the form / JSON body); coerced defensively below. */
-export interface CalcParams {
-  fixedDayTariff?: number | string;
-  fixedNightTariff?: number | string;
-  fixedGasPrice?: number | string;
-  elecEnergyTax?: number | string;
-  gasEnergyTax?: number | string;
-  elecMarkup?: number | string;
-  gasMarkup?: number | string;
-  vatPct?: number | string;
-  dayStartHour?: number | string;
-  dayEndHour?: number | string;
-  weekendAllNight?: boolean;
-  includeGas?: boolean;
-}
+// The core domain service: compare a fixed vs a dynamic (hourly-market) energy
+// contract over the metered period. Pure and side-effect free (no I/O), so it is
+// straightforward to unit-test. NL tariff conventions (day/night windows,
+// weekend-all-night, VAT applied once at the end) live here.
 
 interface ResolvedParams {
   fixedDayTariff: number;
@@ -47,53 +33,6 @@ interface MonthBucket {
   gasM3: number;
 }
 
-export interface MonthlyRow {
-  month: string;
-  kwh: number;
-  gasM3: number;
-  fixed: number;
-  dynamic: number;
-  difference: number;
-}
-
-/** Result of {@link calculate}. */
-export interface CalcResult {
-  coverage: {
-    periodStart: string | null;
-    periodEnd: string | null;
-    spanDays: number;
-    annualized: boolean;
-    annualFactor: number;
-    intervals: number;
-    missingElecHours: number;
-    missingGasDays: number;
-  };
-  usage: {
-    totalKwh: number;
-    kwhDay: number;
-    kwhNight: number;
-    totalGasM3: number;
-    includeGas: boolean;
-  };
-  period: {
-    fixed: number;
-    dynamic: number;
-    difference: number;
-    fixedElec: number;
-    dynamicElec: number;
-    fixedGas: number;
-    dynamicGas: number;
-  };
-  annual: {
-    fixed: number;
-    dynamic: number;
-    difference: number;
-    dynamicCheaper: boolean;
-    pctVsFixed: number;
-  };
-  monthly: MonthlyRow[];
-}
-
 function mean(values: number[]): number {
   if (values.length === 0) return 0;
   return values.reduce((a, b) => a + b, 0) / values.length;
@@ -109,9 +48,9 @@ function isDayTariff(dt: DateTime, p: ResolvedParams): boolean {
 }
 
 /**
- * Compute fixed vs dynamic contract cost over the CSV period.
+ * Compute fixed vs dynamic contract cost over the usage period.
  */
-export function calculate(parsed: ParsedCsv, prices: MarketPrices, params: CalcParams): CalcResult {
+export function calculate(usage: UsageData, prices: MarketPrices, params: CalcParams): CalcResult {
   const p: ResolvedParams = {
     fixedDayTariff: num(params.fixedDayTariff),
     fixedNightTariff: num(params.fixedNightTariff),
@@ -124,7 +63,7 @@ export function calculate(parsed: ParsedCsv, prices: MarketPrices, params: CalcP
     dayStartHour: intOr(params.dayStartHour, 7),
     dayEndHour: intOr(params.dayEndHour, 23),
     weekendAllNight: params.weekendAllNight !== false,
-    includeGas: !!params.includeGas && parsed.hasGas,
+    includeGas: !!params.includeGas && usage.hasGas,
   };
   const vat = 1 + p.vatPct / 100;
 
@@ -149,7 +88,7 @@ export function calculate(parsed: ParsedCsv, prices: MarketPrices, params: CalcP
   let missingElecHours = 0;
   let missingGasDays = 0;
 
-  for (const iv of parsed.intervals) {
+  for (const iv of usage.intervals) {
     const dt = iv.start;
     const monthKey = dt.toFormat("yyyy-MM");
     const b = bucket(monthKey);
@@ -219,8 +158,8 @@ export function calculate(parsed: ParsedCsv, prices: MarketPrices, params: CalcP
   const dynamicTotal = dynElec + dynGas;
 
   // Annualize.
-  const start = parsed.periodStart;
-  const end = parsed.periodEnd;
+  const start = usage.periodStart;
+  const end = usage.periodEnd;
   const spanDays = Math.max(end.diff(start, "days").days, 1 / 24);
   const annualFactor = spanDays >= 1 ? 365 / spanDays : 1;
 
@@ -231,7 +170,7 @@ export function calculate(parsed: ParsedCsv, prices: MarketPrices, params: CalcP
       spanDays: round(spanDays, 1),
       annualized: spanDays < 360 || spanDays > 370,
       annualFactor: round(annualFactor, 4),
-      intervals: parsed.intervals.length,
+      intervals: usage.intervals.length,
       missingElecHours,
       missingGasDays,
     },

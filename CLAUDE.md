@@ -55,13 +55,15 @@ has no `client/*.ts` build (its `public/` is vendored browser JS with no compile
 step, excluded from lint), and it adds `cors`/`compression` because it proxies
 api.airplanes.live.
 
-**`apps/recipe-book` is the exception**: it has been migrated to the
-DDD/Clean-Architecture layout (`Domain/`, `Application/`, `Adapters/`, `Ports/`,
-`Models/`, `Web/`) — see `ARCHITECTURE.md`. `server.ts` is a thin composition root
-(`createApp` → `Application/Registrations/register(app)` → `startServer`) and its
-browser code lives under `Web/client` → `Web/public` (served via `startServer`'s
-`staticDir` option). Other apps will migrate to this layout over time; copy
-recipe-book as the template.
+**`apps/recipe-book` and `apps/dynamic-vs-fixed` are the exceptions**: they have
+been migrated to the DDD/Clean-Architecture layout (`Domain/`, `Application/`,
+`Adapters/`, `Ports/`, `Models/`, `Web/`) — see `ARCHITECTURE.md`. `server.ts` is a
+thin composition root (`createApp` → `Application/Registrations/register(app)` →
+`startServer`) and browser code lives under `Web/client` → `Web/public` (served via
+`startServer`'s `staticDir` option). recipe-book is the fuller reference (aggregates +
+repositories); dynamic-vs-fixed shows a stateless calculation pipeline (external ports,
+no repository). The remaining apps will migrate over time; copy recipe-book as the
+template.
 
 **TypeScript / build model.** Every app extends `tsconfig.base.json` (strict,
 `nodenext`). Key constraints baked into the base config:

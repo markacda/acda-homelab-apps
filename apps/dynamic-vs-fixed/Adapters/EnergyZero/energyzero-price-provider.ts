@@ -1,26 +1,17 @@
 import { DateTime } from "luxon";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { MarketPrices } from "./calculate.ts";
+import type {
+  PriceProvider,
+  PriceData,
+  PricePoint,
+} from "../../Ports/EnergyZero/price-provider.ts";
 
 const ZONE = "Europe/Amsterdam";
 const BASE = "https://api.energyzero.nl/v1/energyprices";
 const USAGE = { electricity: 1, gas: 4 };
 
 const DATA_DIR = process.env.DATA_DIR || join(process.cwd(), "data");
-
-/** A single price point from the EnergyZero API. */
-export interface PricePoint {
-  readingDate: string;
-  price: number;
-}
-
-/** Result of {@link fetchPriceData}: the lookup maps plus coverage counts. */
-export interface PriceData extends MarketPrices {
-  months: number;
-  elecPoints: number;
-  gasPoints: number;
-}
 
 async function ensureDataDir(): Promise<void> {
   await mkdir(DATA_DIR, { recursive: true });
@@ -93,44 +84,47 @@ function* monthsBetween(startDT: DateTime, endDT: DateTime): Generator<DateTime>
 }
 
 /**
- * Fetch market prices covering [start, end] and build lookup maps.
+ * PriceProvider backed by the EnergyZero public API, caching each completed
+ * month's prices under DATA_DIR. Builds the lookup maps the calculator needs:
  *   elecByHour: Map<epochMillisOfHourStart, €/kWh (excl VAT & tax)>
  *   gasByDate:  Map<'yyyy-MM-dd' (Amsterdam), €/m³ (excl VAT & tax)>
  */
-export async function fetchPriceData(
-  startDT: DateTime,
-  endDT: DateTime,
-  { includeGas }: { includeGas?: boolean } = {},
-): Promise<PriceData> {
-  const now = DateTime.now().setZone(ZONE);
-  const months = [...monthsBetween(startDT, endDT)];
+export class EnergyZeroPriceProvider implements PriceProvider {
+  async fetch(
+    startDT: DateTime,
+    endDT: DateTime,
+    { includeGas }: { includeGas?: boolean } = {},
+  ): Promise<PriceData> {
+    const now = DateTime.now().setZone(ZONE);
+    const months = [...monthsBetween(startDT, endDT)];
 
-  const elecByHour = new Map<number, number>();
-  const gasByDate = new Map<string, number>();
+    const elecByHour = new Map<number, number>();
+    const gasByDate = new Map<string, number>();
 
-  for (const m of months) {
-    const elec = await getMonth(USAGE.electricity, m, now);
-    for (const p of elec) {
-      const dt = DateTime.fromISO(p.readingDate, { zone: "utc" });
-      if (dt.isValid) elecByHour.set(dt.startOf("hour").toMillis(), p.price);
-    }
-    if (includeGas) {
-      const gas = await getMonth(USAGE.gas, m, now);
-      for (const p of gas) {
-        const dt = DateTime.fromISO(p.readingDate, { zone: "utc" }).setZone(ZONE);
-        if (dt.isValid) {
-          const key = dt.toFormat("yyyy-MM-dd");
-          if (!gasByDate.has(key)) gasByDate.set(key, p.price);
+    for (const m of months) {
+      const elec = await getMonth(USAGE.electricity, m, now);
+      for (const point of elec) {
+        const dt = DateTime.fromISO(point.readingDate, { zone: "utc" });
+        if (dt.isValid) elecByHour.set(dt.startOf("hour").toMillis(), point.price);
+      }
+      if (includeGas) {
+        const gas = await getMonth(USAGE.gas, m, now);
+        for (const point of gas) {
+          const dt = DateTime.fromISO(point.readingDate, { zone: "utc" }).setZone(ZONE);
+          if (dt.isValid) {
+            const key = dt.toFormat("yyyy-MM-dd");
+            if (!gasByDate.has(key)) gasByDate.set(key, point.price);
+          }
         }
       }
     }
-  }
 
-  return {
-    elecByHour,
-    gasByDate,
-    months: months.length,
-    elecPoints: elecByHour.size,
-    gasPoints: gasByDate.size,
-  };
+    return {
+      elecByHour,
+      gasByDate,
+      months: months.length,
+      elecPoints: elecByHour.size,
+      gasPoints: gasByDate.size,
+    };
+  }
 }
