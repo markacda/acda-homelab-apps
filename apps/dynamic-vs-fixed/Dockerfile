@@ -12,6 +12,16 @@ WORKDIR /repo/packages/access-log
 COPY packages/access-log/package.json ./
 RUN npm install
 COPY packages/access-log/ ./
+# Shared server-kit bootstrap (createApp/startServer), imported by server.ts.
+WORKDIR /repo/packages/server-kit
+COPY packages/server-kit/package.json ./
+RUN npm install
+COPY packages/server-kit/ ./
+# Shared http-utils helpers (memoryUpload), imported by server.ts.
+WORKDIR /repo/packages/http-utils
+COPY packages/http-utils/package.json ./
+RUN npm install
+COPY packages/http-utils/ ./
 WORKDIR /repo/apps/dynamic-vs-fixed
 COPY apps/dynamic-vs-fixed/package.json ./
 RUN npm install
@@ -36,5 +46,8 @@ EXPOSE 6003
 # first use, so the app can write without running as root.
 RUN mkdir -p /app/data /app/logs && chown node:node /app/data /app/logs
 USER node
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "fetch('http://localhost:6003/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 CMD ["node", "dist/apps/dynamic-vs-fixed/server.js"]

@@ -98,5 +98,9 @@ In dev, point it at the repo's logs with `LOGS_ROOT=./apps npm run dev -w log-vi
    `tsconfig.json`/`tsconfig.build.json`/`tsconfig.client.json`, and `client/` +
    `public/` folders (copy `apps/ev-crossover` as a template). It is picked up by
    the workspace automatically.
-2. Have the server listen on `process.env.PORT` and bind `0.0.0.0`.
-3. Add a service to the root `docker-compose.yml` on the next free port (6003, 6004…).
+2. Build the server on the shared bootstrap: `const app = createApp("<name>")`
+   then `startServer(app, { name: "<name>", port: Number(process.env.PORT) || <n> })`
+   from `packages/server-kit` — it mounts the access logger, exposes `/healthz`,
+   serves `public/`, binds `0.0.0.0`, and wires graceful shutdown + an error
+   handler. Reuse `packages/http-utils` for query/body parsing and file uploads.
+3. Add a service to the root `docker-compose.yml` on the next free port (6006, 6007…).

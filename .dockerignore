@@ -16,8 +16,18 @@ apps/*/public/*.js.map
 .gitignore
 **/*.log
 npm-debug.log*
-.DS_Store
+yarn-error.log
 **/Dockerfile
 **/.dockerignore
 docker-compose.yml
 **/README.md
+
+# Editor / OS cruft (folded in from the former per-app .dockerignore files —
+# the build context is the repo root, so only this file is ever consulted).
+.idea
+.vscode
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

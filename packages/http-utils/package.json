@@ -1,21 +1,20 @@
 {
-  "name": "@homelab/access-log",
+  "name": "@homelab/http-utils",
   "version": "1.0.0",
-  "description": "Shared structured per-request access-logging middleware for the homelab apps",
+  "description": "Shared request-parameter coercion and file-upload helpers for the homelab apps",
   "private": true,
   "type": "module",
-  "main": "logger.ts",
+  "main": "index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "node --test"
   },
   "dependencies": {
-    "rotating-file-stream": "^3.2.6"
+    "multer": "^2.0.1"
   },
   "devDependencies": {
-    "@types/express": "^5.0.0",
+    "@types/multer": "^1.4.12",
     "@types/node": "^24.0.0",
-    "express": "^5.1.0",
     "typescript": "^5.9.3"
   },
   "engines": {

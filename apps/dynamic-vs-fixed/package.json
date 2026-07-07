@@ -2,6 +2,7 @@
   "name": "dynamic-vs-fixed",
   "version": "1.0.0",
   "description": "Compare a fixed vs dynamic (hourly-market) NL energy contract using HomeWizard usage data",
+  "private": true,
   "type": "module",
   "main": "dist/apps/dynamic-vs-fixed/server.js",
   "scripts": {

@@ -46,11 +46,12 @@ docker build -f apps/<name>/Dockerfile .   # build one image
 
 ## Architecture
 
-**Per-app anatomy.** A typical app is `server.ts` (Express entry) + `lib/` (pure
+**Per-app anatomy.** Every app is `server.ts` (Express entry) + `lib/` (pure
 logic, unit-tested) + `client/*.ts` (browser code) + `public/` (compiled client
-output + static HTML/CSS) + `test/`. `apps/atc` is the outlier: its server lives
-in `server/` (entry `server/index.ts`) and its browser assets are vendored JS in
-`src/` (excluded from lint/build, no client compile step).
+output + static HTML/CSS) + `test/`. `apps/atc` follows the same flat layout; it
+has no `client/*.ts` build (its `public/` is vendored browser JS with no compile
+step, excluded from lint), and it adds `cors`/`compression` because it proxies
+api.airplanes.live.
 
 **TypeScript / build model.** Every app extends `tsconfig.base.json` (strict,
 `nodenext`). Key constraints baked into the base config:
@@ -64,23 +65,38 @@ in `server/` (entry `server/index.ts`) and its browser assets are vendored JS in
   test), `tsconfig.build.json` (emit runtime code only to `dist/`, no tests), and
   `tsconfig.client.json` (compile `client/*.ts` → `public/*.js`, DOM libs, no Node
   types). `npm run build` runs the build + client configs; typecheck runs both.
+  `apps/atc` is the exception — it has no `client/*.ts`, so no `tsconfig.client.json`
+  and its `build`/`typecheck` are single-step.
 - `server.ts` imports the shared logger from `../../packages/`, above the app dir,
   so the common source root is the repo root — hence dist nests as
   `dist/apps/<name>/server.js` (matches each `package.json` `main`/`start`).
 
-**Shared access logging (`packages/access-log`).** Every server mounts
-`app.use(pageLoadLogger("<app-name>"))` as its first middleware. It writes one
-structured JSON line per request to a daily-rotated, gzipped `access.log` under
-`LOG_DIR` (~90-day retention), skipping `/healthz` and `/health`. `buildEntry` is
-kept pure and side-effect-free so it can be unit-tested without a real socket; the
-rotating stream opens lazily on first write. The `log-viewer` app mounts every
-app's log volume read-only and reads `AccessLogEntry` records back.
+**Shared packages.** Three libraries under `packages/*`, all imported by relative
+`.ts` path (not by workspace name) and compiled into each app's `dist/` — so each
+app's Dockerfile stages the packages it uses in the builder, and lists their
+runtime deps in its own `package.json`:
 
-**Conventions for a new app** (copy `apps/ev-crossover` as the template): listen on
-`process.env.PORT`, bind `0.0.0.0`, expose `/healthz` (or `/health`), mount the
-access logger first, build from the repo-root Docker context with a non-root
-`node` user, then add a service to `docker-compose.yml` on the next free port and
-(if it logs) a read-only volume mount in the `log-viewer` service.
+- **`@homelab/access-log`** — `pageLoadLogger`/`installConsoleLogging` (structured
+  per-request `access.log` + mirrored `app.log`, daily-rotated + gzipped under
+  `LOG_DIR`, ~90-day retention, skipping `/healthz` and `/health`); pure
+  `buildEntry`/`buildAppLogEntry`; the `AccessLogEntry`/`AppLogEntry`/`LogLevel`
+  types the `log-viewer` reads back; and the `DISCOVERY_UA` constant.
+- **`@homelab/server-kit`** — the Express bootstrap: `createApp(name)` (installs
+  console logging + mounts the access logger first) and `startServer` (mounts
+  `/healthz` + `public/` static + a terminal error handler, binds `0.0.0.0`, and
+  installs SIGTERM/SIGINT graceful shutdown), plus `healthHandler`/`errorHandler`.
+- **`@homelab/http-utils`** — dependency-free query/body helpers (`firstStr`,
+  `optStr`, `csvList`, `toStringArray`, `clampInt`) in `index.ts`; the multer-backed
+  `memoryUpload` in `upload.ts` (kept separate so non-upload apps don't pull multer).
+
+**Conventions for a new app** (copy `apps/ev-crossover` as the template):
+`const app = createApp("<name>")`, register routes, then `startServer(app, {name,
+port: Number(process.env.PORT) || <n>})` — this covers `/healthz`, static, error
+handling, `0.0.0.0` bind, and graceful shutdown. Build from the repo-root Docker
+context with a non-root `node` user, then add a service to `docker-compose.yml` on
+the next free port (with a `homelab.name` label, `NODE_ENV=production`, and a
+`/healthz` healthcheck) and, if it logs, a read-only volume mount in the
+`log-viewer` service.
 
 **Env vars.** `PORT`, `LOG_DIR` (persistent log volume), `DATA_DIR` (persistent
 state — `dynamic-vs-fixed`, `recipe-book`), plus app-specific ones (dashboard:

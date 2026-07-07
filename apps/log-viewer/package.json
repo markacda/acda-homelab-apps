@@ -2,6 +2,7 @@
   "name": "log-viewer",
   "version": "1.0.0",
   "description": "Browse, search, filter and aggregate the structured access logs written by every homelab app",
+  "private": true,
   "type": "module",
   "main": "dist/apps/log-viewer/server.js",
   "scripts": {

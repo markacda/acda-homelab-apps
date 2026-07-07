@@ -1,10 +1,10 @@
 {
-  "name": "@homelab/access-log",
+  "name": "@homelab/server-kit",
   "version": "1.0.0",
-  "description": "Shared structured per-request access-logging middleware for the homelab apps",
+  "description": "Shared Express bootstrap for the homelab apps: createApp, health/error handlers, and startServer with graceful shutdown",
   "private": true,
   "type": "module",
-  "main": "logger.ts",
+  "main": "app.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "node --test"

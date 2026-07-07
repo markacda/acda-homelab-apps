@@ -13,6 +13,16 @@ WORKDIR /repo/packages/access-log
 COPY packages/access-log/package.json ./
 RUN npm install
 COPY packages/access-log/ ./
+# Shared server-kit bootstrap (createApp/startServer), imported by server.ts.
+WORKDIR /repo/packages/server-kit
+COPY packages/server-kit/package.json ./
+RUN npm install
+COPY packages/server-kit/ ./
+# Shared http-utils helpers (firstStr/csvList/clampInt), imported by server.ts.
+WORKDIR /repo/packages/http-utils
+COPY packages/http-utils/package.json ./
+RUN npm install
+COPY packages/http-utils/ ./
 WORKDIR /repo/apps/log-viewer
 # Manifest first for dependency-layer caching.
 COPY apps/log-viewer/package.json ./
@@ -44,5 +54,8 @@ RUN mkdir -p /app/logs && chown node:node /app/logs
 # mounted log volumes are chown node:node by their writers (same uid 1000),
 # so the read-only mounts under /logs are readable.
 USER node
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "fetch('http://localhost:6004/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 CMD ["node", "dist/apps/log-viewer/server.js"]

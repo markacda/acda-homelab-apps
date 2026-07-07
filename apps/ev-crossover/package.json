@@ -2,6 +2,7 @@
   "name": "ev-crossover",
   "version": "1.0.0",
   "description": "Calculate the electricity price (€/kWh) at which charging the car becomes cheaper than petrol",
+  "private": true,
   "type": "module",
   "main": "dist/apps/ev-crossover/server.js",
   "scripts": {

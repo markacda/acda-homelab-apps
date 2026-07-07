@@ -1,12 +1,11 @@
 import type { AppEntry } from "./config.ts";
+import { DISCOVERY_UA } from "../../../packages/access-log/constants.ts";
 
 const CHECK_TIMEOUT_MS = 3000;
 
-// Sent as the User-Agent on every outgoing health probe so these requests are
-// recognizable in each app's access log (instead of undici's default "node").
-// The log-viewer hides this UA by default; if you change it here, update the
-// literal in apps/log-viewer as well (the two apps share it by convention).
-export const DISCOVERY_UA = "homelab-dashboard-discovery-agent";
+// Re-exported so callers of this module (and its tests) keep a single import
+// site; the canonical definition lives in @homelab/access-log.
+export { DISCOVERY_UA };
 
 export interface HealthStatus {
   status: "up" | "down" | "unknown";

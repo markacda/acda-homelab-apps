@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { filterEntries, computeStats, filterAppLogs, computeLogStats } from "../lib/aggregate.ts";
 import type { AccessLogEntry, AppLogEntry } from "../lib/ingest.ts";
+import { DISCOVERY_UA } from "../../../packages/access-log/constants.ts";
 
 function entry(over: Partial<AccessLogEntry>): AccessLogEntry {
   return {
@@ -61,10 +62,10 @@ test("filterEntries: excludeApp drops matching apps", () => {
 });
 
 test("filterEntries: excludeUa drops matching user-agents", () => {
-  const withBot = [...sample, entry({ app: "ev", ua: "homelab-dashboard-discovery-agent" })];
-  const r = filterEntries(withBot, { excludeUa: ["homelab-dashboard-discovery-agent"] });
+  const withBot = [...sample, entry({ app: "ev", ua: DISCOVERY_UA })];
+  const r = filterEntries(withBot, { excludeUa: [DISCOVERY_UA] });
   assert.equal(r.length, 4);
-  assert.ok(r.every((e) => e.ua !== "homelab-dashboard-discovery-agent"));
+  assert.ok(r.every((e) => e.ua !== DISCOVERY_UA));
 });
 
 test("filterEntries: by q substring over url", () => {
