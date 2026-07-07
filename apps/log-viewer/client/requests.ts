@@ -70,7 +70,7 @@ const AUTO_MS = 7_000;
 // The dashboard tags its health probes with this UA; we hide those rows unless
 // "Show discovery agent". Canonical source: @homelab/access-log constants.ts
 // (DISCOVERY_UA). This is a synced copy — the client build is bundler-less and
-// cannot import from packages/, so keep the two in step if the value changes.
+// cannot import from apps/Common/, so keep the two in step if the value changes.
 const DISCOVERY_UA = "homelab-dashboard-discovery-agent";
 
 /** Mount the Requests view into `root`. Returns a teardown to stop its timer. */

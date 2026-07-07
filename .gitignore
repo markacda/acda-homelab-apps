@@ -9,6 +9,9 @@ dist/
 # Compiled client bundles emitted from client/*.ts into the served public/ dir
 apps/*/public/*.js
 apps/*/public/*.js.map
+# Same, for apps on the DDD layout that serve from Web/public/
+apps/*/Web/public/*.js
+apps/*/Web/public/*.js.map
 
 # Local price-cache written by dynamic-vs-fixed in dev (DATA_DIR)
 data/

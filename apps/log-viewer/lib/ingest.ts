@@ -1,7 +1,7 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { gunzipSync } from "node:zlib";
 import { join } from "node:path";
-import type { AccessLogEntry, AppLogEntry } from "../../../packages/access-log/logger.ts";
+import type { AccessLogEntry, AppLogEntry } from "../../Common/access-log/logger.ts";
 
 // Reads the structured logs written by every app. Each app persists to its own
 // directory under LOGS_ROOT (in Docker, one read-only volume per app); the

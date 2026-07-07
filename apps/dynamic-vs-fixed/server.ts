@@ -2,8 +2,8 @@ import type { Request, Response } from "express";
 import { parseHomewizardCsv } from "./lib/parseHomewizardCsv.ts";
 import { fetchPriceData } from "./lib/energyzero.ts";
 import { calculate } from "./lib/calculate.ts";
-import { createApp, startServer } from "../../packages/server-kit/app.ts";
-import { memoryUpload } from "../../packages/http-utils/upload.ts";
+import { createApp, startServer } from "../Common/server-kit/app.ts";
+import { memoryUpload } from "../Common/http-utils/upload.ts";
 
 const app = createApp("dynamic-vs-fixed");
 

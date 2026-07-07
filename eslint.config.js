@@ -16,6 +16,7 @@ export default [
       // Compiled browser bundles emitted from client/*.ts — lint the .ts source,
       // not the generated output.
       "apps/*/public/*.js",
+      "apps/*/Web/public/*.js",
       "apps/atc/public/**",
     ],
   },
@@ -33,15 +34,21 @@ export default [
     files: [
       "apps/*/server.ts",
       "apps/*/lib/**/*.ts",
+      // DDD layers (recipe-book and any app migrated to the ARCHITECTURE.md layout).
+      "apps/*/Domain/**/*.ts",
+      "apps/*/Application/**/*.ts",
+      "apps/*/Adapters/**/*.ts",
+      "apps/*/Ports/**/*.ts",
+      "apps/*/Models/**/*.ts",
       "apps/*/test/**/*.ts",
-      "packages/*/**/*.ts",
+      "apps/Common/*/**/*.ts",
       "*.config.js",
     ],
     languageOptions: { globals: { ...globals.node } },
   },
   {
-    // Everything under client/ compiles to public/ and runs in the browser.
-    files: ["apps/*/client/**/*.ts"],
+    // Browser code compiles to public/ (flat apps) or Web/public/ (DDD apps).
+    files: ["apps/*/client/**/*.ts", "apps/*/Web/client/**/*.ts"],
     languageOptions: { globals: { ...globals.browser } },
   },
   {

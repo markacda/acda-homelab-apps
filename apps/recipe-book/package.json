@@ -11,7 +11,7 @@
     "start": "node dist/apps/recipe-book/server.js",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.client.json --noEmit",
     "test": "node --test",
-    "clean": "rm -rf dist public/*.js"
+    "clean": "rm -rf dist Web/public/*.js"
   },
   "engines": {
     "node": ">=24"

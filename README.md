@@ -94,13 +94,14 @@ In dev, point it at the repo's logs with `LOGS_ROOT=./apps npm run dev -w log-vi
 
 ## Adding a new app
 
-1. Create `apps/<name>/` with a `Dockerfile`, `package.json`, `server.ts`,
-   `tsconfig.json`/`tsconfig.build.json`/`tsconfig.client.json`, and `client/` +
-   `public/` folders (copy `apps/ev-crossover` as a template). It is picked up by
-   the workspace automatically.
+1. Create `apps/<name>/` with a `Dockerfile`, `package.json`, `server.ts`, and the
+   `tsconfig.json`/`tsconfig.build.json`/`tsconfig.client.json` trio. For the layered
+   DDD layout copy `apps/recipe-book` (see [`ARCHITECTURE.md`](ARCHITECTURE.md)); for a
+   trivial app the flat `apps/ev-crossover` (with `client/` + `public/`) is fine. Add
+   the new dir to the root `package.json` `workspaces` list.
 2. Build the server on the shared bootstrap: `const app = createApp("<name>")`
    then `startServer(app, { name: "<name>", port: Number(process.env.PORT) || <n> })`
-   from `packages/server-kit` — it mounts the access logger, exposes `/healthz`,
+   from `apps/Common/server-kit` — it mounts the access logger, exposes `/healthz`,
    serves `public/`, binds `0.0.0.0`, and wires graceful shutdown + an error
-   handler. Reuse `packages/http-utils` for query/body parsing and file uploads.
+   handler. Reuse `apps/Common/http-utils` for query/body parsing and file uploads.
 3. Add a service to the root `docker-compose.yml` on the next free port (6006, 6007…).

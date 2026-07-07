@@ -8,6 +8,6 @@
 //
 // NOTE: the log-viewer's browser client (apps/log-viewer/client/requests.ts)
 // keeps a synced copy of this literal — it is compiled by a separate, bundler-
-// less client build (rootDir ./client) and cannot import from packages/. Update
-// both if this value ever changes.
+// less client build (rootDir ./client) and cannot import from apps/Common/.
+// Update both if this value ever changes.
 export const DISCOVERY_UA = "homelab-dashboard-discovery-agent";

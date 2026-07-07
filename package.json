@@ -5,8 +5,13 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "packages/*",
-    "apps/*"
+    "apps/Common/*",
+    "apps/atc",
+    "apps/dashboard",
+    "apps/dynamic-vs-fixed",
+    "apps/ev-crossover",
+    "apps/log-viewer",
+    "apps/recipe-book"
   ],
   "engines": {
     "node": ">=24"

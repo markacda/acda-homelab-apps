@@ -5,7 +5,7 @@ import {
   extractJsonLdBlocks,
   stripHtml,
   parseIsoDuration,
-} from "../lib/parseRecipe.ts";
+} from "../Adapters/Allerhande/parse.ts";
 
 // An Allerhande-shaped page: a JSON-LD @graph with a Recipe node, HowToStep
 // instructions, an image array, and some HTML inside the fields.

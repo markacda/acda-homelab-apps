@@ -7,22 +7,22 @@ WORKDIR /repo
 # Shared base tsconfig that this app's tsconfig extends via ../../.
 COPY tsconfig.base.json ./
 # Shared access-log middleware. server.ts imports it by relative path
-# (../../packages/access-log/logger.ts) and tsc compiles it into this app's
+# (../Common/access-log/logger.ts) and tsc compiles it into this app's
 # dist/, so its deps must be installed here for that compile to resolve.
-WORKDIR /repo/packages/access-log
-COPY packages/access-log/package.json ./
+WORKDIR /repo/apps/Common/access-log
+COPY apps/Common/access-log/package.json ./
 RUN npm install
-COPY packages/access-log/ ./
+COPY apps/Common/access-log/ ./
 # Shared server-kit bootstrap (createApp/startServer), imported by server.ts.
-WORKDIR /repo/packages/server-kit
-COPY packages/server-kit/package.json ./
+WORKDIR /repo/apps/Common/server-kit
+COPY apps/Common/server-kit/package.json ./
 RUN npm install
-COPY packages/server-kit/ ./
+COPY apps/Common/server-kit/ ./
 # Shared http-utils helpers (firstStr/csvList/clampInt), imported by server.ts.
-WORKDIR /repo/packages/http-utils
-COPY packages/http-utils/package.json ./
+WORKDIR /repo/apps/Common/http-utils
+COPY apps/Common/http-utils/package.json ./
 RUN npm install
-COPY packages/http-utils/ ./
+COPY apps/Common/http-utils/ ./
 WORKDIR /repo/apps/log-viewer
 # Manifest first for dependency-layer caching.
 COPY apps/log-viewer/package.json ./

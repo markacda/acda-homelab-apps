@@ -1,5 +1,5 @@
-import { createApp, startServer } from "../../packages/server-kit/app.ts";
-import { firstStr, csvList, clampInt } from "../../packages/http-utils/index.ts";
+import { createApp, startServer } from "../Common/server-kit/app.ts";
+import { firstStr, csvList, clampInt } from "../Common/http-utils/index.ts";
 import { readAll } from "./lib/ingest.ts";
 import type { AccessLogEntry, AppLogEntry } from "./lib/ingest.ts";
 import { filterEntries, computeStats, filterAppLogs, computeLogStats } from "./lib/aggregate.ts";

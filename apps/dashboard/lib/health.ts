@@ -1,5 +1,5 @@
 import type { AppEntry } from "./config.ts";
-import { DISCOVERY_UA } from "../../../packages/access-log/constants.ts";
+import { DISCOVERY_UA } from "../../Common/access-log/constants.ts";
 
 const CHECK_TIMEOUT_MS = 3000;
 
