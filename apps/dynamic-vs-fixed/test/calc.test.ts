@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DateTime } from "luxon";
-import { parseHomewizardCsv } from "../lib/parseHomewizardCsv.ts";
-import { calculate } from "../lib/calculate.ts";
+import { HomewizardCsvParser } from "../Adapters/Homewizard/homewizard-csv-parser.ts";
+import { calculate } from "../Domain/Services/cost-calculator.ts";
 
 const ZONE = "Europe/Amsterdam";
 const hourKey = (local: string) =>
@@ -16,7 +16,7 @@ const CSV = `Time;Import T1;Import T2;Gas
 2025-01-06 09:00;101.0;202.0;500.5`;
 
 test("parser diffs cumulative readings into intervals", () => {
-  const parsed = parseHomewizardCsv(CSV);
+  const parsed = new HomewizardCsvParser().parse(CSV);
   assert.equal(parsed.intervals.length, 3);
   assert.equal(parsed.hasTariffSplit, true);
   assert.equal(parsed.hasGas, true);
@@ -30,7 +30,7 @@ test("parser diffs cumulative readings into intervals", () => {
 });
 
 test("calculate matches hand-computed fixed & dynamic totals", () => {
-  const parsed = parseHomewizardCsv(CSV);
+  const parsed = new HomewizardCsvParser().parse(CSV);
 
   const prices = {
     elecByHour: new Map([
@@ -82,7 +82,7 @@ test("meter reset / negative diff is treated as zero, not negative usage", () =>
 2025-03-01 00:00,10.0,5.0
 2025-03-01 00:15,9.0,5.0
 2025-03-01 00:30,9.5,5.1`;
-  const parsed = parseHomewizardCsv(csv);
+  const parsed = new HomewizardCsvParser().parse(csv);
   assert.equal(parsed.hasTariffSplit, false);
   assert.equal(parsed.intervals[0].kwh, 0); // 9.0 - 10.0 -> clamped to 0
   assert.equal(round(parsed.intervals[1].kwh, 3), 0.5);
