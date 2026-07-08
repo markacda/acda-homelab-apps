@@ -48,25 +48,24 @@ docker build -f apps/<name>/Dockerfile .   # build one image
 
 ## Architecture
 
-**Per-app anatomy.** Most apps are `server.ts` (Express entry) + `lib/` (pure
-logic, unit-tested) + `client/*.ts` (browser code) + `public/` (compiled client
-output + static HTML/CSS) + `test/`. `apps/atc` follows the same flat layout; it
-has no `client/*.ts` build (its `public/` is vendored browser JS with no compile
-step, excluded from lint), and it adds `cors`/`compression` because it proxies
-api.airplanes.live.
+**Per-app anatomy.** The remaining flat apps are `server.ts` (Express entry) +
+`lib/` (pure logic, unit-tested) + `client/*.ts` (browser code) + `public/`
+(compiled client output + static HTML/CSS) + `test/`.
 
-**`apps/recipe-book`, `apps/dynamic-vs-fixed`, `apps/log-viewer` and
-`apps/dashboard` are the exceptions**: they have been migrated to the
-DDD/Clean-Architecture layout (`Domain/`, `Application/`, `Adapters/`, `Ports/`,
-`Models/`, `Web/`) — see `ARCHITECTURE.md`. `server.ts` is a thin composition root
-(`createApp` → `Application/Registrations/register(app)` → `startServer`) and
-browser code lives under `Web/client` → `Web/public` (served via `startServer`'s
-`staticDir` option). recipe-book is the fuller reference (aggregates + repositories);
-dynamic-vs-fixed shows a stateless calculation pipeline (external ports, no
-repository); log-viewer shows a read-only analytics app (a store port + background
-ingest service + a query/read model); dashboard shows discovery/config/health-probe
-ports with a gated background monitor. The remaining apps (`atc`, `ev-crossover`)
-will migrate over time; copy recipe-book as the template.
+**`apps/recipe-book`, `apps/dynamic-vs-fixed`, `apps/log-viewer`, `apps/dashboard`
+and `apps/atc` are migrated** to the DDD/Clean-Architecture layout (`Domain/`,
+`Application/`, `Adapters/`, `Ports/`, `Models/`, `Web/`) — see `ARCHITECTURE.md`.
+`server.ts` is a thin composition root (`createApp` →
+`Application/Registrations/register(app)` → `startServer`) and browser code lives
+under `Web/client` → `Web/public` (served via `startServer`'s `staticDir` option).
+recipe-book is the fuller reference (aggregates + repositories); dynamic-vs-fixed
+shows a stateless calculation pipeline (external ports, no repository); log-viewer
+shows a read-only analytics app (a store port + background ingest service + a
+query/read model); dashboard shows discovery/config/health-probe ports with a
+gated background monitor; atc shows a thin proxy (a validated `PointQuery` value
+object + one external `AirplanesSource` adapter, `cors`/`compression`, and a
+vendored `Web/public` with no client build — excluded from lint). The remaining
+app (`ev-crossover`) will migrate over time; copy recipe-book as the template.
 
 **TypeScript / build model.** Every app extends `tsconfig.base.json` (strict,
 `nodenext`). Key constraints baked into the base config:
@@ -126,7 +125,7 @@ state — `dynamic-vs-fixed`, `recipe-book`), plus app-specific ones (dashboard:
 ## Lint scope
 
 ESLint lints `.ts` sources only. `dist/`, `data/`, compiled client bundles
-(`apps/*/public/*.js` and `apps/*/Web/public/*.js`), and all of `apps/atc/public/**`
+(`apps/*/public/*.js` and `apps/*/Web/public/*.js`), and all of `apps/atc/Web/public/**`
 (vendored browser JS) are ignored. Node globals apply to `server`/`lib`/`test`, the
 DDD layers (`Domain`/`Application`/`Adapters`/`Ports`/`Models`), and `apps/Common/*`;
 browser globals apply to `apps/*/client/**` and `apps/*/Web/client/**`.

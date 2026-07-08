@@ -20,7 +20,8 @@ COPY apps/Common/server-kit/ ./
 WORKDIR /repo/apps/atc
 COPY apps/atc/package.json ./
 RUN npm install
-# server.ts + lib/ (compiled) + tsconfig; public/ is static frontend, not compiled.
+# server.ts + the DDD layers (compiled) + tsconfig; Web/public is the vendored
+# static frontend, not compiled.
 COPY apps/atc/ ./
 RUN npm run build
 
@@ -29,9 +30,9 @@ FROM node:24-alpine
 WORKDIR /app
 COPY apps/atc/package.json ./
 RUN npm install --omit=dev
-# Compiled backend and the static frontend it serves (resolved at ./public).
+# Compiled backend and the vendored static frontend it serves (resolved at ./Web/public).
 COPY --from=builder /repo/apps/atc/dist ./dist
-COPY apps/atc/public ./public
+COPY apps/atc/Web/public ./Web/public
 
 EXPOSE 6001
 ENV NODE_ENV=production

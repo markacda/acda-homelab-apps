@@ -1,15 +1,21 @@
 {
-  // Node side: server + lib + tests. Compiles to dist/ for production.
+  // Node side: server + the DDD layers. Compiles to dist/ for production.
   // rootDir is pinned to "../.." (repo root) so that, even though server.ts now
   // imports the shared kit from ../Common (a sibling under apps/), the emit still
   // nests the build as dist/apps/atc/server.js (see package.json "start").
-  // atc has no client/*.ts (its browser assets under public/ are vendored JS
-  // with no build step), so there is no tsconfig.client.json.
+  // atc has no browser build (its assets under Web/public are vendored JS with
+  // no compile step), so there is no tsconfig.client.json.
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "../..",
     "types": ["node"]
   },
-  "include": ["server.ts", "lib/**/*.ts", "test/**/*.ts"]
+  "include": [
+    "server.ts",
+    "Domain/**/*.ts",
+    "Application/**/*.ts",
+    "Adapters/**/*.ts",
+    "Ports/**/*.ts"
+  ]
 }

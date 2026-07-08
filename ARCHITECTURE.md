@@ -7,10 +7,12 @@ implementation**; copy it when building a new app or migrating an existing one.
 `apps/dynamic-vs-fixed` (a stateless calculation pipeline: no aggregate/repository, but
 external Homewizard-parser and EnergyZero ports), `apps/log-viewer` (a read-only analytics
 app: a `LogStore` port + `FileLogStore` adapter, a background ingest service, and a
-query/read model over the in-memory view) and `apps/dashboard` (Docker-socket discovery +
+query/read model over the in-memory view), `apps/dashboard` (Docker-socket discovery +
 config + HTTP health-probe ports, with a gated background health-monitor holding the status
-cache) have since been migrated too. The remaining apps still use the older flat
-`server.ts` + `lib/` layout and will be migrated in follow-up passes.
+cache) and `apps/atc` (a thin proxy: a validated `PointQuery` value object + one external
+`AirplanesSource` adapter, with a vendored `Web/public` and no client build) have since been
+migrated too. The one remaining app (`ev-crossover`) still uses the older flat `server.ts` +
+`lib/` layout and will be migrated in a follow-up pass.
 
 ## Node/Express adaptations (read first)
 
