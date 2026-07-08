@@ -1,8 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { mergeApps } from "../lib/config.ts";
-import { healthTarget, isHealthStale, DISCOVERY_UA } from "../lib/health.ts";
+import { mergeApps } from "../Domain/Services/app-merge.ts";
+import { healthTarget } from "../Domain/Services/health-target.ts";
+import { HealthMonitor } from "../Application/Services/Background/health-monitor.ts";
+import { DISCOVERY_UA } from "../../Common/access-log/constants.ts";
+
+// A HealthMonitor with a stub probe (isStale only reads the cache; never probes here).
+const staleMonitor = () => new HealthMonitor({ probe: async () => "up" });
 
 const baseConfig = { apps: [], overrides: {} };
 
@@ -61,14 +66,14 @@ test("healthTarget prefers explicit url, then host+port", () => {
 test("isHealthStale: never-probed targets are stale", () => {
   // A fresh cache has no entry for this URL, so it counts as stale.
   assert.equal(
-    isHealthStale([{ url: "http://never-probed.local" }], "host.docker.internal", 30_000),
+    staleMonitor().isStale([{ url: "http://never-probed.local" }], "host.docker.internal", 30_000),
     true,
   );
 });
 
 test("isHealthStale: apps with no probeable target are not stale", () => {
-  assert.equal(isHealthStale([{}], "host.docker.internal", 30_000), false);
-  assert.equal(isHealthStale([], "host.docker.internal", 30_000), false);
+  assert.equal(staleMonitor().isStale([{}], "host.docker.internal", 30_000), false);
+  assert.equal(staleMonitor().isStale([], "host.docker.internal", 30_000), false);
 });
 
 test("DISCOVERY_UA is the recognizable discovery-agent name", () => {

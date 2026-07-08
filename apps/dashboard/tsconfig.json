@@ -1,5 +1,5 @@
 {
-  // Node side: server + lib + tests. Compiles to dist/ for production.
+  // Node side: server + the DDD layers + tests. Compiles to dist/ for production.
   // rootDir is pinned to "../.." (repo root) so that, even though server.ts now
   // imports the shared kit from ../Common (a sibling under apps/), the emit still
   // nests the build as dist/apps/dashboard/server.js (see package.json "start").
@@ -9,5 +9,13 @@
     "rootDir": "../..",
     "types": ["node"]
   },
-  "include": ["server.ts", "lib/**/*.ts", "test/**/*.ts"]
+  "include": [
+    "server.ts",
+    "Domain/**/*.ts",
+    "Application/**/*.ts",
+    "Adapters/**/*.ts",
+    "Ports/**/*.ts",
+    "Models/**/*.ts",
+    "test/**/*.ts"
+  ]
 }

@@ -5,11 +5,12 @@ layout — the layered Ports/Adapters/Domain/Application shape common on .NET pr
 adapted pragmatically to Node/Express/TypeScript. `apps/recipe-book` is the **reference
 implementation**; copy it when building a new app or migrating an existing one.
 `apps/dynamic-vs-fixed` (a stateless calculation pipeline: no aggregate/repository, but
-external Homewizard-parser and EnergyZero ports) and `apps/log-viewer` (a read-only
-analytics app: a `LogStore` port + `FileLogStore` adapter, a background ingest service, and
-a query/read model over the in-memory view) have since been migrated too. The remaining
-apps still use the older flat `server.ts` + `lib/` layout and will be migrated in follow-up
-passes.
+external Homewizard-parser and EnergyZero ports), `apps/log-viewer` (a read-only analytics
+app: a `LogStore` port + `FileLogStore` adapter, a background ingest service, and a
+query/read model over the in-memory view) and `apps/dashboard` (Docker-socket discovery +
+config + HTTP health-probe ports, with a gated background health-monitor holding the status
+cache) have since been migrated too. The remaining apps still use the older flat
+`server.ts` + `lib/` layout and will be migrated in follow-up passes.
 
 ## Node/Express adaptations (read first)
 
