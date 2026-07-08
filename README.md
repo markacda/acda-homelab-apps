@@ -98,7 +98,8 @@ In dev, point it at the repo's logs with `LOGS_ROOT=./apps npm run dev -w log-vi
    `tsconfig.json`/`tsconfig.build.json`/`tsconfig.client.json` trio. Every app uses
    the DDD/Clean-Architecture layout (see [`ARCHITECTURE.md`](ARCHITECTURE.md), creating
    only the layers it needs): copy `apps/recipe-book` for a full layered app, or
-   `apps/ev-crossover` for a trivial static page (just `Web/`). Add the new dir to the
+   `apps/ev-crossover` for a trivial static page (just `Web/` and a bare composition-root
+   `server.ts`). Add the new dir to the
    root `package.json` `workspaces` list.
 2. Build the server on the shared bootstrap: `const app = createApp("<name>")`
    then `startServer(app, { name: "<name>", port: Number(process.env.PORT) || <n> })`

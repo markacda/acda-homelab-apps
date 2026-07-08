@@ -1,5 +1,5 @@
 {
-  // Browser side: compiles client/*.ts -> public/*.js (served static by
+  // Browser side: compiles Web/client/*.ts -> Web/public/*.js (served static by
   // express.static). DOM libs only, no Node types. tsc rewrites the ".ts"
   // relative imports to ".js" so the emitted modules load over HTTP.
   "extends": "../../tsconfig.base.json",

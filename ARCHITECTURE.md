@@ -115,7 +115,7 @@ types; `Registrations` is the only place that knows every concrete class.
 
 ## Reference: `apps/recipe-book`
 
-Folders in use: `Domain/{Aggregates,ValueObjects,Exceptions,Ports/Repositories}`,
+Folders in use: `Domain/{Aggregates,Exceptions,Ports/Repositories}`,
 `Application/{Controllers,Services,Mappers,Filters,Registrations}`, `Ports/{Allerhande,Latex}`,
 `Adapters/{JsonFileStore,Allerhande,Tectonic}`, `Models/{Requests,Responses}`, `Web/{client,public}`.
 Notable pieces:
@@ -128,5 +128,5 @@ Notable pieces:
   render + PDF) implement them.
 - `Application/Services/*` — `RecipeService`, `BookService`, `RecipeImportService`,
   `BookGenerationService`.
-- `Application/Registrations/register.ts` — the manual wiring; `server.ts` is a 12-line
+- `Application/Registrations/register.ts` — the manual wiring; `server.ts` is a small
   composition root.

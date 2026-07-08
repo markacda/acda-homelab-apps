@@ -1,7 +1,7 @@
 # Built from the repo root so the shared ../../tsconfig.base.json is in context:
 #   docker build -f apps/recipe-book/Dockerfile .
 
-# Build stage — compile the TypeScript server (dist/) and client bundle (public/).
+# Build stage — compile the TypeScript server (dist/) and client bundle (Web/public/).
 FROM node:24-alpine AS builder
 WORKDIR /repo
 # Shared base tsconfig that this app's tsconfig extends via ../../.
@@ -27,7 +27,7 @@ WORKDIR /repo/apps/recipe-book
 # Manifest first for dependency-layer caching.
 COPY apps/recipe-book/package.json ./
 RUN npm install
-# App sources (server, lib, client, tsconfigs, templates, public static assets).
+# App sources (server, the DDD layers, Web/client, tsconfigs, LaTeX templates).
 COPY apps/recipe-book/ ./
 RUN npm run build
 

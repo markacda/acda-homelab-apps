@@ -6,8 +6,8 @@
 // requests are recognizable in each app's access log (instead of undici's
 // default "node"). The log-viewer hides this UA by default.
 //
-// NOTE: the log-viewer's browser client (apps/log-viewer/client/requests.ts)
+// NOTE: the log-viewer's browser client (apps/log-viewer/Web/client/requests.ts)
 // keeps a synced copy of this literal — it is compiled by a separate, bundler-
-// less client build (rootDir ./client) and cannot import from apps/Common/.
+// less client build (rootDir Web/client) and cannot import from apps/Common/.
 // Update both if this value ever changes.
 export const DISCOVERY_UA = "homelab-dashboard-discovery-agent";
