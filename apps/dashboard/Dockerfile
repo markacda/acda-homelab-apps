@@ -1,7 +1,7 @@
 # Built from the repo root so the shared ../../tsconfig.base.json is in context:
 #   docker build -f apps/dashboard/Dockerfile .
 
-# Build stage — compile the TypeScript server (dist/) and client bundle (public/).
+# Build stage — compile the TypeScript server (dist/) and client bundle (Web/public/).
 FROM node:24-alpine AS builder
 WORKDIR /repo
 COPY tsconfig.base.json ./
@@ -29,7 +29,8 @@ WORKDIR /app
 COPY apps/dashboard/package.json ./
 RUN npm install --omit=dev
 COPY --from=builder /repo/apps/dashboard/dist ./dist
-COPY --from=builder /repo/apps/dashboard/public ./public
+# Client assets are served from Web/public (see server.ts staticDir).
+COPY --from=builder /repo/apps/dashboard/Web/public ./Web/public
 # Bundle the default config; docker-compose mounts ./config over it read-only.
 COPY apps/dashboard/config ./config
 
