@@ -45,7 +45,7 @@ Notes specific to `atc`:
 
 - **No `Web/client` / `tsconfig.client.json`.** `Web/public` is vendored browser JS/CSS +
   assets with no compile step, so `build`/`typecheck` are single-step (`tsc -p
-  tsconfig.build.json`) and the whole of `Web/public/**` is excluded from lint.
+tsconfig.build.json`) and the whole of `Web/public/**` is excluded from lint.
 - **`register()` mounts the static frontend itself** (`express.static` on `Web/public`
   with 1-day caching) plus permissive CORS and compression, so `server.ts` passes
   `staticDir: null` to `startServer` to avoid double-serving.
@@ -57,9 +57,9 @@ Notes specific to `atc`:
 
 The frontend calls these proxy routes (mounted under `/api` by `AirplanesController`):
 
-| Route | Proxies |
-| --- | --- |
-| `GET /api/airplanes/:lat/:lon/:radius` | `api.airplanes.live` point query |
+| Route                                  | Proxies                             |
+| -------------------------------------- | ----------------------------------- |
+| `GET /api/airplanes/:lat/:lon/:radius` | `api.airplanes.live` point query    |
 | `GET /api/globe-airplanes-live/*splat` | `globe.airplanes.live` pass-through |
 
 `PointQuery` (`Domain/ValueObjects/point-query.ts`) validates the point-query params before
