@@ -151,7 +151,11 @@ export function checkboxDropdown(
   }
   function updateSummary(): void {
     // No options yet (before meta loads) reads as the neutral "all" label.
-    toggle.textContent = isNone() ? "None" : isAll() || checked.size === 0 ? allLabel : `${checked.size} selected`;
+    toggle.textContent = isNone()
+      ? "None"
+      : isAll() || checked.size === 0
+        ? allLabel
+        : `${checked.size} selected`;
     master.checked = isAll();
     master.indeterminate = checked.size > 0 && !isAll();
   }
