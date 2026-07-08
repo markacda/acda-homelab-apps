@@ -1,18 +1,23 @@
 # Architecture
 
-This repo is migrating its apps to a **Domain-Driven-Design / Clean-Architecture**
-layout — the layered Ports/Adapters/Domain/Application shape common on .NET projects,
-adapted pragmatically to Node/Express/TypeScript. `apps/recipe-book` is the **reference
-implementation**; copy it when building a new app or migrating an existing one.
-`apps/dynamic-vs-fixed` (a stateless calculation pipeline: no aggregate/repository, but
-external Homewizard-parser and EnergyZero ports), `apps/log-viewer` (a read-only analytics
-app: a `LogStore` port + `FileLogStore` adapter, a background ingest service, and a
-query/read model over the in-memory view), `apps/dashboard` (Docker-socket discovery +
-config + HTTP health-probe ports, with a gated background health-monitor holding the status
-cache) and `apps/atc` (a thin proxy: a validated `PointQuery` value object + one external
-`AirplanesSource` adapter, with a vendored `Web/public` and no client build) have since been
-migrated too. The one remaining app (`ev-crossover`) still uses the older flat `server.ts` +
-`lib/` layout and will be migrated in a follow-up pass.
+Every app in this repo follows a **Domain-Driven-Design / Clean-Architecture** layout —
+the layered Ports/Adapters/Domain/Application shape common on .NET projects, adapted
+pragmatically to Node/Express/TypeScript. `apps/recipe-book` is the **reference
+implementation**; copy it when building a new app. Each app creates only the layers it
+needs — the built-in apps span the range:
+
+- **recipe-book** — the fuller reference: aggregates + repositories, external Allerhande +
+  Tectonic ports, image store.
+- **dynamic-vs-fixed** — a stateless calculation pipeline: no aggregate/repository, but
+  external Homewizard-parser and EnergyZero ports.
+- **log-viewer** — a read-only analytics app: a `LogStore` port + `FileLogStore` adapter, a
+  background ingest service, and a query/read model over the in-memory view.
+- **dashboard** — Docker-socket discovery + config + HTTP health-probe ports, with a gated
+  background health-monitor holding the status cache.
+- **atc** — a thin proxy: a validated `PointQuery` value object + one external
+  `AirplanesSource` adapter, with a vendored `Web/public` and no client build.
+- **ev-crossover** — a static page with no server-side domain at all: just `Web/` (the
+  browser-side `crossover.ts` formula + UI) and a bare composition-root `server.ts`.
 
 ## Node/Express adaptations (read first)
 
