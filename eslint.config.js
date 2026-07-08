@@ -6,9 +6,9 @@ import prettier from "eslint-config-prettier";
 export default [
   {
     // Build output, data volumes and dependencies are never linted. atc's
-    // public/ is vendored/browser JavaScript + assets with no build pipeline, so
-    // it stays excluded; the rest of atc (server.ts + lib/) is linted like every
-    // app.
+    // Web/public is vendored/browser JavaScript + assets with no build pipeline,
+    // so it stays excluded; the rest of atc (server.ts + the DDD layers) is
+    // linted like every app.
     ignores: [
       "**/node_modules/**",
       "**/data/**",
@@ -17,7 +17,7 @@ export default [
       // not the generated output.
       "apps/*/public/*.js",
       "apps/*/Web/public/*.js",
-      "apps/atc/public/**",
+      "apps/atc/Web/public/**",
     ],
   },
   js.configs.recommended,
