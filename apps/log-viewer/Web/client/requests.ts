@@ -67,6 +67,17 @@ interface Meta {
 
 const PAGE = 100;
 const AUTO_MS = 7_000;
+// Rendered when a filter has every option deselected (see selectionEmpty).
+const EMPTY_STATS: Stats = {
+  overall: { count: 0, avgDurationMs: 0, errorCount: 0, count4xx: 0, count5xx: 0, errorRate: 0 },
+  perApp: [],
+  perEndpoint: [],
+  slowestEndpoints: [],
+  statusDistribution: [],
+  topIps: [],
+  topUserAgents: [],
+  overTime: [],
+};
 // The dashboard tags its health probes with this UA; we hide those rows unless
 // "Show discovery agent". Canonical source: @homelab/access-log constants.ts
 // (DISCOVERY_UA). This is a synced copy — the client build is bundler-less and
@@ -121,6 +132,7 @@ export function mountRequests(root: HTMLElement): () => void {
   const logBody = el("tbody");
   const loadMoreBtn = el("button", { type: "button" }, "Load more") as HTMLButtonElement;
   const logMetaEl = el("span", { class: "meta" });
+  const loadMoreEl = el("div", { class: "loadmore" }, loadMoreBtn, logMetaEl);
   const logsSection = el(
     "section",
     { class: "logs" },
@@ -145,7 +157,7 @@ export function mountRequests(root: HTMLElement): () => void {
       ),
       logBody,
     ),
-    el("div", { class: "loadmore" }, loadMoreBtn, logMetaEl),
+    loadMoreEl,
   );
 
   const metaEl = el("span", { class: "meta" });
@@ -163,11 +175,20 @@ export function mountRequests(root: HTMLElement): () => void {
   let offset = 0;
   let total = 0;
   let autoTimer: number | undefined;
+  let loading = false;
+  let loadSeq = 0;
+  let sentinelVisible = false;
 
   const appDropdown = checkboxDropdown(appDropdownEl, "All apps", () => refresh());
   const methodDropdown = checkboxDropdown(methodDropdownEl, "All methods", () => refresh());
   const statusDropdown = checkboxDropdown(statusDropdownEl, "All status", () => refresh());
   statusDropdown.setOptions(["2xx", "3xx", "4xx", "5xx"]);
+
+  // Deselecting every option in any filter means "match nothing" — short-circuit
+  // to an empty view rather than falling back to the server's "empty = all".
+  function selectionEmpty(): boolean {
+    return appDropdown.isNone() || methodDropdown.isNone() || statusDropdown.isNone();
+  }
 
   // ---- query building -----------------------------------------------------
   function rangeFrom(): string | null {
@@ -308,6 +329,11 @@ export function mountRequests(root: HTMLElement): () => void {
 
   // ---- data loading -------------------------------------------------------
   async function loadStats(): Promise<void> {
+    if (selectionEmpty()) {
+      renderCards(EMPTY_STATS);
+      renderStatTables(EMPTY_STATS);
+      return;
+    }
     const res = await fetch(`/api/stats?${baseParams().toString()}`);
     if (!res.ok) return;
     const { stats } = (await res.json()) as { stats: Stats };
@@ -315,24 +341,45 @@ export function mountRequests(root: HTMLElement): () => void {
     renderStatTables(stats);
   }
   async function loadLogs(reset: boolean): Promise<void> {
+    if (selectionEmpty()) {
+      logBody.replaceChildren();
+      total = 0;
+      offset = 0;
+      logMetaEl.textContent = "Showing 0 of 0";
+      loadMoreBtn.style.display = "none";
+      return;
+    }
+    // Don't stack auto-load appends; a reset always proceeds and supersedes any
+    // in-flight load via loadSeq so its late response can't corrupt the list.
+    if (!reset && loading) return;
     if (reset) offset = 0;
+    const seq = ++loadSeq;
+    loading = true;
     const p = baseParams();
     p.set("sort", `${sortField}:${sortDir}`);
     p.set("limit", String(PAGE));
     p.set("offset", String(offset));
-    const res = await fetch(`/api/logs?${p.toString()}`);
-    if (!res.ok) {
-      logMetaEl.textContent = `Failed to load logs (HTTP ${res.status})`;
-      return;
+    try {
+      const res = await fetch(`/api/logs?${p.toString()}`);
+      if (seq !== loadSeq) return; // a newer load started; drop this response
+      if (!res.ok) {
+        logMetaEl.textContent = `Failed to load logs (HTTP ${res.status})`;
+        return;
+      }
+      const data = (await res.json()) as LogsResponse;
+      if (seq !== loadSeq) return;
+      total = data.total;
+      if (reset) logBody.replaceChildren();
+      for (const e of data.entries) logBody.append(logRow(e));
+      offset += data.entries.length;
+      logMetaEl.textContent = `Showing ${offset.toLocaleString()} of ${total.toLocaleString()}`;
+      loadMoreBtn.disabled = offset >= total;
+      loadMoreBtn.style.display = offset >= total ? "none" : "";
+    } finally {
+      if (seq === loadSeq) loading = false;
     }
-    const data = (await res.json()) as LogsResponse;
-    total = data.total;
-    if (reset) logBody.replaceChildren();
-    for (const e of data.entries) logBody.append(logRow(e));
-    offset += data.entries.length;
-    logMetaEl.textContent = `Showing ${offset.toLocaleString()} of ${total.toLocaleString()}`;
-    loadMoreBtn.disabled = offset >= total;
-    loadMoreBtn.style.display = offset >= total ? "none" : "";
+    // A short first page may leave the sentinel still in view; keep filling.
+    maybeAutoLoad();
   }
   async function refresh(): Promise<void> {
     await Promise.all([loadStats(), loadLogs(true)]);
@@ -368,6 +415,20 @@ export function mountRequests(root: HTMLElement): () => void {
       autoTimer = undefined;
     }
   }
+  // Infinite scroll: pull the next page whenever the load-more row is near the
+  // viewport. `sentinelVisible` is kept current by the observer so loadLogs can
+  // re-check it to keep filling a viewport that a single page didn't cover.
+  function maybeAutoLoad(): void {
+    if (sentinelVisible && !loading && !selectionEmpty() && offset < total) loadLogs(false);
+  }
+  const observer = new IntersectionObserver(
+    (entries) => {
+      sentinelVisible = entries[0].isIntersecting;
+      maybeAutoLoad();
+    },
+    { rootMargin: "200px" },
+  );
+  observer.observe(loadMoreEl);
 
   for (const control of [rangeEl, showSelfEl, showDiscoveryEl]) {
     control.addEventListener("change", () => refresh());
@@ -393,6 +454,7 @@ export function mountRequests(root: HTMLElement): () => void {
 
   return () => {
     if (autoTimer !== undefined) clearInterval(autoTimer);
+    observer.disconnect();
   };
 }
 

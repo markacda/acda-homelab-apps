@@ -37,6 +37,13 @@ interface LogMeta {
 const PAGE = 100;
 const AUTO_MS = 7_000;
 const ALL_LEVELS = ["log", "info", "warn", "error", "debug"];
+// Rendered when a filter has every option deselected (see selectionEmpty).
+const EMPTY_STATS: LogStats = {
+  overall: { count: 0, errorCount: 0, warnCount: 0, infoCount: 0 },
+  perApp: [],
+  levelDistribution: [],
+  overTime: [],
+};
 
 /** CSS pill class for a log level. */
 function levelClass(level: string): string {
@@ -82,6 +89,7 @@ export function mountLogs(root: HTMLElement): () => void {
   const logBody = el("tbody");
   const loadMoreBtn = el("button", { type: "button" }, "Load more") as HTMLButtonElement;
   const logMetaEl = el("span", { class: "meta" });
+  const loadMoreEl = el("div", { class: "loadmore" }, loadMoreBtn, logMetaEl);
   const logsSection = el(
     "section",
     { class: "logs" },
@@ -102,7 +110,7 @@ export function mountLogs(root: HTMLElement): () => void {
       ),
       logBody,
     ),
-    el("div", { class: "loadmore" }, loadMoreBtn, logMetaEl),
+    loadMoreEl,
   );
 
   const metaEl = el("span", { class: "meta" });
@@ -120,10 +128,19 @@ export function mountLogs(root: HTMLElement): () => void {
   let offset = 0;
   let total = 0;
   let autoTimer: number | undefined;
+  let loading = false;
+  let loadSeq = 0;
+  let sentinelVisible = false;
 
   const appDropdown = checkboxDropdown(appDropdownEl, "All apps", () => refresh());
   const levelDropdown = checkboxDropdown(levelDropdownEl, "All levels", () => refresh());
   levelDropdown.setOptions(ALL_LEVELS);
+
+  // Deselecting every option in any filter means "match nothing" — short-circuit
+  // to an empty view rather than falling back to the server's "empty = all".
+  function selectionEmpty(): boolean {
+    return appDropdown.isNone() || levelDropdown.isNone();
+  }
 
   // ---- query building -----------------------------------------------------
   function rangeFrom(): string | null {
@@ -209,6 +226,11 @@ export function mountLogs(root: HTMLElement): () => void {
 
   // ---- data loading -------------------------------------------------------
   async function loadStats(): Promise<void> {
+    if (selectionEmpty()) {
+      renderCards(EMPTY_STATS);
+      renderPanels(EMPTY_STATS);
+      return;
+    }
     const res = await fetch(`/api/app-logs/stats?${baseParams().toString()}`);
     if (!res.ok) return;
     const { stats } = (await res.json()) as { stats: LogStats };
@@ -216,24 +238,45 @@ export function mountLogs(root: HTMLElement): () => void {
     renderPanels(stats);
   }
   async function loadLogs(reset: boolean): Promise<void> {
+    if (selectionEmpty()) {
+      logBody.replaceChildren();
+      total = 0;
+      offset = 0;
+      logMetaEl.textContent = "Showing 0 of 0";
+      loadMoreBtn.style.display = "none";
+      return;
+    }
+    // Don't stack auto-load appends; a reset always proceeds and supersedes any
+    // in-flight load via loadSeq so its late response can't corrupt the list.
+    if (!reset && loading) return;
     if (reset) offset = 0;
+    const seq = ++loadSeq;
+    loading = true;
     const p = baseParams();
     p.set("sort", `${sortField}:${sortDir}`);
     p.set("limit", String(PAGE));
     p.set("offset", String(offset));
-    const res = await fetch(`/api/app-logs?${p.toString()}`);
-    if (!res.ok) {
-      logMetaEl.textContent = `Failed to load logs (HTTP ${res.status})`;
-      return;
+    try {
+      const res = await fetch(`/api/app-logs?${p.toString()}`);
+      if (seq !== loadSeq) return; // a newer load started; drop this response
+      if (!res.ok) {
+        logMetaEl.textContent = `Failed to load logs (HTTP ${res.status})`;
+        return;
+      }
+      const data = (await res.json()) as AppLogsResponse;
+      if (seq !== loadSeq) return;
+      total = data.total;
+      if (reset) logBody.replaceChildren();
+      for (const e of data.entries) logBody.append(logRow(e));
+      offset += data.entries.length;
+      logMetaEl.textContent = `Showing ${offset.toLocaleString()} of ${total.toLocaleString()}`;
+      loadMoreBtn.disabled = offset >= total;
+      loadMoreBtn.style.display = offset >= total ? "none" : "";
+    } finally {
+      if (seq === loadSeq) loading = false;
     }
-    const data = (await res.json()) as AppLogsResponse;
-    total = data.total;
-    if (reset) logBody.replaceChildren();
-    for (const e of data.entries) logBody.append(logRow(e));
-    offset += data.entries.length;
-    logMetaEl.textContent = `Showing ${offset.toLocaleString()} of ${total.toLocaleString()}`;
-    loadMoreBtn.disabled = offset >= total;
-    loadMoreBtn.style.display = offset >= total ? "none" : "";
+    // A short first page may leave the sentinel still in view; keep filling.
+    maybeAutoLoad();
   }
   async function refresh(): Promise<void> {
     await Promise.all([loadStats(), loadLogs(true)]);
@@ -268,6 +311,20 @@ export function mountLogs(root: HTMLElement): () => void {
       autoTimer = undefined;
     }
   }
+  // Infinite scroll: pull the next page whenever the load-more row is near the
+  // viewport. `sentinelVisible` is kept current by the observer so loadLogs can
+  // re-check it to keep filling a viewport that a single page didn't cover.
+  function maybeAutoLoad(): void {
+    if (sentinelVisible && !loading && !selectionEmpty() && offset < total) loadLogs(false);
+  }
+  const observer = new IntersectionObserver(
+    (entries) => {
+      sentinelVisible = entries[0].isIntersecting;
+      maybeAutoLoad();
+    },
+    { rootMargin: "200px" },
+  );
+  observer.observe(loadMoreEl);
 
   for (const control of [rangeEl, showSelfEl]) {
     control.addEventListener("change", () => refresh());
@@ -292,6 +349,7 @@ export function mountLogs(root: HTMLElement): () => void {
 
   return () => {
     if (autoTimer !== undefined) clearInterval(autoTimer);
+    observer.disconnect();
   };
 }
 
