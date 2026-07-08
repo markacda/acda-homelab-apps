@@ -42,27 +42,40 @@ test("escapeLatex escapes all special characters", () => {
   );
 });
 
-test("renderRecipe fills tokens, builds item lists, escapes text", () => {
+test("renderRecipe fills tokens, appends servings/time units, escapes text", () => {
   const out = renderRecipe(
     recipe({
       title: "Soup & Co",
       category: "Main",
-      servings: "4 personen",
+      servings: "4",
       ingredients: ["50% cream"],
       steps: ["stir"],
-      prepTime: "10 min",
-      cookTime: "20 min",
-      totalTime: "30 min",
+      prepTime: "10",
+      cookTime: "20",
+      totalTime: "30",
     }),
     TEMPLATES,
     PATHS,
   );
   assert.match(out, /\\subsection\{Soup \\& Co\}/);
   assert.match(out, /cat=\[Main\]/);
+  // Bare numbers get their unit appended at render time.
   assert.match(out, /servings=4 personen/);
   assert.match(out, /\\item 50\\% cream/);
   assert.match(out, /\\item stir/);
   assert.match(out, /times=10 min\|20 min\|30 min/);
+});
+
+test("renderRecipe: empty servings/time fields render no stray unit", () => {
+  const out = renderRecipe(
+    recipe({ servings: undefined, prepTime: undefined, cookTime: undefined, totalTime: undefined }),
+    TEMPLATES,
+    PATHS,
+  );
+  assert.match(out, /servings=\n/);
+  assert.match(out, /times=\|\|/);
+  assert.doesNotMatch(out, /personen/);
+  assert.doesNotMatch(out, /min/);
 });
 
 test("renderRecipe: title image is images[0], extras are the rest with a newpage", () => {

@@ -6,6 +6,7 @@ import {
   stripHtml,
   parseIsoDuration,
 } from "../Adapters/Allerhande/parse.ts";
+import { normalizeAllerhandeUrl } from "../Adapters/Allerhande/allerhande-recipe-source.ts";
 
 // An Allerhande-shaped page: a JSON-LD @graph with a Recipe node, HowToStep
 // instructions, an image array, and some HTML inside the fields.
@@ -24,7 +25,7 @@ const AH_RECIPE = {
   recipeCategory: "Hoofdgerecht",
   prepTime: "PT15M",
   cookTime: "PT25M",
-  totalTime: "PT40M",
+  totalTime: "PT1H40M",
   recipeIngredient: ["250 g pappardelle", "2 el <b>olijfolie</b>", "300 g kogelbiefstuk"],
   recipeInstructions: [
     { "@type": "HowToStep", text: "Kook de pappardelle beetgaar." },
@@ -32,13 +33,29 @@ const AH_RECIPE = {
   ],
 };
 
-test("parseIsoDuration formats ISO-8601 durations in Dutch", () => {
-  assert.equal(parseIsoDuration("PT30M"), "30 min");
-  assert.equal(parseIsoDuration("PT1H15M"), "1 uur 15 min");
-  assert.equal(parseIsoDuration("PT2H"), "2 uur");
+test("parseIsoDuration reduces ISO-8601 durations to total minutes", () => {
+  assert.equal(parseIsoDuration("PT30M"), "30");
+  assert.equal(parseIsoDuration("PT1H15M"), "75");
+  assert.equal(parseIsoDuration("PT2H"), "120");
   assert.equal(parseIsoDuration("PT0M"), undefined);
   assert.equal(parseIsoDuration("nonsense"), undefined);
   assert.equal(parseIsoDuration(undefined), undefined);
+});
+
+test("normalizeAllerhandeUrl rewrites the short recipe URL to canonical", () => {
+  assert.equal(
+    normalizeAllerhandeUrl("https://www.ah.nl/r/480288"),
+    "https://www.ah.nl/allerhande/recept/r-480288",
+  );
+  // Any recipe number, trailing slash, and no-www host are all handled.
+  assert.equal(
+    normalizeAllerhandeUrl("https://ah.nl/r/12/"),
+    "https://ah.nl/allerhande/recept/r-12",
+  );
+  // Already-canonical URLs and unrelated URLs pass through unchanged.
+  const canonical = "https://www.ah.nl/allerhande/recept/r-480288";
+  assert.equal(normalizeAllerhandeUrl(canonical), canonical);
+  assert.equal(normalizeAllerhandeUrl("https://example.com/r/480288"), "https://example.com/r/480288");
 });
 
 test("extractJsonLdBlocks pulls every ld+json script", () => {
@@ -56,11 +73,11 @@ test("parseRecipe extracts a Recipe from a @graph", () => {
   assert.ok(parsed, "should find a recipe");
   assert.equal(parsed.title, "Pappardelle met kogelbiefstuk");
   assert.equal(parsed.imageUrl, "https://static.ah.nl/img/recipe.jpg");
-  assert.equal(parsed.servings, "4 personen");
+  assert.equal(parsed.servings, "4");
   assert.equal(parsed.category, "Hoofdgerecht");
-  assert.equal(parsed.prepTime, "15 min");
-  assert.equal(parsed.cookTime, "25 min");
-  assert.equal(parsed.totalTime, "40 min");
+  assert.equal(parsed.prepTime, "15");
+  assert.equal(parsed.cookTime, "25");
+  assert.equal(parsed.totalTime, "100");
   assert.deepEqual(parsed.ingredients, [
     "250 g pappardelle",
     "2 el olijfolie",

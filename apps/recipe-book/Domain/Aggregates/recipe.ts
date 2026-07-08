@@ -16,8 +16,9 @@ export interface RecipeContent {
   imageUrl?: string | null;
   ingredients: string[];
   steps: string[];
+  /** Number of servings, as a bare number string (the "personen" unit is added at render time). */
   servings?: string;
-  /** Human-readable durations (e.g. "30 min", "1 uur 15 min"). */
+  /** Durations in minutes, as bare number strings (the "min" unit is added at render time). */
   prepTime?: string;
   cookTime?: string;
   totalTime?: string;

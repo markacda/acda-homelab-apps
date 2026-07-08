@@ -7,9 +7,10 @@ import type { ParsedRecipe } from "../../Ports/Allerhande/recipe-source.ts";
 // and unit-tested with a crafted fixture.
 
 /**
- * Turn an ISO-8601 duration (e.g. "PT1H15M", "PT30M", "PT2H") into a short Dutch
- * string ("1 uur 15 min", "30 min", "2 uur"), matching the recipe-book layout.
- * Returns undefined for anything it can't read.
+ * Turn an ISO-8601 duration (e.g. "PT1H15M", "PT30M", "PT2H") into a bare
+ * total-minutes string ("75", "30", "120"). The recipe-book stores times as
+ * plain numbers; the "min" unit is appended when rendering the LaTeX.
+ * Returns undefined for anything it can't read (or a zero duration).
  */
 export function parseIsoDuration(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
@@ -18,10 +19,8 @@ export function parseIsoDuration(value: unknown): string | undefined {
   const days = Number(m[1] || 0);
   const hours = Number(m[2] || 0) + days * 24;
   const mins = Number(m[3] || 0);
-  const parts: string[] = [];
-  if (hours) parts.push(`${hours} uur`);
-  if (mins) parts.push(`${mins} min`);
-  return parts.length ? parts.join(" ") : undefined;
+  const total = hours * 60 + mins;
+  return total > 0 ? String(total) : undefined;
 }
 
 /** Pull the contents of every <script type="application/ld+json"> block. */
@@ -134,12 +133,24 @@ function normalizeIngredients(ingredients: unknown): string[] {
   return ingredients.map((i) => (typeof i === "string" ? stripHtml(i) : "")).filter(Boolean);
 }
 
+/**
+ * Reduce a schema.org `recipeYield` to a bare servings number ("4"). AH yields
+ * come as "4 personen", "6-8", numbers, or arrays; we take the first integer.
+ * The recipe-book stores servings as a plain number and appends "personen"
+ * when rendering the LaTeX. Returns undefined when no integer is present.
+ */
 function normalizeYield(recipeYield: unknown): string | undefined {
-  if (typeof recipeYield === "string") return recipeYield.trim() || undefined;
+  const firstInt = (s: string): string | undefined => /\d+/.exec(s)?.[0];
+  if (typeof recipeYield === "string") return firstInt(recipeYield);
   if (typeof recipeYield === "number") return String(recipeYield);
   if (Array.isArray(recipeYield)) {
-    const first = recipeYield.find((v) => typeof v === "string" || typeof v === "number");
-    return first !== undefined ? String(first) : undefined;
+    for (const v of recipeYield) {
+      if (typeof v === "number") return String(v);
+      if (typeof v === "string") {
+        const n = firstInt(v);
+        if (n) return n;
+      }
+    }
   }
   return undefined;
 }

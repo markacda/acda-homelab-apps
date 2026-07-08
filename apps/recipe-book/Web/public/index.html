@@ -60,6 +60,20 @@
           </div>
           <p id="noBook" class="meta">Create a book to start adding recipes.</p>
         </section>
+
+        <section class="panel">
+          <h2>Categories</h2>
+          <div class="row">
+            <select id="categorySelect" title="Select a category"></select>
+            <button id="newCategoryBtn" type="button">New</button>
+            <button id="renameCategoryBtn" type="button" class="secondary">Rename</button>
+            <button id="deleteCategoryBtn" type="button" class="danger">Delete</button>
+          </div>
+          <p class="meta">
+            Manage the categories offered when editing a recipe. Renaming updates every
+            recipe using it; deleting keeps recipes' existing text.
+          </p>
+        </section>
       </div>
     </div>
 
@@ -69,15 +83,21 @@
         <h2 id="editorTitle">Edit recipe</h2>
         <label>Title<input id="edTitle" type="text" /></label>
         <div class="row2">
+          <label>Category<select id="edCategory"></select></label>
           <label
-            >Category<input id="edCategory" type="text" placeholder="e.g. Hoofdgerecht"
+            >Servings (persons)<input id="edServings" type="number" min="0" step="1" placeholder="e.g. 4"
           /></label>
-          <label>Servings<input id="edServings" type="text" placeholder="e.g. 4 personen" /></label>
         </div>
         <div class="row3">
-          <label>Prep time<input id="edPrepTime" type="text" placeholder="e.g. 10 min" /></label>
-          <label>Cook time<input id="edCookTime" type="text" placeholder="e.g. 30 min" /></label>
-          <label>Total time<input id="edTotalTime" type="text" placeholder="e.g. 40 min" /></label>
+          <label
+            >Prep time (min)<input id="edPrepTime" type="number" min="0" step="1" placeholder="e.g. 10"
+          /></label>
+          <label
+            >Cook time (min)<input id="edCookTime" type="number" min="0" step="1" placeholder="e.g. 30"
+          /></label>
+          <label
+            >Total time (min)<input id="edTotalTime" type="number" min="0" step="1" placeholder="e.g. 40"
+          /></label>
         </div>
         <label
           >Ingredients <span class="meta">(one per line)</span>
