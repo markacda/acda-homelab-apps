@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { crossoverPrice } from "../client/crossover.ts";
+import { crossoverPrice } from "../Web/client/crossover.ts";
 
 test("computes the crossover price from the defaults", () => {
   // (1.95 × 400) / (15 × 60) = 780 / 900 = 0.8666...

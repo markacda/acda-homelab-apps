@@ -1,7 +1,7 @@
 {
-  // Node side: server + lib + tests. Compiles to dist/ for production. The test
-  // importing ../client/crossover.ts pulls that pure module into the program, so
-  // it is type-checked here too.
+  // Node side: server + tests. Compiles to dist/ for production. The test
+  // importing ../Web/client/crossover.ts pulls that pure module into the program,
+  // so it is type-checked here too (this app has no server-side domain layers).
   // rootDir is pinned to "../.." (repo root) so that, even though server.ts now
   // imports the shared kit from ../Common (a sibling under apps/), the emit still
   // nests the build as dist/apps/ev-crossover/server.js (see package.json "start").
@@ -11,5 +11,5 @@
     "rootDir": "../..",
     "types": ["node"]
   },
-  "include": ["server.ts", "lib/**/*.ts", "test/**/*.ts"]
+  "include": ["server.ts", "test/**/*.ts"]
 }

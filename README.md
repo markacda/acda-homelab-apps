@@ -44,11 +44,11 @@ type-stripping, Node ≥24) and restarts on change:
 npm run dev -w ev-crossover    # runs server.ts, serves on http://localhost:6002
 ```
 
-Browser assets under `public/` are compiled from `client/*.ts` by the build, so
-run the build once to (re)generate them (or to run the production output):
+Browser assets under `Web/public/` are compiled from `Web/client/*.ts` by the
+build, so run the build once to (re)generate them (or to run the production output):
 
 ```sh
-npm run build -w ev-crossover  # compiles server -> dist/ and client -> public/
+npm run build -w ev-crossover  # compiles server -> dist/ and client -> Web/public/
 npm start -w ev-crossover      # runs the compiled dist/server.js
 ```
 
@@ -95,10 +95,11 @@ In dev, point it at the repo's logs with `LOGS_ROOT=./apps npm run dev -w log-vi
 ## Adding a new app
 
 1. Create `apps/<name>/` with a `Dockerfile`, `package.json`, `server.ts`, and the
-   `tsconfig.json`/`tsconfig.build.json`/`tsconfig.client.json` trio. For the layered
-   DDD layout copy `apps/recipe-book` (see [`ARCHITECTURE.md`](ARCHITECTURE.md)); for a
-   trivial app the flat `apps/ev-crossover` (with `client/` + `public/`) is fine. Add
-   the new dir to the root `package.json` `workspaces` list.
+   `tsconfig.json`/`tsconfig.build.json`/`tsconfig.client.json` trio. Every app uses
+   the DDD/Clean-Architecture layout (see [`ARCHITECTURE.md`](ARCHITECTURE.md), creating
+   only the layers it needs): copy `apps/recipe-book` for a full layered app, or
+   `apps/ev-crossover` for a trivial static page (just `Web/`). Add the new dir to the
+   root `package.json` `workspaces` list.
 2. Build the server on the shared bootstrap: `const app = createApp("<name>")`
    then `startServer(app, { name: "<name>", port: Number(process.env.PORT) || <n> })`
    from `apps/Common/server-kit` — it mounts the access logger, exposes `/healthz`,

@@ -8,7 +8,7 @@ A monorepo (npm workspaces) of small independent Node/Express webapps that run a
 Docker containers on a Raspberry Pi 5 (ARM64), each on its own port, aggregated by
 a single `docker-compose.yml`. `apps/*` are the deployable apps; `apps/Common/*` are
 the shared libraries. See `README.md` for the per-port app catalog, and
-`ARCHITECTURE.md` for the DDD/Clean-Architecture layout apps are migrating to
+`ARCHITECTURE.md` for the DDD/Clean-Architecture layout every app now follows
 (`apps/recipe-book` is the reference implementation).
 
 ## Commands
@@ -48,24 +48,19 @@ docker build -f apps/<name>/Dockerfile .   # build one image
 
 ## Architecture
 
-**Per-app anatomy.** The remaining flat apps are `server.ts` (Express entry) +
-`lib/` (pure logic, unit-tested) + `client/*.ts` (browser code) + `public/`
-(compiled client output + static HTML/CSS) + `test/`.
-
-**`apps/recipe-book`, `apps/dynamic-vs-fixed`, `apps/log-viewer`, `apps/dashboard`
-and `apps/atc` are migrated** to the DDD/Clean-Architecture layout (`Domain/`,
+**Per-app anatomy.** All apps are on the DDD/Clean-Architecture layout (`Domain/`,
 `Application/`, `Adapters/`, `Ports/`, `Models/`, `Web/`) — see `ARCHITECTURE.md`.
 `server.ts` is a thin composition root (`createApp` →
 `Application/Registrations/register(app)` → `startServer`) and browser code lives
 under `Web/client` → `Web/public` (served via `startServer`'s `staticDir` option).
-recipe-book is the fuller reference (aggregates + repositories); dynamic-vs-fixed
-shows a stateless calculation pipeline (external ports, no repository); log-viewer
-shows a read-only analytics app (a store port + background ingest service + a
-query/read model); dashboard shows discovery/config/health-probe ports with a
-gated background monitor; atc shows a thin proxy (a validated `PointQuery` value
-object + one external `AirplanesSource` adapter, `cors`/`compression`, and a
-vendored `Web/public` with no client build — excluded from lint). The remaining
-app (`ev-crossover`) will migrate over time; copy recipe-book as the template.
+Each app only creates the layers it needs. By example:
+
+- **recipe-book** — the fuller reference: aggregates + repositories.
+- **dynamic-vs-fixed** — a stateless calculation pipeline (external ports, no repository).
+- **log-viewer** — a read-only analytics app (a store port + background ingest service + a query/read model).
+- **dashboard** — discovery/config/health-probe ports with a gated background monitor.
+- **atc** — a thin proxy (a validated `PointQuery` value object + one external `AirplanesSource` adapter, `cors`/`compression`, and a vendored `Web/public` with no client build — excluded from lint).
+- **ev-crossover** — a static page with no server-side domain at all: just `Web/` (the browser-side `crossover.ts` formula + UI) and a bare composition-root `server.ts` that serves it.
 
 **TypeScript / build model.** Every app extends `tsconfig.base.json` (strict,
 `nodenext`). Key constraints baked into the base config:
@@ -105,10 +100,10 @@ and lists their runtime deps in its own `package.json`:
   `optStr`, `csvList`, `toStringArray`, `clampInt`) in `index.ts`; the multer-backed
   `memoryUpload` in `upload.ts` (kept separate so non-upload apps don't pull multer).
 
-**Conventions for a new app.** For the layered DDD layout copy `apps/recipe-book`
-(see `ARCHITECTURE.md`); for a trivial static/proxy app the flat `apps/ev-crossover`
-is still a fine template. Either way: `const app = createApp("<name>")`, register
-routes (directly, or via `Application/Registrations/register(app)`), then
+**Conventions for a new app.** Copy `apps/recipe-book` for the full layered DDD
+layout, or `apps/ev-crossover` for a trivial static page (see `ARCHITECTURE.md`;
+create only the layers you need). Either way: `const app = createApp("<name>")`,
+register routes (via `Application/Registrations/register(app)`), then
 `startServer(app, {name, port: Number(process.env.PORT) || <n>})` — this covers
 `/healthz`, static, error handling, `0.0.0.0` bind, and graceful shutdown. Add the
 app dir to the root `package.json` `workspaces` list. Build from the repo-root
