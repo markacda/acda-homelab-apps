@@ -31,6 +31,13 @@ interface BookDetail extends Book {
   recipes: Recipe[];
 }
 
+interface Category {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ---- tiny helpers ---------------------------------------------------------
 
 function $<T extends HTMLElement = HTMLElement>(id: string): T {
@@ -82,6 +89,8 @@ let recipes: Recipe[] = [];
 let books: Book[] = [];
 let activeBookId: string | null = null;
 let activeBook: BookDetail | null = null;
+let categories: Category[] = [];
+let activeCategoryId: string | null = null;
 let editingId: string | null = null; // null => creating a new recipe
 let editingImages: string[] = []; // gallery of the recipe currently in the editor
 
@@ -189,14 +198,86 @@ async function saveBookOrder(recipeIds: string[]): Promise<void> {
   await refreshActiveBook();
 }
 
+// ---- categories -----------------------------------------------------------
+
+async function loadCategories(): Promise<void> {
+  categories = await api<Category[]>("/api/categories");
+  if (activeCategoryId && !categories.some((c) => c.id === activeCategoryId))
+    activeCategoryId = null;
+  if (!activeCategoryId && categories.length) activeCategoryId = categories[0].id;
+  renderCategorySelect();
+}
+
+function renderCategorySelect(): void {
+  const sel = $<HTMLSelectElement>("categorySelect");
+  sel.innerHTML = categories.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
+  if (activeCategoryId) sel.value = activeCategoryId;
+  const has = categories.length > 0;
+  $("renameCategoryBtn").toggleAttribute("disabled", !has);
+  $("deleteCategoryBtn").toggleAttribute("disabled", !has);
+}
+
+function activeCategory(): Category | null {
+  return categories.find((c) => c.id === activeCategoryId) ?? null;
+}
+
+async function newCategory(): Promise<void> {
+  const name = prompt("Name for the new category:");
+  if (!name?.trim()) return;
+  const category = await api<Category>("/api/categories", {
+    method: "POST",
+    body: JSON.stringify({ name: name.trim() }),
+  });
+  activeCategoryId = category.id;
+  await loadCategories();
+}
+
+async function renameCategory(): Promise<void> {
+  const category = activeCategory();
+  if (!category) return;
+  const name = prompt("New name:", category.name);
+  if (!name?.trim()) return;
+  await api(`/api/categories/${category.id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ name: name.trim() }),
+  });
+  await loadCategories();
+  // The rename cascades to recipes on the server, so refresh what shows the name.
+  await loadRecipes();
+  await refreshActiveBook();
+}
+
+async function deleteCategory(): Promise<void> {
+  const category = activeCategory();
+  if (!category) return;
+  if (!confirm(`Delete category “${category.name}”? Recipes keep their current category text.`))
+    return;
+  await api(`/api/categories/${category.id}`, { method: "DELETE" });
+  activeCategoryId = null;
+  await loadCategories();
+}
+
 // ---- recipe editor --------------------------------------------------------
+
+/** Fill the editor's category <select> with the managed list, keeping `selected` choosable. */
+function renderEditorCategoryOptions(selected: string): void {
+  const sel = $<HTMLSelectElement>("edCategory");
+  const names = categories.map((c) => c.name);
+  // An existing/imported category may not be in the managed list yet; keep it
+  // as an option so it still displays and is preserved on save.
+  const extra = selected && !names.includes(selected) ? [selected] : [];
+  sel.innerHTML = ['<option value="">— none —</option>']
+    .concat([...extra, ...names].map((n) => `<option value="${esc(n)}">${esc(n)}</option>`))
+    .join("");
+  sel.value = selected;
+}
 
 function openEditor(recipe: Recipe | null): void {
   editingId = recipe?.id ?? null;
   editingImages = recipe ? [...recipe.images] : [];
   $("editorTitle").textContent = recipe ? "Edit recipe" : "New recipe";
   $<HTMLInputElement>("edTitle").value = recipe?.title ?? "";
-  $<HTMLInputElement>("edCategory").value = recipe?.category ?? "";
+  renderEditorCategoryOptions(recipe?.category ?? "");
   $<HTMLInputElement>("edServings").value = recipe?.servings ?? "";
   $<HTMLInputElement>("edPrepTime").value = recipe?.prepTime ?? "";
   $<HTMLInputElement>("edCookTime").value = recipe?.cookTime ?? "";
@@ -245,7 +326,7 @@ function closeEditor(): void {
 function collectEditorFields() {
   return {
     title: $<HTMLInputElement>("edTitle").value.trim(),
-    category: $<HTMLInputElement>("edCategory").value.trim(),
+    category: $<HTMLSelectElement>("edCategory").value,
     servings: $<HTMLInputElement>("edServings").value.trim(),
     prepTime: $<HTMLInputElement>("edPrepTime").value.trim(),
     cookTime: $<HTMLInputElement>("edCookTime").value.trim(),
@@ -340,10 +421,15 @@ async function saveGallery(): Promise<void> {
 
 // ---- top-level actions ----------------------------------------------------
 
+// Pending auto-hide timer for the import status line (so a new import/error
+// cancels the previous one instead of clearing the wrong message).
+let importStatusTimer: ReturnType<typeof setTimeout> | null = null;
+
 async function importRecipe(): Promise<void> {
   const input = $<HTMLInputElement>("importUrl");
   const url = input.value.trim();
   if (!url) return;
+  if (importStatusTimer !== null) clearTimeout(importStatusTimer);
   const btn = $<HTMLButtonElement>("importBtn");
   btn.disabled = true;
   setStatus($("addStatus"), "Fetching and parsing recipe…", "info");
@@ -354,6 +440,11 @@ async function importRecipe(): Promise<void> {
     });
     input.value = "";
     setStatus($("addStatus"), `Imported “${recipe.title}”.`, "ok");
+    // Fade out the success confirmation after a few seconds.
+    importStatusTimer = setTimeout(() => {
+      setStatus($("addStatus"), "");
+      importStatusTimer = null;
+    }, 5000);
     await loadRecipes();
   } catch (err) {
     setStatus($("addStatus"), err instanceof Error ? err.message : "Import failed.", "error");
@@ -493,6 +584,13 @@ $("newBookBtn").addEventListener("click", () => void newBook());
 $("renameBookBtn").addEventListener("click", () => void renameBook());
 $("deleteBookBtn").addEventListener("click", () => void deleteBook());
 
+$<HTMLSelectElement>("categorySelect").addEventListener("change", (e) => {
+  activeCategoryId = (e.target as HTMLSelectElement).value;
+});
+$("newCategoryBtn").addEventListener("click", () => void newCategory());
+$("renameCategoryBtn").addEventListener("click", () => void renameCategory());
+$("deleteCategoryBtn").addEventListener("click", () => void deleteCategory());
+
 $("genTexBtn").addEventListener("click", () => void generate("tex"));
 $("genPdfBtn").addEventListener("click", () => void generate("pdf"));
 
@@ -529,6 +627,7 @@ void (async () => {
   try {
     await loadRecipes();
     await loadBooks();
+    await loadCategories();
   } catch (err) {
     setStatus($("addStatus"), err instanceof Error ? err.message : "Failed to load.", "error");
   }

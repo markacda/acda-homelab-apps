@@ -83,16 +83,21 @@ export function renderRecipe(recipe: RecipeData, templates: Templates, paths: Re
           .join("\n")
       : "";
 
+  // Servings/times are stored as bare numbers; append their units here (and only
+  // when present, so an empty field renders no stray "personen"/"min").
+  const withUnit = (value: string | undefined, unit: string): string =>
+    value ? `${escapeLatex(value)} ${unit}` : "";
+
   return fill(templates.recipe, {
     category: recipe.category ? escapeLatex(recipe.category) : "",
     title: escapeLatex(recipe.title),
-    servings: recipe.servings ? escapeLatex(recipe.servings) : "",
+    servings: withUnit(recipe.servings, "personen"),
     ingredients: itemize(recipe.ingredients),
     notesBlock,
     extraImages,
-    prepTime: recipe.prepTime ? escapeLatex(recipe.prepTime) : "",
-    cookTime: recipe.cookTime ? escapeLatex(recipe.cookTime) : "",
-    totalTime: recipe.totalTime ? escapeLatex(recipe.totalTime) : "",
+    prepTime: withUnit(recipe.prepTime, "min"),
+    cookTime: withUnit(recipe.cookTime, "min"),
+    totalTime: withUnit(recipe.totalTime, "min"),
     titleImage: titleFile ? includegraphics(paths.imagesDir, titleFile) : "",
     steps: itemize(recipe.steps),
   });
