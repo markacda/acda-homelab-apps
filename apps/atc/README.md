@@ -1,618 +1,119 @@
-# ATC Frontend - Aircraft Tracking Application
+# atc — Aircraft Tracker
 
-A web-based aircraft tracking application with real-time data visualization using OpenLayers, jQuery, and integration with airplanes.live API. The backend server is built with **TypeScript** and **Express.js**.
+A live aircraft-tracking web frontend (OpenLayers map UI + [airplanes.live](https://airplanes.live)
+data) served by a thin TypeScript/Express backend. The backend is a **proxy**: it
+validates the browser's request parameters and forwards them to airplanes.live, so the
+map UI never talks to the upstream API directly. Runs on **port 6001** in the homelab
+`docker-compose.yml`.
 
-## 📋 Table of Contents
+> This is one app in the `acda-homelab-apps` monorepo. For repo-wide commands, the build
+> model, and how apps are deployed, see the root [`README.md`](../../README.md),
+> [`CLAUDE.md`](../../CLAUDE.md), and [`ARCHITECTURE.md`](../../ARCHITECTURE.md). This file
+> only covers what is specific to `atc`.
 
-- [Features](#-features)
-- [Prerequisites](#-prerequisites)
-- [Local Development (Without Docker)](#-local-development-without-docker)
-- [TypeScript Development](#-typescript-development)
-- [Docker Deployment](#-docker-deployment)
-- [Raspberry Pi 5 Deployment](#-raspberry-pi-5-deployment)
-- [Configuration](#-configuration)
-- [Project Structure](#-project-structure)
-- [Useful Commands](#-useful-commands)
-- [Troubleshooting](#-troubleshooting)
+## Features
 
-## ✨ Features
+- Real-time aircraft tracking on an interactive OpenLayers map
+- GeoJSON overlays (military zones, airspace boundaries, refuelling areas)
+- Country-flag display for aircraft registrations
+- A CORS-enabled, parameter-validated proxy in front of the airplanes.live API
+- Response compression and a `/healthz` endpoint (from the shared server-kit)
 
-- **TypeScript Backend**: Fully type-safe Express.js server with strict type checking
-- Real-time aircraft tracking and visualization
-- Interactive map with OpenLayers
-- GeoJSON overlays for military zones, airspace boundaries, and refueling areas
-- Flight data from airplanes.live API
-- Country flag display for aircraft registrations
-- Responsive web interface
-- CORS-enabled API proxy with request validation
-- Compression for optimized performance
-- Health check endpoint for monitoring
+## Architecture
 
-## 🔧 Prerequisites
-
-### For Local Development
-
-- **Node.js 24+** - [Download here](https://nodejs.org/)
-- npm (comes with Node.js)
-
-### For Docker Deployment
-
-- **Docker** - [Install Docker](https://docs.docker.com/get-docker/)
-- **Docker Compose** (included with Docker Desktop)
-
-### For Raspberry Pi 5
-
-- Raspberry Pi OS (64-bit recommended)
-- Docker installed on Raspberry Pi
-- SSH access to Raspberry Pi
-
-## 💻 Local Development (Without Docker)
-
-### 1. Install Dependencies
-
-```bash
-npm install
-```
-
-This will install both production dependencies and development dependencies (TypeScript, type definitions, etc.).
-
-### 2. Build the TypeScript Server
-
-```bash
-npm run build
-```
-
-This compiles the TypeScript (`server.ts` + `lib/`) to JavaScript in `dist/`.
-
-### 3. Start the Server
-
-**Option A: Run Compiled JavaScript**
-
-```bash
-npm start
-```
-
-**Option B: Run TypeScript Directly with Auto-Reload (Development)**
-
-```bash
-npm run dev
-```
-
-Node runs the `.ts` sources directly via native type-stripping (Node ≥24) and
-`--watch` restarts the server when you change a TypeScript file — no `ts-node`
-or `nodemon` required.
-
-### 4. Access the Application
-
-- Default: `http://localhost:6001`
-
-#### Running on a Different Port
-
-If you want to use a different port:
-
-**Set environment variable**
-
-```bash
-# Windows
-set PORT=3000 && npm start
-
-# Linux/Mac
-PORT=3000 npm start
-```
-
-Then access at `http://localhost:3000`
-
-### 5. Verify Node Version
-
-Check your Node.js version (must be 24+):
-
-```bash
-node --version
-```
-
-## 🔷 TypeScript Development
-
-The server is written in **TypeScript** for improved type safety and developer experience.
-
-### Project Structure
+`atc` follows the repo's DDD/Clean-Architecture layout (see
+[`ARCHITECTURE.md`](../../ARCHITECTURE.md)), as a **thin proxy** — so it creates only the
+layers it needs and has **no `Models/` and no client build**:
 
 ```
-server.ts                    # Express entry point (built on @homelab/server-kit)
-lib/
-├── config/
-│   └── cors.ts              # CORS configuration
-├── controllers/
-│   └── airplanes.controller.ts  # API controllers
-└── routes/
-    └── api.ts               # API routes (/api/*)
+apps/atc/
+  server.ts                        # composition root: createApp -> register -> startServer
+  Domain/
+    ValueObjects/point-query.ts    # PointQuery: validated lat/lon/radius (the only domain rule)
+    Exceptions/                    # DomainError + ValidationError/ProxyError subclasses
+  Application/
+    Controllers/airplanes-controller.ts   # the /api proxy routes
+    Filters/error-mapping.ts              # DomainError -> HTTP status middleware
+    Registrations/register.ts             # manual wiring (CORS/compression, static, routes)
+  Ports/AirplanesLive/airplanes-source.ts # interface to the upstream API
+  Adapters/AirplanesLive/http-airplanes-source.ts   # fetch-based implementation
+  Web/public/                      # VENDORED browser frontend (no client build):
+    index.html, style.css, js/, libs/, images/, geojson/, flags/
 ```
 
-The health endpoint (`/healthz`) and `public/` static serving are provided by the
-shared `startServer` bootstrap, so they no longer need their own route module.
+Notes specific to `atc`:
 
-### Development Workflow
+- **No `Web/client` / `tsconfig.client.json`.** `Web/public` is vendored browser JS/CSS +
+  assets with no compile step, so `build`/`typecheck` are single-step (`tsc -p
+tsconfig.build.json`) and the whole of `Web/public/**` is excluded from lint.
+- **`register()` mounts the static frontend itself** (`express.static` on `Web/public`
+  with 1-day caching) plus permissive CORS and compression, so `server.ts` passes
+  `staticDir: null` to `startServer` to avoid double-serving.
+- `tsconfig.json` pins `rootDir: "../.."` (repo root) — like every app — so the emit nests
+  as `dist/apps/atc/server.js`. The shared kit is imported by relative path from
+  `../Common/` (there is no `packages/` dir).
 
-1. **Edit TypeScript files** — `server.ts` and the `lib/` directory
-2. **Run with auto-reload** using `npm run dev`
-3. **Build for production** with `npm run build`
-4. **Test production build** with `npm start`
+## API
 
-### TypeScript Configuration
+The frontend calls these proxy routes (mounted under `/api` by `AirplanesController`):
 
-`tsconfig.json` extends the monorepo's shared `../../tsconfig.base.json` (strict
-settings) and adds only the atc-specific paths:
+| Route                                  | Proxies                             |
+| -------------------------------------- | ----------------------------------- |
+| `GET /api/airplanes/:lat/:lon/:radius` | `api.airplanes.live` point query    |
+| `GET /api/globe-airplanes-live/*splat` | `globe.airplanes.live` pass-through |
 
-- **Target**: ES2022
-- **Module / resolution**: NodeNext (ESM — the app is `"type": "module"`)
-- **Strict Mode**: Enabled (via the shared base)
-- **Source Maps**: Generated for debugging
-- **Output**: `dist/` directory (no `rootDir`: `server.ts` imports the shared
-  packages from `../../packages`, so the common root is the repo root and the build
-  nests as `dist/apps/atc/server.js`)
+`PointQuery` (`Domain/ValueObjects/point-query.ts`) validates the point-query params before
+anything upstream is hit — invalid input throws a `ValidationError` mapped to `400`:
 
-Relative imports use explicit `.ts` extensions; the base enables
-`rewriteRelativeImportExtensions`, so `tsc` rewrites them to `.js` in `dist/`.
+- **Latitude**: between -90 and 90
+- **Longitude**: between -180 and 180
+- **Radius**: 1 to 250 nautical miles
 
-### Available Scripts
+Example: `GET http://localhost:6001/api/airplanes/51.9082/-3.1966/50`.
 
-- `npm run build` - Compile TypeScript to JavaScript (`dist/`)
-- `npm run dev` - Run `server.ts` directly with `node --watch` (native type-stripping)
-- `npm run typecheck` - Type-check with `tsc --noEmit`
-- `npm start` - Run compiled JavaScript from `dist/`
-- `npm run clean` - Remove `dist/` directory
+## Local dev
 
-### Type Definitions
+From the repo root (see the root README for the full toolchain):
 
-Express types are included via `@types/express`, `@types/node`, `@types/cors`, and `@types/compression`.
-
-## 🐳 Docker Deployment
-
-The Dockerfile uses a **multi-stage build** to compile TypeScript in a build stage and run the compiled JavaScript in a lightweight production image.
-
-### Build and Run with Docker Compose
-
-```bash
-# Build the image
-docker compose build
-
-# Start the container
-docker compose up -d
-
-# View logs
-docker compose logs -f
+```sh
+npm run dev -w atc          # runs server.ts on http://localhost:6001 (node --watch)
+npm run build -w atc        # compiles the backend to dist/
+npm start -w atc            # runs the compiled dist/apps/atc/server.js
+npm run typecheck -w atc
+npm test -w atc
 ```
 
-### Multi-Stage Build Process
+## Configuration
 
-1. **Builder Stage**: Installs all dependencies and compiles TypeScript
-2. **Production Stage**: Copies only compiled JavaScript and production dependencies
+Environment variables (set by the `atc` service in the root `docker-compose.yml`):
 
-This approach results in a smaller, more secure production image.
+- `PORT` — server port (default `6001`)
+- `NODE_ENV` — `production` in Docker
+- `LOG_DIR` — access-log directory (`/app/logs` in Docker, backed by the `atc-logs` volume)
 
-### Access the Application
+CORS is intentionally permissive (all origins allowed) so the browser map can reach the
+proxy from any host; adjust it in `Application/Registrations/register.ts` if you need to
+lock it down.
 
-```
-http://localhost:6001
-```
+## Docker
 
-The container listens on port `6001` internally, which `docker-compose.yml` maps to host port `6001` (chosen to avoid conflicts on a Raspberry Pi running Home Assistant). On the Pi, access it at `http://<pi-ip>:6001`.
+The image builds from the **repo-root context** (so the shared `tsconfig.base.json` and
+`apps/Common/*` are reachable) and runs as the non-root `node` user:
 
-### Stop the Container
-
-```bash
-docker compose down
-```
-
-### Automated Deployment Scripts
-
-For quick deployment, use the provided scripts that automatically pull the latest code, rebuild, and restart:
-
-**Linux/Mac:**
-
-```bash
-./deploy.sh
+```sh
+docker build -f apps/atc/Dockerfile .   # build just this image
+docker compose up -d --build atc        # build + run via the aggregate compose file
 ```
 
-This script can be made executable with the following command:
+The builder compiles the backend to `dist/`; the runtime stage copies `dist/` plus the
+vendored `Web/public/` and installs production deps only.
 
-```bash
-chmod +x deploy.sh
-```
+## Roadmap
 
-These scripts execute:
+Ideas for a more ATC-like display (not yet implemented):
 
-1. `git pull` - Pull latest changes
-2. `docker compose build` - Build the image
-3. `docker compose up -d` - Start container in detached mode
-
-## 🥧 Raspberry Pi 5 Deployment
-
-### 1. Transfer Files to Raspberry Pi
-
-From your development machine:
-
-```bash
-# Using SCP
-scp -r * pi@<raspberry-pi-ip>:~/atc/
-
-# Or using rsync (excludes node_modules)
-rsync -av --exclude 'node_modules' . pi@<raspberry-pi-ip>:~/atc/
-```
-
-### 2. SSH into Raspberry Pi
-
-```bash
-ssh pi@<raspberry-pi-ip>
-```
-
-### 3. Build and Deploy
-
-```bash
-cd ~/atc
-
-# Build the Docker image (ARM64 optimized) and start the container
-./deploy.sh
-
-# Check status
-docker compose ps
-docker compose logs -f
-```
-
-### 4. Access Your Application
-
-```
-http://<raspberry-pi-ip>
-```
-
-### 5. Enable Auto-Start on Boot (Optional)
-
-The container is configured with `restart: unless-stopped`, so it will automatically start on reboot.
-
-To ensure Docker starts on boot:
-
-```bash
-sudo systemctl enable docker
-```
-
-## ⚙️ Configuration
-
-### Environment Variables
-
-The following environment variables can be configured:
-
-- `PORT` - Server port (default: 6001)
-- `NODE_ENV` - Environment mode (default: production)
-
-### Docker Resource Limits
-
-In `docker-compose.yml`, you can adjust resource limits:
-
-```yaml
-deploy:
-  resources:
-    limits:
-      cpus: "2.0"
-      memory: 512M
-    reservations:
-      cpus: "0.5"
-      memory: 128M
-```
-
-### CORS Configuration
-
-The server is configured to allow CORS for `api.airplanes.live`. To modify CORS settings, edit `lib/config/cors.ts`:
-
-```typescript
-import { CorsOptions } from "cors";
-
-const corsOptions: CorsOptions = {
-  origin: function (origin, callback) {
-    // Add your custom logic here
-    callback(null, true);
-  },
-  credentials: true,
-};
-
-export default corsOptions;
-```
-
-### API Proxy
-
-The application includes a built-in proxy for `api.airplanes.live` API calls with full TypeScript type safety:
-
-- **Endpoint**: `GET /api/airplanes/:lat/:lon/:radius`
-- **Purpose**: Proxies requests to `https://api.airplanes.live/v2/point/:lat/:lon/:radius`
-- **Implementation**: `lib/controllers/airplanes.controller.ts`
-- **Benefits**:
-  - Type-safe request/response handling
-  - Centralizes API calls through your server
-  - Request parameter validation with TypeScript
-  - Easier to manage API keys or rate limiting if needed
-  - Enables server-side logging and monitoring
-  - Works around CORS restrictions if any
-
-**Example**:
-
-```
-GET http://localhost:6001/api/airplanes/51.9082/-3.1966/50
-```
-
-This will fetch aircraft data for:
-
-- Latitude: 51.9082
-- Longitude: -3.1966
-- Radius: 50 nautical miles
-
-**Validation**:
-
-- Latitude: -90 to 90
-- Longitude: -180 to 180
-- Radius: 1 to 250 nautical miles
-
-The frontend automatically uses this proxy endpoint for all API calls.
-
-## 📁 Project Structure
-
-```
-atc/
-├── server.ts                  # Express entry point (uses @homelab/server-kit)
-├── lib/                       # TypeScript backend source
-│   ├── config/
-│   │   └── cors.ts           # CORS configuration with types
-│   ├── controllers/
-│   │   └── airplanes.controller.ts  # API controllers
-│   └── routes/
-│       └── api.ts            # API routes (/api/*)
-├── dist/                      # Compiled JavaScript (generated by build)
-│   └── apps/atc/server.js     # (+ lib/ and the shared packages, compiled in)
-├── public/                    # Static frontend files (vendored, served as-is)
-│   ├── index.html            # Main HTML page
-│   ├── style.css             # Styles
-│   ├── js/                   # Application logic
-│   ├── libs/                 # Third-party libraries (OpenLayers, jQuery)
-│   ├── images/               # Images and icons
-│   ├── geojson/              # GeoJSON map overlays
-│   └── flags/                # Country flags
-├── tsconfig.json              # TypeScript config (extends ../../tsconfig.base.json)
-├── tsconfig.build.json        # Production build config (emit runtime code only)
-├── package.json               # Node.js dependencies and scripts
-└── Dockerfile                 # Multi-stage Docker build (repo-root context)
-```
-
-### Key Directories
-
-- **`server.ts` + `lib/`** - TypeScript source code for the backend
-- **`dist/`** - Compiled JavaScript (gitignored, generated by `npm run build`)
-- **`public/`** - Frontend static files served by Express
-- **`node_modules/`** - Dependencies (gitignored)
-
-## 🛠️ Useful Commands
-
-### TypeScript Commands
-
-```bash
-# Build TypeScript to JavaScript
-npm run build
-
-# Run the TypeScript directly with auto-reload (no build needed)
-npm run dev
-
-# Clean build artifacts
-npm run clean
-
-# Type-check without building
-npm run typecheck
-```
-
-### Docker Commands
-
-```bash
-# View running containers
-docker compose ps
-
-# View logs
-docker compose logs -f
-
-# Restart container
-docker compose restart
-
-# Stop container
-docker compose down
-
-# Rebuild and restart
-docker compose up -d --build
-
-# Remove container and image
-docker compose down --rmi all
-```
-
-### Local Development Commands
-
-```bash
-# Install dependencies
-npm install
-
-# Start server
-npm start
-
-# Check Node version
-node --version
-
-# Check for vulnerabilities
-npm audit
-```
-
-### Raspberry Pi Commands
-
-```bash
-# Check Docker status
-sudo systemctl status docker
-
-# View Docker resource usage
-docker stats
-
-# Free up disk space
-docker system prune -a
-
-# View Raspberry Pi temperature
-vcgencmd measure_temp
-```
-
-## 🔍 Troubleshooting
-
-### Docker Build Fails on Raspberry Pi
-
-**Problem**: ARM64 compatibility issues.
-
-**Solution**: The Dockerfile uses `node:24-alpine` which supports ARM64. Ensure your Raspberry Pi is running 64-bit OS:
-
-```bash
-uname -m  # Should show "aarch64"
-```
-
-### Container Won't Start
-
-**Problem**: Port already in use.
-
-**Solution**: Check what's using the host port 6001:
-
-```bash
-# Linux/Mac
-sudo lsof -i :6001
-
-# Windows
-netstat -ano | findstr :6001
-```
-
-### API Requests Blocked by CORS
-
-**Problem**: Requests to external APIs are blocked.
-
-**Solution**: The server includes CORS middleware. Ensure `lib/config/cors.ts` has proper CORS configuration for your API endpoints.
-
-### TypeScript Compilation Errors
-
-**Problem**: Build fails with TypeScript errors.
-
-**Solution**:
-
-```bash
-# Check TypeScript version
-npx tsc --version
-
-# Run type-check only (no build)
-npx tsc --noEmit
-
-# Clean and rebuild
-npm run clean && npm run build
-```
-
-### Development Server Won't Start
-
-**Problem**: `npm run dev` fails.
-
-**Solution**:
-
-1. Ensure all dependencies are installed: `npm install`
-2. Check if TypeScript files have syntax errors: `npm run typecheck`
-3. Ensure Node is ≥24 (native TypeScript type-stripping): `node --version`
-4. Try running with compiled JavaScript instead: `npm run build && npm start`
-
-### Missing Type Definitions
-
-**Problem**: TypeScript can't find types for installed packages.
-
-**Solution**:
-
-```bash
-# Install missing type definitions
-npm install --save-dev @types/packagename
-
-# For example:
-npm install --save-dev @types/express @types/node
-```
-
-### High Memory Usage on Raspberry Pi
-
-**Problem**: Container uses too much memory.
-
-**Solution**: Adjust limits in `docker-compose.yml`:
-
-```yaml
-resources:
-  limits:
-    memory: 256M # Reduce from 512M
-```
-
-### Cannot Connect to Application
-
-**Problem**: Application not accessible from network.
-
-**Solution**:
-
-1. Check if container is running: `docker compose ps`
-2. Check firewall rules
-3. Ensure correct IP address
-4. Verify port mapping in `docker-compose.yml`
-
-## 📊 Performance Tips
-
-### General
-
-1. **Use production builds**: Always run `npm run build` before deploying to production
-2. **TypeScript overhead**: Development mode (`npm run dev`) strips types at load time, which is slightly slower - use the compiled JavaScript in production
-3. **Enable compression**: Already configured in `server.ts`
-4. **Cache static assets**: Configured with 1-day cache in Express static middleware
-5. **Monitor build times**: Multi-stage Docker builds compile TypeScript only once during image creation
-
-### For Raspberry Pi 5
-
-1. **Use Docker instead of local Node**: Docker provides better isolation and resource management
-2. **Pre-compile TypeScript**: The Docker image includes pre-compiled JavaScript for faster startup
-3. **Monitor resources**: Use `docker stats` to monitor CPU/memory usage
-4. **Keep system updated**: Regularly update Raspberry Pi OS and Docker
-
-## 🔒 Security Considerations
-
-- **TypeScript Type Safety**: Compile-time type checking prevents common runtime errors
-- **Request Validation**: Strict parameter validation in API controllers
-- Container runs as non-root user (`USER node` in Dockerfile)
-- Static file serving with no code execution
-- CORS configured for specific domains
-- Health check endpoint for monitoring
-- Resource limits prevent resource exhaustion
-
-## 📝 License
-
-[Add your license information here]
-
-## 🚀 Recent Updates
-
-### TypeScript Migration
-
-The backend server has been fully migrated to TypeScript for improved:
-
-- **Type Safety**: Catch errors at compile time instead of runtime
-- **Developer Experience**: Better IDE autocompletion and inline documentation
-- **Code Quality**: Enforced strict typing and best practices
-- **Maintainability**: Easier refactoring and codebase navigation
-
-All server code is now written in TypeScript with full type definitions for Express, Node.js, and all middleware.
-
-## 📋 Roadmap / TODO
-
-### ATC Professional Features
-
-- [ ] **History dots instead of continuous trails** - Display discrete position dots at time intervals (e.g., every 10 seconds) instead of continuous lines for more ATC-like visualization
-- [ ] **Approach centerlines overlays** - Add ILS localizer centerlines, runway extended centerlines, and final approach courses for major Dutch airports (EHAM, EHRD, EHEH)
-- [ ] **Sector boundaries display** - Add airspace sector boundaries with sector names/codes and control frequencies (Amsterdam FIR, ACC sectors, Schiphol TMA)
-- [ ] **Conflict Alert / STCA (Short-Term Conflict Alert)** - Implement automated alerts when two aircraft are predicted to violate separation minima (5 NM horizontal, 1000/2000 ft vertical)
-- [ ] **Situation Display Modes** - Add filtering modes: Normal (all traffic), Arrival (inbound only), Departure (outbound only), Overflights (transit), Emergency (7700/7600/7500 priority)
-
-## 🤝 Contributing
-
-[Add contribution guidelines here]
-
-## 📧 Contact
-
-[Add contact information here]
+- History dots at fixed time intervals instead of continuous trails
+- Approach centerlines / extended runway centerlines for major Dutch airports (EHAM, EHRD, EHEH)
+- Airspace sector boundaries with names/codes and control frequencies
+- Short-Term Conflict Alert (STCA) when predicted separation minima are violated
+- Situation-display filter modes (arrivals / departures / overflights / emergency squawks)

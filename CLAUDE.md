@@ -20,7 +20,7 @@ package name, e.g. `ev-crossover`, `dynamic-vs-fixed`, `@homelab/access-log`).
 npm install                        # installs deps for all workspaces (use the root lockfile)
 
 npm run dev -w <app>               # runs server.ts directly via node --watch (type-stripping)
-npm run build -w <app>             # compiles server -> dist/ and client -> public/
+npm run build -w <app>             # compiles server -> dist/ and client -> Web/public/
 npm start -w <app>                 # runs compiled dist/.../server.js
 
 npm run lint                       # eslint . (add lint:fix to autofix)
@@ -70,12 +70,12 @@ Each app only creates the layers it needs. By example:
 - Relative imports are written with the **`.ts` extension** (e.g.
   `import ... from "../Common/access-log/logger.ts"`). `tsc` rewrites them to
   `.js` on emit (`rewriteRelativeImportExtensions`), keeping dist/ valid ESM.
-- Each app has **three tsconfigs**: `tsconfig.json` (typecheck: server + lib +
-  test), `tsconfig.build.json` (emit runtime code only to `dist/`, no tests), and
-  `tsconfig.client.json` (compile `client/*.ts` → `public/*.js`, DOM libs, no Node
+- Each app has **three tsconfigs**: `tsconfig.json` (typecheck: `server.ts` + the DDD
+  layers + test), `tsconfig.build.json` (emit runtime code only to `dist/`, no tests), and
+  `tsconfig.client.json` (compile `Web/client/*.ts` → `Web/public/*.js`, DOM libs, no Node
   types). `npm run build` runs the build + client configs; typecheck runs both.
-  `apps/atc` is the exception — it has no `client/*.ts`, so no `tsconfig.client.json`
-  and its `build`/`typecheck` are single-step.
+  `apps/atc` is the exception — it has no `Web/client/*.ts` (its `Web/public` is vendored),
+  so no `tsconfig.client.json` and its `build`/`typecheck` are single-step.
 - `server.ts` imports the shared kit from `../Common/` (a sibling under `apps/`).
   Each app's `tsconfig.json` pins **`rootDir: "../.."`** (the repo root) so the emit
   nests as `dist/apps/<name>/server.js` (matching each `package.json` `main`/`start`)
@@ -121,6 +121,6 @@ state — `dynamic-vs-fixed`, `recipe-book`), plus app-specific ones (dashboard:
 
 ESLint lints `.ts` sources only. `dist/`, `data/`, compiled client bundles
 (`apps/*/public/*.js` and `apps/*/Web/public/*.js`), and all of `apps/atc/Web/public/**`
-(vendored browser JS) are ignored. Node globals apply to `server`/`lib`/`test`, the
+(vendored browser JS) are ignored. Node globals apply to `server.ts`/`test`, the
 DDD layers (`Domain`/`Application`/`Adapters`/`Ports`/`Models`), and `apps/Common/*`;
-browser globals apply to `apps/*/client/**` and `apps/*/Web/client/**`.
+browser globals apply to `apps/*/Web/client/**`.
