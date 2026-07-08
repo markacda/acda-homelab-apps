@@ -185,12 +185,19 @@ h1 {
   margin-top: 0.25rem;
 }
 
-/* stat panels */
+/* stat panels — capped at two columns so the wider tables (Top/Slowest
+   endpoints) get real width instead of being packed 3–4 across and clipped. */
 .panels {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  grid-template-columns: 1fr;
   gap: 0.75rem;
   margin-bottom: 1rem;
+}
+
+@media (min-width: 60rem) {
+  .panels {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .panel {

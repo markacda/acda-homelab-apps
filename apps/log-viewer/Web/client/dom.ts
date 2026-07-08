@@ -103,6 +103,10 @@ export interface CheckboxDropdown {
   setSelected(values: string[]): void;
   /** Selected values for the query; empty array means "no filter" (all). */
   selected(): string[];
+  /** True when there ARE options but none are checked — i.e. "match nothing".
+   * Callers use this to short-circuit to an empty view, since `selected()`
+   * cannot distinguish "none" from "all" (both return []). */
+  isNone(): boolean;
 }
 
 const openDropdowns = new Set<HTMLElement>();
@@ -118,8 +122,10 @@ function closeDropdown(menu: HTMLElement): void {
 
 /**
  * Turn a container `<div class="dropdown">` into a checkbox multi-select with a
- * "Select all" master. "All checked" and "none checked" both mean no filter, so
- * `selected()` returns [] in either case; a strict subset returns those values.
+ * "Select all" master. "All checked" means no filter, so `selected()` returns [];
+ * a strict subset returns those values. "None checked" also returns [] from
+ * `selected()`, but is reported distinctly by `isNone()` so callers can render an
+ * empty view rather than treating it as "all".
  */
 export function checkboxDropdown(
   container: HTMLElement,
@@ -140,8 +146,16 @@ export function checkboxDropdown(
   function isAll(): boolean {
     return options.length > 0 && checked.size === options.length;
   }
+  function isNone(): boolean {
+    return options.length > 0 && checked.size === 0;
+  }
   function updateSummary(): void {
-    toggle.textContent = checked.size === 0 || isAll() ? allLabel : `${checked.size} selected`;
+    // No options yet (before meta loads) reads as the neutral "all" label.
+    toggle.textContent = isNone()
+      ? "None"
+      : isAll() || checked.size === 0
+        ? allLabel
+        : `${checked.size} selected`;
     master.checked = isAll();
     master.indeterminate = checked.size > 0 && !isAll();
   }
@@ -189,5 +203,6 @@ export function checkboxDropdown(
     selected(): string[] {
       return isAll() ? [] : [...checked];
     },
+    isNone,
   };
 }
