@@ -202,7 +202,8 @@ async function saveBookOrder(recipeIds: string[]): Promise<void> {
 
 async function loadCategories(): Promise<void> {
   categories = await api<Category[]>("/api/categories");
-  if (activeCategoryId && !categories.some((c) => c.id === activeCategoryId)) activeCategoryId = null;
+  if (activeCategoryId && !categories.some((c) => c.id === activeCategoryId))
+    activeCategoryId = null;
   if (!activeCategoryId && categories.length) activeCategoryId = categories[0].id;
   renderCategorySelect();
 }

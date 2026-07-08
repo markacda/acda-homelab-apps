@@ -55,7 +55,10 @@ test("normalizeAllerhandeUrl rewrites the short recipe URL to canonical", () => 
   // Already-canonical URLs and unrelated URLs pass through unchanged.
   const canonical = "https://www.ah.nl/allerhande/recept/r-480288";
   assert.equal(normalizeAllerhandeUrl(canonical), canonical);
-  assert.equal(normalizeAllerhandeUrl("https://example.com/r/480288"), "https://example.com/r/480288");
+  assert.equal(
+    normalizeAllerhandeUrl("https://example.com/r/480288"),
+    "https://example.com/r/480288",
+  );
 });
 
 test("extractJsonLdBlocks pulls every ld+json script", () => {
