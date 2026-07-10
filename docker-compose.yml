@@ -8,7 +8,7 @@ services:
       dockerfile: apps/atc/Dockerfile
     container_name: atc-frontend
     labels:
-      - "homelab.name=Aircraft Tracker"
+      - "homelab.name=ATC"
     ports:
       # Host 6001 avoids Home Assistant's used ports (80/443 proxy, 8123, 1883, 4357)
       - "6001:6001"
@@ -38,7 +38,7 @@ services:
       dockerfile: apps/ev-crossover/Dockerfile
     container_name: ev-crossover
     labels:
-      - "homelab.name=EV Crossover Price"
+      - "homelab.name=Laden of tanken?"
     ports:
       - "6002:6002"
     environment:
@@ -67,7 +67,7 @@ services:
       dockerfile: apps/dynamic-vs-fixed/Dockerfile
     container_name: dynamic-vs-fixed
     labels:
-      - "homelab.name=Dynamic vs Fixed Energy"
+      - "homelab.name=Dynamisch of vast contract?"
     ports:
       - "6003:6003"
     environment:
@@ -98,7 +98,7 @@ services:
       dockerfile: apps/log-viewer/Dockerfile
     container_name: log-viewer
     labels:
-      - "homelab.name=Log Viewer"
+      - "homelab.name=Logs"
     ports:
       - "6004:6004"
     environment:
@@ -138,7 +138,7 @@ services:
       dockerfile: apps/recipe-book/Dockerfile
     container_name: recipe-book
     labels:
-      - "homelab.name=Recipe Book"
+      - "homelab.name=Receptenboek"
     ports:
       - "6005:6005"
     environment:

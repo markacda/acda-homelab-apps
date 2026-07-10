@@ -15,9 +15,15 @@ interface ApiResponse {
 
 const REFRESH_MS = 30_000;
 
+/** Generic placeholder shown in place of an icon when an app has no image. */
+const FALLBACK_EMOJI = "📦";
+/** The app moved out of the tile grid into the header logs button. */
+const LOGS_APP_NAME = "Logs";
+
 const titleEl = document.getElementById("title") as HTMLElement;
 const metaEl = document.getElementById("meta") as HTMLElement;
 const contentEl = document.getElementById("content") as HTMLElement;
+const logsLinkEl = document.getElementById("logs-link") as HTMLAnchorElement;
 
 /** Build the click-through URL. Prefer an explicit url; otherwise use the
  * browser's current hostname + the published port so links work from any
@@ -35,27 +41,27 @@ function iconEl(app: AppTile): HTMLElement {
     img.src = app.icon;
     img.alt = "";
     img.loading = "lazy";
-    // Fall back to a letter avatar if the image fails to load.
-    img.onerror = () => img.replaceWith(letterIcon(app.name));
+    // Fall back to the emoji placeholder if the image fails to load.
+    img.onerror = () => img.replaceWith(fallbackIcon());
     return img;
   }
   if (app.icon) {
-    // Treat as a slug: try the dashboard-icons CDN, fall back to a letter.
+    // Treat as a slug: try the dashboard-icons CDN, fall back to the emoji.
     const img = document.createElement("img");
     img.className = "tile-icon";
     img.src = `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/${app.icon}.png`;
     img.alt = "";
     img.loading = "lazy";
-    img.onerror = () => img.replaceWith(letterIcon(app.name));
+    img.onerror = () => img.replaceWith(fallbackIcon());
     return img;
   }
-  return letterIcon(app.name);
+  return fallbackIcon();
 }
 
-function letterIcon(name?: string): HTMLDivElement {
+function fallbackIcon(): HTMLDivElement {
   const wrap = document.createElement("div");
-  wrap.className = "tile-icon";
-  wrap.textContent = (name || "?").trim().charAt(0).toUpperCase();
+  wrap.className = "tile-icon emoji";
+  wrap.textContent = FALLBACK_EMOJI;
   return wrap;
 }
 
@@ -96,17 +102,28 @@ function render(data: ApiResponse): void {
   }
 
   contentEl.innerHTML = "";
-  if (!apps || apps.length === 0) {
+
+  // Pull the logs app out of the grid into the header button.
+  const logsApp = apps?.find((a) => a.name === LOGS_APP_NAME);
+  if (logsApp) {
+    logsLinkEl.href = resolveHref(logsApp);
+    logsLinkEl.hidden = false;
+  } else {
+    logsLinkEl.hidden = true;
+  }
+  const visible = (apps ?? []).filter((a) => a.name !== LOGS_APP_NAME);
+
+  if (visible.length === 0) {
     contentEl.innerHTML =
       '<p class="placeholder">No apps found. Check your config or Docker labels.</p>';
     metaEl.textContent = "";
     return;
   }
 
-  const hasGroups = apps.some((a) => a.group);
+  const hasGroups = visible.some((a) => a.group);
   if (hasGroups) {
     const groups = new Map<string, AppTile[]>();
-    for (const app of apps) {
+    for (const app of visible) {
       const key = app.group || "Other";
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(app);
@@ -124,12 +141,12 @@ function render(data: ApiResponse): void {
   } else {
     const grid = document.createElement("div");
     grid.className = "grid";
-    apps.forEach((app) => grid.appendChild(tileEl(app)));
+    visible.forEach((app) => grid.appendChild(tileEl(app)));
     contentEl.appendChild(grid);
   }
 
-  const up = apps.filter((a) => a.status === "up").length;
-  metaEl.textContent = `${apps.length} app${apps.length === 1 ? "" : "s"} · ${up} up`;
+  const up = visible.filter((a) => a.status === "up").length;
+  metaEl.textContent = `${visible.length} app${visible.length === 1 ? "" : "s"} · ${up} up`;
 }
 
 async function refresh(): Promise<void> {

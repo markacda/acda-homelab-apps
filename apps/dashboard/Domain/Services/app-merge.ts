@@ -4,38 +4,15 @@ import type { Config } from "../ValueObjects/dashboard-config.ts";
 // Pure domain logic for combining app sources into the ordered tile list. No I/O
 // so it is directly unit-tested.
 
-/**
- * Numeric rank used to order tiles by their url/port. Port-based apps sort by
- * their port; url-based apps sort by the port in the url (defaulting to 443 for
- * https and 80 for http). Anything without a target sorts last.
- */
-function portRank(app: AppEntry): number {
-  if (app.port) return Number(app.port);
-  if (app.url) {
-    try {
-      const u = new URL(app.url);
-      if (u.port) return Number(u.port);
-      return u.protocol === "https:" ? 443 : 80;
-    } catch {
-      return Number.MAX_SAFE_INTEGER;
-    }
-  }
-  return Number.MAX_SAFE_INTEGER;
-}
-
-/** Order apps by port/url, tie-breaking on the link target then the name. */
-function compareByTarget(a: AppEntry, b: AppEntry): number {
-  const rank = portRank(a) - portRank(b);
-  if (rank !== 0) return rank;
-  const target = (a.url || "").localeCompare(b.url || "");
-  if (target !== 0) return target;
-  return (a.name || "").localeCompare(b.name || "");
+/** Order apps alphabetically by display name (case-insensitive). */
+function compareByName(a: AppEntry, b: AppEntry): number {
+  return (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" });
 }
 
 /**
  * Merge discovered container entries with config overrides and manual apps.
  * Order: discovered → apply per-container overrides (incl. `hidden`) →
- * append manual apps → dedupe by url (falling back to name) → sort by url/port.
+ * append manual apps → dedupe by url (falling back to name) → sort by name.
  */
 export function mergeApps(
   discovered: AppEntry[],
@@ -67,6 +44,6 @@ export function mergeApps(
     result.push(app);
   }
 
-  result.sort(compareByTarget);
+  result.sort(compareByName);
   return result;
 }
