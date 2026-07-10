@@ -1,5 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { ValidationError } from "../Exceptions/validation-error.ts";
+import { randomUUID } from 'node:crypto'
+import { ValidationError } from '../Exceptions/validation-error.ts'
 
 // The Category aggregate: a managed name used to group recipes (courses like
 // "Hoofdgerecht", "Salades"). Recipes reference a category by its name string,
@@ -8,56 +8,56 @@ import { ValidationError } from "../Exceptions/validation-error.ts";
 
 /** The persisted shape of a category (what the JSON store reads and writes). */
 export interface CategoryData {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
+  id: string
+  name: string
+  createdAt: string
+  updatedAt: string
 }
 
 function nowIso(): string {
-  return new Date().toISOString();
+  return new Date().toISOString()
 }
 
 function requireName(name: string | undefined): string {
-  const trimmed = (name ?? "").trim();
-  if (!trimmed) throw new ValidationError("A category name is required.");
-  return trimmed;
+  const trimmed = (name ?? '').trim()
+  if (!trimmed) throw new ValidationError('A category name is required.')
+  return trimmed
 }
 
 export class Category {
-  readonly id: string;
-  name: string;
-  readonly createdAt: string;
-  updatedAt: string;
+  readonly id: string
+  name: string
+  readonly createdAt: string
+  updatedAt: string
 
   constructor(data: CategoryData) {
-    this.id = data.id;
-    this.name = data.name;
-    this.createdAt = data.createdAt;
-    this.updatedAt = data.updatedAt;
+    this.id = data.id
+    this.name = data.name
+    this.createdAt = data.createdAt
+    this.updatedAt = data.updatedAt
   }
 
   static create(name: string): Category {
-    const ts = nowIso();
+    const ts = nowIso()
     return new Category({
       id: randomUUID(),
       name: requireName(name),
       createdAt: ts,
       updatedAt: ts,
-    });
+    })
   }
 
   static fromJSON(data: CategoryData): Category {
-    return new Category(data);
+    return new Category(data)
   }
 
   rename(name: string): void {
-    this.name = requireName(name);
-    this.touch();
+    this.name = requireName(name)
+    this.touch()
   }
 
   touch(): void {
-    this.updatedAt = nowIso();
+    this.updatedAt = nowIso()
   }
 
   toJSON(): CategoryData {
@@ -66,6 +66,6 @@ export class Category {
       name: this.name,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
-    };
+    }
   }
 }

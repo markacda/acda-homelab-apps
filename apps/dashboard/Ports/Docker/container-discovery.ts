@@ -1,5 +1,5 @@
-import type { AppEntry } from "../../Domain/ValueObjects/app-entry.ts";
-import type { Config } from "../../Domain/ValueObjects/dashboard-config.ts";
+import type { AppEntry } from '../../Domain/ValueObjects/app-entry.ts'
+import type { Config } from '../../Domain/ValueObjects/dashboard-config.ts'
 
 /**
  * Port for discovering running apps from the container runtime. Implemented in
@@ -7,5 +7,5 @@ import type { Config } from "../../Domain/ValueObjects/dashboard-config.ts";
  * (e.g. local dev without Docker) rather than throwing.
  */
 export interface ContainerDiscovery {
-  discover(config: Config): Promise<AppEntry[]>;
+  discover(config: Config): Promise<AppEntry[]>
 }

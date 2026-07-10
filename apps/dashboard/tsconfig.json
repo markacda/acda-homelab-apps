@@ -9,13 +9,5 @@
     "rootDir": "../..",
     "types": ["node"]
   },
-  "include": [
-    "server.ts",
-    "Domain/**/*.ts",
-    "Application/**/*.ts",
-    "Adapters/**/*.ts",
-    "Ports/**/*.ts",
-    "Models/**/*.ts",
-    "test/**/*.ts"
-  ]
+  "include": ["server.ts", "Domain/**/*.ts", "Application/**/*.ts", "Adapters/**/*.ts", "Ports/**/*.ts", "Models/**/*.ts", "test/**/*.ts"]
 }

@@ -2,10 +2,10 @@
 
 /** Body of POST /api/categories. */
 export interface CreateCategoryRequest {
-  name: string;
+  name: string
 }
 
 /** Body of PATCH /api/categories/:id (rename). */
 export interface UpdateCategoryRequest {
-  name?: string;
+  name?: string
 }

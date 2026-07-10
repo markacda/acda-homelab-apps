@@ -22,7 +22,7 @@ body {
   font-family:
     system-ui,
     -apple-system,
-    "Segoe UI",
+    'Segoe UI',
     Roboto,
     sans-serif;
   background: var(--bg);
@@ -117,7 +117,7 @@ textarea {
   min-width: 0;
 }
 
-.row input[type="url"],
+.row input[type='url'],
 .row select {
   flex: 1;
 }
@@ -350,7 +350,7 @@ button.icon {
 }
 
 .gallery:empty::after {
-  content: "No images yet.";
+  content: 'No images yet.';
   color: var(--muted);
   font-size: 0.8rem;
 }

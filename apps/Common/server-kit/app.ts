@@ -1,8 +1,8 @@
-import express from "express";
-import type { Express, RequestHandler, ErrorRequestHandler } from "express";
-import type { Server } from "node:http";
-import { join } from "node:path";
-import { pageLoadLogger, installConsoleLogging, closeLogStreams } from "../access-log/logger.ts";
+import express from 'express'
+import type { Express, RequestHandler, ErrorRequestHandler } from 'express'
+import type { Server } from 'node:http'
+import { join } from 'node:path'
+import { pageLoadLogger, installConsoleLogging, closeLogStreams } from '../access-log/logger.ts'
 
 // Shared Express bootstrap. Folds together the ritual every app's server.ts used
 // to repeat: install console logging, create the app, mount the access logger
@@ -16,17 +16,17 @@ import { pageLoadLogger, installConsoleLogging, closeLogStreams } from "../acces
  */
 export function createApp(name: string): Express {
   // Mirror console.* output into the structured app.log (see log-viewer).
-  installConsoleLogging(name);
-  const app = express();
-  app.use(pageLoadLogger(name));
-  return app;
+  installConsoleLogging(name)
+  const app = express()
+  app.use(pageLoadLogger(name))
+  return app
 }
 
 /** Standard health handler: 200 `{ status: "ok" }`. Excluded from the access log. */
 export function healthHandler(): RequestHandler {
   return (_req, res) => {
-    res.json({ status: "ok" });
-  };
+    res.json({ status: 'ok' })
+  }
 }
 
 /**
@@ -40,9 +40,9 @@ export function healthHandler(): RequestHandler {
  */
 export function errorLogger(name: string): ErrorRequestHandler {
   return (err, _req, _res, next) => {
-    console.error(`[${name}] unhandled error`, err);
-    next(err);
-  };
+    console.error(`[${name}] unhandled error`, err)
+    next(err)
+  }
 }
 
 /**
@@ -52,25 +52,25 @@ export function errorLogger(name: string): ErrorRequestHandler {
  */
 export function errorHandler(_name: string): ErrorRequestHandler {
   return (_err, _req, res, _next) => {
-    if (res.headersSent) return;
-    res.status(500).json({ error: "Internal server error" });
-  };
+    if (res.headersSent) return
+    res.status(500).json({ error: 'Internal server error' })
+  }
 }
 
 export interface StartOptions {
-  name: string;
-  port: number;
+  name: string
+  port: number
   // Directory served by express.static. Defaults to <cwd>/public; pass null to
   // disable (e.g. atc mounts its own static with caching options), or a path to
   // override. cwd resolves correctly in dev and Docker (WORKDIR /app).
-  staticDir?: string | null;
+  staticDir?: string | null
   // Called once the server is listening; receives the http.Server (e.g. to start
   // a background poll loop).
-  onListen?: (server: Server) => void;
+  onListen?: (server: Server) => void
 }
 
 // How long to wait for in-flight connections to drain before forcing exit.
-const SHUTDOWN_TIMEOUT_MS = 10_000;
+const SHUTDOWN_TIMEOUT_MS = 10_000
 
 /**
  * Mount the standard /healthz, static serving, and terminal error handler on the
@@ -78,48 +78,48 @@ const SHUTDOWN_TIMEOUT_MS = 10_000;
  * shutdown. Returns the http.Server.
  */
 export function startServer(app: Express, opts: StartOptions): Server {
-  const { name, port, staticDir, onListen } = opts;
+  const { name, port, staticDir, onListen } = opts
 
-  app.get("/healthz", healthHandler());
+  app.get('/healthz', healthHandler())
 
-  const dir = staticDir === undefined ? join(process.cwd(), "public") : staticDir;
-  if (dir) app.use(express.static(dir));
+  const dir = staticDir === undefined ? join(process.cwd(), 'public') : staticDir
+  if (dir) app.use(express.static(dir))
 
-  app.use(errorLogger(name));
-  app.use(errorHandler(name));
+  app.use(errorLogger(name))
+  app.use(errorHandler(name))
 
-  const server = app.listen(port, "0.0.0.0", () => {
-    console.log(`${name} listening on http://0.0.0.0:${port}`);
-    onListen?.(server);
-  });
+  const server = app.listen(port, '0.0.0.0', () => {
+    console.log(`${name} listening on http://0.0.0.0:${port}`)
+    onListen?.(server)
+  })
 
-  installGracefulShutdown(server, name);
-  return server;
+  installGracefulShutdown(server, name)
+  return server
 }
 
 /** Close the server on SIGTERM/SIGINT, forcing exit if it doesn't drain in time. */
 function installGracefulShutdown(server: Server, name: string): void {
-  let shuttingDown = false;
-  const signals = ["SIGTERM", "SIGINT"] as const;
+  let shuttingDown = false
+  const signals = ['SIGTERM', 'SIGINT'] as const
   for (const signal of signals) {
     process.on(signal, () => {
-      if (shuttingDown) return;
-      shuttingDown = true;
-      console.log(`${name} received ${signal}, shutting down`);
+      if (shuttingDown) return
+      shuttingDown = true
+      console.log(`${name} received ${signal}, shutting down`)
       const timer = setTimeout(() => {
-        console.error(`${name} shutdown timed out after ${SHUTDOWN_TIMEOUT_MS}ms, forcing exit`);
-        process.exit(1);
-      }, SHUTDOWN_TIMEOUT_MS);
-      timer.unref(); // don't keep the process alive just for the timer
+        console.error(`${name} shutdown timed out after ${SHUTDOWN_TIMEOUT_MS}ms, forcing exit`)
+        process.exit(1)
+      }, SHUTDOWN_TIMEOUT_MS)
+      timer.unref() // don't keep the process alive just for the timer
       server.close((err) => {
-        if (err) console.error(`${name} error during shutdown: ${err.message}`);
+        if (err) console.error(`${name} error during shutdown: ${err.message}`)
         // Flush buffered log writes before exiting so the tail isn't lost. The
         // timeout above still stands guard in case the flush itself hangs.
         void closeLogStreams().finally(() => {
-          clearTimeout(timer);
-          process.exit(err ? 1 : 0);
-        });
-      });
-    });
+          clearTimeout(timer)
+          process.exit(err ? 1 : 0)
+        })
+      })
+    })
   }
 }

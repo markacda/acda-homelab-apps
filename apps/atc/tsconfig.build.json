@@ -2,11 +2,5 @@
   // Production build: emit the runtime code (server + the DDD layers) to dist/.
   // atc has no tests; this mirrors tsconfig.json's include.
   "extends": "./tsconfig.json",
-  "include": [
-    "server.ts",
-    "Domain/**/*.ts",
-    "Application/**/*.ts",
-    "Adapters/**/*.ts",
-    "Ports/**/*.ts"
-  ]
+  "include": ["server.ts", "Domain/**/*.ts", "Application/**/*.ts", "Adapters/**/*.ts", "Ports/**/*.ts"]
 }

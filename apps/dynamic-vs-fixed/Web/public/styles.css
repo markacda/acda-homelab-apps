@@ -22,7 +22,7 @@ body {
   font-family:
     system-ui,
     -apple-system,
-    "Segoe UI",
+    'Segoe UI',
     Roboto,
     sans-serif;
   background: var(--bg);
@@ -93,8 +93,8 @@ label.check input {
   margin: 0.15rem 0 0.35rem;
 }
 
-input[type="number"],
-input[type="file"] {
+input[type='number'],
+input[type='file'] {
   padding: 0.55rem 0.7rem;
   font-size: 0.95rem;
   border-radius: 0.5rem;
@@ -249,7 +249,7 @@ td.bad,
 }
 
 .formula {
-  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
   background: var(--input-bg);
   border: 1px solid var(--border);
   border-radius: 0.5rem;

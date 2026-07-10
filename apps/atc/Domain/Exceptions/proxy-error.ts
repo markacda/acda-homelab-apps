@@ -1,4 +1,4 @@
-import { DomainError } from "./domain-error.ts";
+import { DomainError } from './domain-error.ts'
 
 /**
  * An upstream (airplanes.live) call failed or was rejected. Carries the status to
@@ -7,6 +7,6 @@ import { DomainError } from "./domain-error.ts";
  */
 export class ProxyError extends DomainError {
   constructor(message: string, status: number, extra?: Record<string, unknown>) {
-    super(message, status, extra);
+    super(message, status, extra)
   }
 }

@@ -1,5 +1,5 @@
-import type { ErrorRequestHandler } from "express";
-import { DomainError } from "../../Domain/Exceptions/domain-error.ts";
+import type { ErrorRequestHandler } from 'express'
+import { DomainError } from '../../Domain/Exceptions/domain-error.ts'
 
 /**
  * Turn any DomainError thrown by a controller/service into `status { error }`.
@@ -8,11 +8,11 @@ import { DomainError } from "../../Domain/Exceptions/domain-error.ts";
  */
 export function errorMapping(): ErrorRequestHandler {
   return (err, _req, res, next) => {
-    if (res.headersSent) return next(err);
+    if (res.headersSent) return next(err)
     if (err instanceof DomainError) {
-      res.status(err.status).json({ error: err.message });
-      return;
+      res.status(err.status).json({ error: err.message })
+      return
     }
-    next(err);
-  };
+    next(err)
+  }
 }

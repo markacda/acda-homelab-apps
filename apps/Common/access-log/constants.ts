@@ -10,4 +10,4 @@
 // keeps a synced copy of this literal — it is compiled by a separate, bundler-
 // less client build (rootDir Web/client) and cannot import from apps/Common/.
 // Update both if this value ever changes.
-export const DISCOVERY_UA = "homelab-dashboard-discovery-agent";
+export const DISCOVERY_UA = 'homelab-dashboard-discovery-agent'
