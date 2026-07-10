@@ -89,7 +89,7 @@ and lists their runtime deps in its own `package.json`:
 
 - **`@homelab/access-log`** — `pageLoadLogger`/`installConsoleLogging` (structured
   per-request `access.log` + mirrored `app.log`, daily-rotated + gzipped under
-  `LOG_DIR`, ~90-day retention, skipping `/healthz` and `/health`); pure
+  `LOG_DIR`, ~30-day retention, skipping `/healthz` and `/health`); pure
   `buildEntry`/`buildAppLogEntry`; the `AccessLogEntry`/`AppLogEntry`/`LogLevel`
   types the `log-viewer` reads back; and the `DISCOVERY_UA` constant.
 - **`@homelab/server-kit`** — the Express bootstrap: `createApp(name)` (installs
