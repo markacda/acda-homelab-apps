@@ -109,7 +109,7 @@ services:
       - LOGS_ROOT=/logs
     volumes:
       # Read-only mounts of every app's access-log volume (incl. its own), so
-      # the viewer can read the full daily-rotated, gzipped 3-month history.
+      # the viewer can read the full daily-rotated, gzipped 1-month history.
       - atc-logs:/logs/atc:ro
       - ev-crossover-logs:/logs/ev-crossover:ro
       - dynamic-vs-fixed-logs:/logs/dynamic-vs-fixed:ro

@@ -74,8 +74,8 @@ capturing page loads and their timing. Fields: `ts`, `app`, `method`, `url`,
 (`/healthz`, `/health`) are excluded to keep the log to real traffic.
 
 Logs are written to `LOG_DIR` (`/app/logs` in Docker, backed by a per-app named
-volume) as `access.log`, rotated daily and gzipped, with the most recent ~90
-files kept — a **~3-month retention** window (via `rotating-file-stream`).
+volume) as `access.log`, rotated daily and gzipped, with the most recent ~30
+files kept — a **~1-month retention** window (via `rotating-file-stream`).
 
 Read an app's logs:
 
@@ -88,7 +88,7 @@ In local dev the log lands in `apps/<name>/logs/` (git-ignored).
 
 Or use the **`log-viewer`** app (port 6004): it mounts every app's log volume
 read-only and serves a scrollable, searchable, filterable UI over the full
-3-month history, with accumulated stats (avg response time and request counts
+1-month history, with accumulated stats (avg response time and request counts
 per app and per endpoint, error counts/rates, status distribution, and more).
 In dev, point it at the repo's logs with `LOGS_ROOT=./apps npm run dev -w log-viewer`.
 
