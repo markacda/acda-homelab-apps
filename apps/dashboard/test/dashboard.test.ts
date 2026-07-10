@@ -41,7 +41,7 @@ test("mergeApps appends manual apps and dedupes by url", () => {
   assert.ok(result.some((a) => a.name === "Router"));
 });
 
-test("mergeApps orders apps by port/url", () => {
+test("mergeApps orders apps alphabetically by name", () => {
   const discovered = [
     { source: "docker", name: "high", port: 9000 },
     { source: "docker", name: "low", port: 80 },
@@ -50,7 +50,7 @@ test("mergeApps orders apps by port/url", () => {
   const result = mergeApps(discovered, baseConfig);
   assert.deepEqual(
     result.map((a) => a.name),
-    ["low", "mid", "high"],
+    ["high", "low", "mid"],
   );
 });
 
