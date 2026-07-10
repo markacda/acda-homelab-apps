@@ -1,4 +1,4 @@
-import type { PointQuery } from '../../Domain/ValueObjects/point-query.ts'
+import type { PointQuery } from '../../Domain/ValueObjects/point-query.ts';
 
 /**
  * Port for the upstream airplanes.live APIs. Implemented in the Adapters layer.
@@ -7,7 +7,7 @@ import type { PointQuery } from '../../Domain/ValueObjects/point-query.ts'
  */
 export interface AirplanesSource {
   /** api.airplanes.live point query for aircraft near a validated point. */
-  fetchPoint(query: PointQuery, userAgent?: string): Promise<unknown>
+  fetchPoint(query: PointQuery, userAgent?: string): Promise<unknown>;
   /** Pass-through to globe.airplanes.live for the given path. */
-  fetchGlobe(path: string, userAgent?: string): Promise<unknown>
+  fetchGlobe(path: string, userAgent?: string): Promise<unknown>;
 }

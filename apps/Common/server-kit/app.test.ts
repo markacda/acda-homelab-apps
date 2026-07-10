@@ -1,6 +1,6 @@
-import { test } from 'node:test'
-import assert from 'node:assert/strict'
-import { healthHandler, errorHandler, errorLogger } from './app.ts'
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { healthHandler, errorHandler, errorLogger } from './app.ts';
 
 // Minimal res double — the handlers only touch these members.
 function fakeRes() {
@@ -9,49 +9,49 @@ function fakeRes() {
     headersSent: false,
     body: undefined as unknown,
     status(code: number) {
-      this.statusCode = code
-      return this
+      this.statusCode = code;
+      return this;
     },
     json(payload: unknown) {
-      this.body = payload
-      return this
+      this.body = payload;
+      return this;
     },
-  }
-  return res
+  };
+  return res;
 }
 
 test("healthHandler responds 200 { status: 'ok' }", () => {
-  const res = fakeRes()
+  const res = fakeRes();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  healthHandler()({} as any, res as any, (() => {}) as any)
-  assert.equal(res.statusCode, 200)
-  assert.deepEqual(res.body, { status: 'ok' })
-})
+  healthHandler()({} as any, res as any, (() => {}) as any);
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(res.body, { status: 'ok' });
+});
 
 test('errorHandler responds 500 { error } for an unhandled error', () => {
-  const res = fakeRes()
+  const res = fakeRes();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  errorHandler('test-app')(new Error('boom'), {} as any, res as any, (() => {}) as any)
-  assert.equal(res.statusCode, 500)
-  assert.deepEqual(res.body, { error: 'Internal server error' })
-})
+  errorHandler('test-app')(new Error('boom'), {} as any, res as any, (() => {}) as any);
+  assert.equal(res.statusCode, 500);
+  assert.deepEqual(res.body, { error: 'Internal server error' });
+});
 
 test('errorLogger re-forwards the error via next(err)', () => {
-  const err = new Error('boom')
-  let forwarded: unknown = null
+  const err = new Error('boom');
+  let forwarded: unknown = null;
   const next = (e: unknown) => {
-    forwarded = e
-  }
+    forwarded = e;
+  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  errorLogger('test-app')(err, {} as any, {} as any, next as any)
-  assert.equal(forwarded, err)
-})
+  errorLogger('test-app')(err, {} as any, {} as any, next as any);
+  assert.equal(forwarded, err);
+});
 
 test('errorHandler does not write a body once headers are sent', () => {
-  const res = fakeRes()
-  res.headersSent = true
+  const res = fakeRes();
+  res.headersSent = true;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  errorHandler('test-app')(new Error('boom'), {} as any, res as any, (() => {}) as any)
-  assert.equal(res.statusCode, 200) // untouched
-  assert.equal(res.body, undefined)
-})
+  errorHandler('test-app')(new Error('boom'), {} as any, res as any, (() => {}) as any);
+  assert.equal(res.statusCode, 200); // untouched
+  assert.equal(res.body, undefined);
+});

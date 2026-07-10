@@ -1,6 +1,6 @@
-import type { RecipeSource, ParsedRecipe } from '../../Ports/Allerhande/recipe-source.ts'
-import { BROWSER_UA } from '../browser-user-agent.ts'
-import { parseRecipe } from './parse.ts'
+import type { RecipeSource, ParsedRecipe } from '../../Ports/Allerhande/recipe-source.ts';
+import { BROWSER_UA } from '../browser-user-agent.ts';
+import { parseRecipe } from './parse.ts';
 
 /**
  * Rewrite Allerhande's short recipe URL to the canonical recipe page. AH shares
@@ -9,8 +9,8 @@ import { parseRecipe } from './parse.ts'
  * canonical form (and any non-matching URL) is returned unchanged.
  */
 export function normalizeAllerhandeUrl(url: string): string {
-  const match = /^(https?:\/\/(?:www\.)?ah\.nl)\/r\/(\d+)\/?$/i.exec(url.trim())
-  return match ? `${match[1]}/allerhande/recept/r-${match[2]}` : url
+  const match = /^(https?:\/\/(?:www\.)?ah\.nl)\/r\/(\d+)\/?$/i.exec(url.trim());
+  return match ? `${match[1]}/allerhande/recept/r-${match[2]}` : url;
 }
 
 /**
@@ -20,8 +20,8 @@ export function normalizeAllerhandeUrl(url: string): string {
  */
 export class AllerhandeRecipeSource implements RecipeSource {
   async fetch(url: string): Promise<ParsedRecipe | null> {
-    const html = await this.fetchHtml(normalizeAllerhandeUrl(url))
-    return parseRecipe(html)
+    const html = await this.fetchHtml(normalizeAllerhandeUrl(url));
+    return parseRecipe(html);
   }
 
   private async fetchHtml(url: string): Promise<string> {
@@ -32,10 +32,10 @@ export class AllerhandeRecipeSource implements RecipeSource {
         'Accept-Language': 'nl-NL,nl;q=0.9,en;q=0.8',
       },
       redirect: 'follow',
-    })
+    });
     if (!res.ok) {
-      throw new Error(`Could not fetch recipe page (HTTP ${res.status}).`)
+      throw new Error(`Could not fetch recipe page (HTTP ${res.status}).`);
     }
-    return res.text()
+    return res.text();
   }
 }

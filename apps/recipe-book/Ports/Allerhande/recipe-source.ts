@@ -4,15 +4,15 @@
 
 /** A recipe extracted from an external page, before it becomes a Recipe aggregate. */
 export interface ParsedRecipe {
-  title: string
-  imageUrl: string | null
-  ingredients: string[]
-  steps: string[]
-  servings?: string
-  prepTime?: string
-  cookTime?: string
-  totalTime?: string
-  category?: string
+  title: string;
+  imageUrl: string | null;
+  ingredients: string[];
+  steps: string[];
+  servings?: string;
+  prepTime?: string;
+  cookTime?: string;
+  totalTime?: string;
+  category?: string;
 }
 
 export interface RecipeSource {
@@ -21,5 +21,5 @@ export interface RecipeSource {
    * page has no parseable recipe (caller falls back to manual entry); throws
    * when the page itself cannot be fetched.
    */
-  fetch(url: string): Promise<ParsedRecipe | null>
+  fetch(url: string): Promise<ParsedRecipe | null>;
 }
