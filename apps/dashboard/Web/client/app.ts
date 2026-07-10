@@ -64,7 +64,7 @@ function tileEl(app: AppTile): HTMLAnchorElement {
   const a = document.createElement("a");
   a.className = "tile";
   a.href = href;
-  a.target = "_blank";
+  a.target = "_self";
   a.rel = "noopener noreferrer";
 
   a.appendChild(iconEl(app));
