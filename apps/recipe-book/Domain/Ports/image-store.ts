@@ -7,12 +7,7 @@ export interface ImageStore {
    * recipe id; returns the stored filename. Throws a DomainError (415) if the
    * content type / name is not a LaTeX-embeddable raster format (JPG/PNG).
    */
-  saveUpload(
-    recipeId: string,
-    buffer: Buffer,
-    contentType: string | null,
-    originalName: string,
-  ): Promise<string>;
+  saveUpload(recipeId: string, buffer: Buffer, contentType: string | null, originalName: string): Promise<string>;
   /**
    * Download a remote image and store it; returns the stored filename, or null
    * if the URL is unreachable or the format is unsupported (webp/svg/etc.).

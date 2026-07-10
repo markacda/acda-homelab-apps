@@ -1,5 +1,5 @@
-import type { LogStore } from "../../../Ports/LogStore/log-store.ts";
-import type { AccessLogEntry, AppLogEntry } from "../../../Domain/ValueObjects/log-entry.ts";
+import type { LogStore } from '../../../Ports/LogStore/log-store.ts';
+import type { AccessLogEntry, AppLogEntry } from '../../../Domain/ValueObjects/log-entry.ts';
 
 /**
  * Background service holding the in-memory view of the logs, rebuilt from the
@@ -32,9 +32,7 @@ export class LogIngestService {
   /** Load once, then re-ingest on the configured interval. */
   async start(): Promise<void> {
     await this.refresh();
-    console.log(
-      `[ingest] loaded ${this.entries.length} requests, ${this.logs.length} app-log entries`,
-    );
+    console.log(`[ingest] loaded ${this.entries.length} requests, ${this.logs.length} app-log entries`);
     setInterval(() => void this.refresh(), this.intervalMs);
   }
 

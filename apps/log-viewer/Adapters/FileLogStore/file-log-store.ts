@@ -1,9 +1,9 @@
-import { readdir, readFile, stat } from "node:fs/promises";
-import { gunzipSync } from "node:zlib";
-import { join } from "node:path";
-import type { LogStore, ParsedLogs } from "../../Ports/LogStore/log-store.ts";
-import type { AccessLogEntry, AppLogEntry } from "../../Domain/ValueObjects/log-entry.ts";
-import { parseAll, sortAndCap, MAX_ENTRIES } from "./parse.ts";
+import { readdir, readFile, stat } from 'node:fs/promises';
+import { gunzipSync } from 'node:zlib';
+import { join } from 'node:path';
+import type { LogStore, ParsedLogs } from '../../Ports/LogStore/log-store.ts';
+import type { AccessLogEntry, AppLogEntry } from '../../Domain/ValueObjects/log-entry.ts';
+import { parseAll, sortAndCap, MAX_ENTRIES } from './parse.ts';
 
 // Cache parsed files by path; a file is re-read only when its size/mtime change.
 // Rotated .gz files are immutable so they parse exactly once; the active files
@@ -81,7 +81,7 @@ export class FileLogStore implements LogStore {
     let text: string;
     try {
       const buf = await readFile(path);
-      text = path.endsWith(".gz") ? gunzipSync(buf).toString("utf8") : buf.toString("utf8");
+      text = path.endsWith('.gz') ? gunzipSync(buf).toString('utf8') : buf.toString('utf8');
     } catch {
       return EMPTY;
     }

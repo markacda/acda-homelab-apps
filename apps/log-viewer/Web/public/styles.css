@@ -23,7 +23,7 @@ body {
   font-family:
     system-ui,
     -apple-system,
-    "Segoe UI",
+    'Segoe UI',
     Roboto,
     sans-serif;
   background: var(--bg);
@@ -276,7 +276,7 @@ h1 {
   color: var(--text);
 }
 
-.filters input[type="search"] {
+.filters input[type='search'] {
   flex: 1 1 16rem;
   min-width: 12rem;
 }
@@ -323,7 +323,7 @@ h1 {
 }
 
 .filters .dropdown-toggle::after {
-  content: " ▾";
+  content: ' ▾';
   color: var(--muted);
   float: right;
 }
@@ -399,12 +399,12 @@ h1 {
   user-select: none;
 }
 
-.log-table th.sortable[data-dir="desc"]::after {
-  content: " ▾";
+.log-table th.sortable[data-dir='desc']::after {
+  content: ' ▾';
   color: var(--accent);
 }
-.log-table th.sortable[data-dir="asc"]::after {
-  content: " ▴";
+.log-table th.sortable[data-dir='asc']::after {
+  content: ' ▴';
   color: var(--accent);
 }
 

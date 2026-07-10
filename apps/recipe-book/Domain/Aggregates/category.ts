@@ -1,5 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { ValidationError } from "../Exceptions/validation-error.ts";
+import { randomUUID } from 'node:crypto';
+import { ValidationError } from '../Exceptions/validation-error.ts';
 
 // The Category aggregate: a managed name used to group recipes (courses like
 // "Hoofdgerecht", "Salades"). Recipes reference a category by its name string,
@@ -19,8 +19,8 @@ function nowIso(): string {
 }
 
 function requireName(name: string | undefined): string {
-  const trimmed = (name ?? "").trim();
-  if (!trimmed) throw new ValidationError("A category name is required.");
+  const trimmed = (name ?? '').trim();
+  if (!trimmed) throw new ValidationError('A category name is required.');
   return trimmed;
 }
 

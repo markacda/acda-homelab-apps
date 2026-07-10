@@ -1,4 +1,4 @@
-import type { LogLevel } from "../../Domain/ValueObjects/log-entry.ts";
+import type { LogLevel } from '../../Domain/ValueObjects/log-entry.ts';
 
 /** Paginated list of log entries (either kind). */
 export interface LogListResponse<T> {

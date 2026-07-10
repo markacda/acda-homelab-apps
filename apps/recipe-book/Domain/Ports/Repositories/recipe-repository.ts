@@ -1,4 +1,4 @@
-import type { Recipe } from "../../Aggregates/recipe.ts";
+import type { Recipe } from '../../Aggregates/recipe.ts';
 
 /** Persistence port for the Recipe aggregate. Implemented in the Adapters layer. */
 export interface RecipeRepository {

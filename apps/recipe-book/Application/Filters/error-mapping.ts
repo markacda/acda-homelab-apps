@@ -1,5 +1,5 @@
-import type { ErrorRequestHandler } from "express";
-import { DomainError } from "../../Domain/Exceptions/domain-error.ts";
+import type { ErrorRequestHandler } from 'express';
+import { DomainError } from '../../Domain/Exceptions/domain-error.ts';
 
 /**
  * Terminal-ish error filter: turn any DomainError thrown by a controller/service

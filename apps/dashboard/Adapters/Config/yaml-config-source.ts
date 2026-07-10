@@ -1,18 +1,14 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import yaml from "js-yaml";
-import type { ConfigSource } from "../../Ports/Config/config-source.ts";
-import type {
-  Config,
-  Settings,
-  DiscoveryConfig,
-} from "../../Domain/ValueObjects/dashboard-config.ts";
-import type { AppEntry, AppOverride } from "../../Domain/ValueObjects/app-entry.ts";
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import yaml from 'js-yaml';
+import type { ConfigSource } from '../../Ports/Config/config-source.ts';
+import type { Config, Settings, DiscoveryConfig } from '../../Domain/ValueObjects/dashboard-config.ts';
+import type { AppEntry, AppOverride } from '../../Domain/ValueObjects/app-entry.ts';
 
 // config/ lives at the app root and is a read-only mounted volume in Docker, so
 // resolve it from cwd (the app dir in dev, /app in the container) rather than
 // relative to this file — which moves into dist/ once compiled.
-const DEFAULT_CONFIG_PATH = join(process.cwd(), "config", "config.yaml");
+const DEFAULT_CONFIG_PATH = join(process.cwd(), 'config', 'config.yaml');
 
 /** Shape of the raw parsed YAML before normalization (everything optional). */
 interface RawConfig {
@@ -24,8 +20,8 @@ interface RawConfig {
 
 const DEFAULTS = {
   settings: {
-    title: "Homelab Dashboard",
-    hostAddress: "host.docker.internal",
+    title: 'Homelab Dashboard',
+    hostAddress: 'host.docker.internal',
     healthCheckIntervalSeconds: 30,
     autoDiscover: true,
   } satisfies Settings,
@@ -52,17 +48,13 @@ export class YamlConfigSource implements ConfigSource {
   load(): Config {
     let raw: RawConfig = {};
     try {
-      const text = readFileSync(this.configPath, "utf8");
+      const text = readFileSync(this.configPath, 'utf8');
       raw = (yaml.load(text) as RawConfig) || {};
     } catch (err) {
-      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
-        console.warn(
-          `[config] ${this.configPath} not found — running with defaults (auto-discovery only).`,
-        );
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+        console.warn(`[config] ${this.configPath} not found — running with defaults (auto-discovery only).`);
       } else {
-        console.error(
-          `[config] Failed to read ${this.configPath}: ${(err as Error).message}. Using defaults.`,
-        );
+        console.error(`[config] Failed to read ${this.configPath}: ${(err as Error).message}. Using defaults.`);
       }
     }
 
@@ -84,10 +76,7 @@ export class YamlConfigSource implements ConfigSource {
     discovery.ignore = Array.isArray(discovery.ignore) ? discovery.ignore.map(String) : [];
 
     const apps = Array.isArray(raw.apps) ? (raw.apps as AppEntry[]) : [];
-    const overrides =
-      raw.overrides && typeof raw.overrides === "object"
-        ? (raw.overrides as Record<string, AppOverride>)
-        : {};
+    const overrides = raw.overrides && typeof raw.overrides === 'object' ? (raw.overrides as Record<string, AppOverride>) : {};
 
     return { settings, discovery, apps, overrides };
   }

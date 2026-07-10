@@ -1,0 +1,15 @@
+# Normalize line endings to LF in the repository and working tree on every
+# platform, so Prettier (endOfLine: "lf") is warning-free on Windows and Linux
+# regardless of the local core.autocrlf setting.
+* text=auto eol=lf
+
+# Explicitly mark common binaries so git never touches their bytes.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.gz binary

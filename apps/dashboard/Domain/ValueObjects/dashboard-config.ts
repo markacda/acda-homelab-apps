@@ -1,4 +1,4 @@
-import type { AppEntry, AppOverride } from "./app-entry.ts";
+import type { AppEntry, AppOverride } from './app-entry.ts';
 
 export interface Settings {
   title: string;

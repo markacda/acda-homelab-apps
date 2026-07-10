@@ -1,8 +1,8 @@
-import { DateTime } from "luxon";
-import type { UsageData } from "../ValueObjects/usage.ts";
-import type { MarketPrices } from "../ValueObjects/market-prices.ts";
-import type { CalcParams } from "../ValueObjects/tariff-params.ts";
-import type { CalcResult, MonthlyRow } from "../ValueObjects/calc-result.ts";
+import { DateTime } from 'luxon';
+import type { UsageData } from '../ValueObjects/usage.ts';
+import type { MarketPrices } from '../ValueObjects/market-prices.ts';
+import type { CalcParams } from '../ValueObjects/tariff-params.ts';
+import type { CalcResult, MonthlyRow } from '../ValueObjects/calc-result.ts';
 
 // The core domain service: compare a fixed vs a dynamic (hourly-market) energy
 // contract over the metered period. Pure and side-effect free (no I/O), so it is
@@ -90,7 +90,7 @@ export function calculate(usage: UsageData, prices: MarketPrices, params: CalcPa
 
   for (const iv of usage.intervals) {
     const dt = iv.start;
-    const monthKey = dt.toFormat("yyyy-MM");
+    const monthKey = dt.toFormat('yyyy-MM');
     const b = bucket(monthKey);
 
     // --- Electricity ---
@@ -103,7 +103,7 @@ export function calculate(usage: UsageData, prices: MarketPrices, params: CalcPa
     else kwhNight += kwh;
     b.fixedElec += kwh * (day ? p.fixedDayTariff : p.fixedNightTariff);
 
-    const hourKey = dt.startOf("hour").toMillis();
+    const hourKey = dt.startOf('hour').toMillis();
     let market = prices.elecByHour.get(hourKey);
     if (market == null) {
       market = avgMarketElec;
@@ -117,7 +117,7 @@ export function calculate(usage: UsageData, prices: MarketPrices, params: CalcPa
       totalGasM3 += gasM3;
       b.gasM3 += gasM3;
       b.fixedGas += gasM3 * p.fixedGasPrice;
-      let gp = prices.gasByDate.get(dt.toFormat("yyyy-MM-dd"));
+      let gp = prices.gasByDate.get(dt.toFormat('yyyy-MM-dd'));
       if (gp == null) {
         gp = avgMarketGas;
         if (gasM3 > 0) missingGasDays++;
@@ -137,9 +137,7 @@ export function calculate(usage: UsageData, prices: MarketPrices, params: CalcPa
     const fElec = b.fixedElec;
     const dElec = (b.dynElecMarket + (p.elecMarkup + p.elecEnergyTax) * b.kwh) * vat;
     const fGas = p.includeGas ? b.fixedGas : 0;
-    const dGas = p.includeGas
-      ? (b.dynGasMarket + (p.gasMarkup + p.gasEnergyTax) * b.gasM3) * vat
-      : 0;
+    const dGas = p.includeGas ? (b.dynGasMarket + (p.gasMarkup + p.gasEnergyTax) * b.gasM3) * vat : 0;
     fixedElec += fElec;
     dynElec += dElec;
     fixedGas += fGas;
@@ -160,7 +158,7 @@ export function calculate(usage: UsageData, prices: MarketPrices, params: CalcPa
   // Annualize.
   const start = usage.periodStart;
   const end = usage.periodEnd;
-  const spanDays = Math.max(end.diff(start, "days").days, 1 / 24);
+  const spanDays = Math.max(end.diff(start, 'days').days, 1 / 24);
   const annualFactor = spanDays >= 1 ? 365 / spanDays : 1;
 
   return {

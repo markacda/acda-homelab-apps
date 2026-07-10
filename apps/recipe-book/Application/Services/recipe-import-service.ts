@@ -1,7 +1,7 @@
-import type { Recipe } from "../../Domain/Aggregates/recipe.ts";
-import type { RecipeSource } from "../../Ports/Allerhande/recipe-source.ts";
-import { RecipeService } from "./recipe-service.ts";
-import { DomainError } from "../../Domain/Exceptions/domain-error.ts";
+import type { Recipe } from '../../Domain/Aggregates/recipe.ts';
+import type { RecipeSource } from '../../Ports/Allerhande/recipe-source.ts';
+import { RecipeService } from './recipe-service.ts';
+import { DomainError } from '../../Domain/Exceptions/domain-error.ts';
 
 /**
  * Orchestrates importing a recipe from an external URL: fetch + parse via the
@@ -23,13 +23,10 @@ export class RecipeImportService {
     try {
       parsed = await this.source.fetch(url);
     } catch (err) {
-      throw new DomainError(err instanceof Error ? err.message : "Import failed.", 502);
+      throw new DomainError(err instanceof Error ? err.message : 'Import failed.', 502);
     }
     if (!parsed) {
-      throw new DomainError(
-        "Could not find recipe data on that page. You can add the recipe manually instead.",
-        422,
-      );
+      throw new DomainError('Could not find recipe data on that page. You can add the recipe manually instead.', 422);
     }
     return this.recipes.create({
       title: parsed.title,

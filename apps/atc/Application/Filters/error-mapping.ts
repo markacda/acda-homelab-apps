@@ -1,5 +1,5 @@
-import type { ErrorRequestHandler } from "express";
-import { DomainError } from "../../Domain/Exceptions/domain-error.ts";
+import type { ErrorRequestHandler } from 'express';
+import { DomainError } from '../../Domain/Exceptions/domain-error.ts';
 
 /**
  * Turn any DomainError into `status { error, ...extra }` (extra carries the

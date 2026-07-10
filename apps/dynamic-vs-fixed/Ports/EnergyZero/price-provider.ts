@@ -1,5 +1,5 @@
-import type { DateTime } from "luxon";
-import type { MarketPrices } from "../../Domain/ValueObjects/market-prices.ts";
+import type { DateTime } from 'luxon';
+import type { MarketPrices } from '../../Domain/ValueObjects/market-prices.ts';
 
 // Port for the external market-price source (EnergyZero). Implemented in the
 // Adapters layer (HTTP client + on-disk month cache).

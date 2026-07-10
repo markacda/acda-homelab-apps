@@ -8,10 +8,10 @@ services:
       dockerfile: apps/atc/Dockerfile
     container_name: atc-frontend
     labels:
-      - "homelab.name=ATC"
+      - 'homelab.name=ATC'
     ports:
       # Host 6001 avoids Home Assistant's used ports (80/443 proxy, 8123, 1883, 4357)
-      - "6001:6001"
+      - '6001:6001'
     environment:
       - NODE_ENV=production
       - PORT=6001
@@ -20,13 +20,7 @@ services:
       - atc-logs:/app/logs
     restart: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://localhost:6001/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:6001/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -38,9 +32,9 @@ services:
       dockerfile: apps/ev-crossover/Dockerfile
     container_name: ev-crossover
     labels:
-      - "homelab.name=Laden of tanken?"
+      - 'homelab.name=Laden of tanken?'
     ports:
-      - "6002:6002"
+      - '6002:6002'
     environment:
       - NODE_ENV=production
       - PORT=6002
@@ -49,13 +43,7 @@ services:
       - ev-crossover-logs:/app/logs
     restart: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://localhost:6002/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:6002/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -67,9 +55,9 @@ services:
       dockerfile: apps/dynamic-vs-fixed/Dockerfile
     container_name: dynamic-vs-fixed
     labels:
-      - "homelab.name=Dynamisch of vast contract?"
+      - 'homelab.name=Dynamisch of vast contract?'
     ports:
-      - "6003:6003"
+      - '6003:6003'
     environment:
       - NODE_ENV=production
       - PORT=6003
@@ -80,13 +68,7 @@ services:
       - dynamic-vs-fixed-logs:/app/logs
     restart: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://localhost:6003/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:6003/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -98,9 +80,9 @@ services:
       dockerfile: apps/log-viewer/Dockerfile
     container_name: log-viewer
     labels:
-      - "homelab.name=Logs"
+      - 'homelab.name=Logs'
     ports:
-      - "6004:6004"
+      - '6004:6004'
     environment:
       - NODE_ENV=production
       - PORT=6004
@@ -120,13 +102,7 @@ services:
       - log-viewer-logs:/app/logs
     restart: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://localhost:6004/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:6004/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -138,9 +114,9 @@ services:
       dockerfile: apps/recipe-book/Dockerfile
     container_name: recipe-book
     labels:
-      - "homelab.name=Receptenboek"
+      - 'homelab.name=Receptenboek'
     ports:
-      - "6005:6005"
+      - '6005:6005'
     environment:
       - NODE_ENV=production
       - PORT=6005
@@ -154,13 +130,7 @@ services:
       - recipe-book-logs:/app/logs
     restart: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://localhost:6005/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:6005/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -172,15 +142,15 @@ services:
       dockerfile: apps/dashboard/Dockerfile
     container_name: dashboard
     labels:
-      - "homelab.name=Dashboard"
+      - 'homelab.name=Dashboard'
     ports:
       # The dashboard is the homelab landing page, so it deliberately takes the
       # well-known web ports (80 + 443) plus 8080. The container listens on 8080;
       # every mapping points at it. Note: this overlaps Home Assistant's 80/443
       # proxy — run only one of them on these ports.
-      - "80:8080"
-      - "443:8080"
-      - "8080:8080"
+      - '80:8080'
+      - '443:8080'
+      - '8080:8080'
     volumes:
       # Read-only Docker socket for auto-discovery of running containers.
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -191,7 +161,7 @@ services:
     extra_hosts:
       # Lets the container reach services published on the host by name,
       # used for server-side health checks.
-      - "host.docker.internal:host-gateway"
+      - 'host.docker.internal:host-gateway'
     environment:
       - NODE_ENV=production
       - HOST_ADDRESS=host.docker.internal
@@ -199,13 +169,7 @@ services:
       - LOG_DIR=/app/logs
     restart: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://localhost:8080/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:8080/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3

@@ -1,5 +1,5 @@
-import type { Book } from "../../Domain/Aggregates/book.ts";
-import type { Recipe } from "../../Domain/Aggregates/recipe.ts";
+import type { Book } from '../../Domain/Aggregates/book.ts';
+import type { Recipe } from '../../Domain/Aggregates/recipe.ts';
 
 /**
  * Port for turning a book + its resolved, ordered recipes into a rendered
@@ -10,5 +10,5 @@ export interface DocumentGenerator {
   generateTex(book: Book, recipes: Recipe[]): Promise<string>;
   generatePdf(book: Book, recipes: Recipe[]): Promise<string>;
   /** The path a previously generated artifact for `bookId` would live at. */
-  outputPath(bookId: string, format: "tex" | "pdf"): string;
+  outputPath(bookId: string, format: 'tex' | 'pdf'): string;
 }

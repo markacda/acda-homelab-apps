@@ -1,4 +1,4 @@
-import type { LogLevel } from "./log-entry.ts";
+import type { LogLevel } from './log-entry.ts';
 
 // Aggregated statistics produced by the analytics domain service.
 

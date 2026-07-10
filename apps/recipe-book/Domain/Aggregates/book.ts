@@ -1,5 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { ValidationError } from "../Exceptions/validation-error.ts";
+import { randomUUID } from 'node:crypto';
+import { ValidationError } from '../Exceptions/validation-error.ts';
 
 // The Book aggregate: a named, ordered list of references into the recipe
 // library. Order is the page order; stale ids are tolerated at render time
@@ -20,8 +20,8 @@ function nowIso(): string {
 }
 
 function requireName(name: string | undefined): string {
-  const trimmed = (name ?? "").trim();
-  if (!trimmed) throw new ValidationError("A book name is required.");
+  const trimmed = (name ?? '').trim();
+  if (!trimmed) throw new ValidationError('A book name is required.');
   return name as string;
 }
 

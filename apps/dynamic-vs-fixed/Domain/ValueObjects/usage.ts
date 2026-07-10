@@ -1,4 +1,4 @@
-import type { DateTime } from "luxon";
+import type { DateTime } from 'luxon';
 
 // The domain's view of metered energy usage over a period: a series of intervals
 // (each differenced from cumulative meter readings) plus the covered span. How

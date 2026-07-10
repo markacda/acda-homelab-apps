@@ -1,9 +1,9 @@
-import { Recipe } from "../../Domain/Aggregates/recipe.ts";
-import type { RecipeContent } from "../../Domain/Aggregates/recipe.ts";
-import type { RecipeRepository } from "../../Domain/Ports/Repositories/recipe-repository.ts";
-import type { ImageStore } from "../../Domain/Ports/image-store.ts";
-import { NotFoundError } from "../../Domain/Exceptions/not-found-error.ts";
-import { DomainError } from "../../Domain/Exceptions/domain-error.ts";
+import { Recipe } from '../../Domain/Aggregates/recipe.ts';
+import type { RecipeContent } from '../../Domain/Aggregates/recipe.ts';
+import type { RecipeRepository } from '../../Domain/Ports/Repositories/recipe-repository.ts';
+import type { ImageStore } from '../../Domain/Ports/image-store.ts';
+import { NotFoundError } from '../../Domain/Exceptions/not-found-error.ts';
+import { DomainError } from '../../Domain/Exceptions/domain-error.ts';
 
 /**
  * Application service for the recipe library: creates/updates recipes and keeps
@@ -25,7 +25,7 @@ export class RecipeService {
 
   async getOrThrow(id: string): Promise<Recipe> {
     const recipe = await this.recipes.get(id);
-    if (!recipe) throw new NotFoundError("Recipe not found.");
+    if (!recipe) throw new NotFoundError('Recipe not found.');
     return recipe;
   }
 
@@ -56,12 +56,7 @@ export class RecipeService {
   }
 
   /** Append an uploaded image (throws 415 for an unsupported format). */
-  async attachUpload(
-    recipe: Recipe,
-    buffer: Buffer,
-    contentType: string | null,
-    originalName: string,
-  ): Promise<Recipe> {
+  async attachUpload(recipe: Recipe, buffer: Buffer, contentType: string | null, originalName: string): Promise<Recipe> {
     const filename = await this.images.saveUpload(recipe.id, buffer, contentType, originalName);
     recipe.appendImage(filename);
     await this.recipes.save(recipe);
@@ -72,10 +67,7 @@ export class RecipeService {
   async attachFromUrl(recipe: Recipe, url: string): Promise<Recipe> {
     const filename = await this.images.downloadFromUrl(recipe.id, url);
     if (!filename) {
-      throw new DomainError(
-        "Could not download that image (unreachable or unsupported format).",
-        422,
-      );
+      throw new DomainError('Could not download that image (unreachable or unsupported format).', 422);
     }
     recipe.appendImage(filename);
     await this.recipes.save(recipe);

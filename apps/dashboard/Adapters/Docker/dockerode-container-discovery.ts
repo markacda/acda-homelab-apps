@@ -1,9 +1,9 @@
-import Docker from "dockerode";
-import type { ContainerDiscovery } from "../../Ports/Docker/container-discovery.ts";
-import type { AppEntry } from "../../Domain/ValueObjects/app-entry.ts";
-import type { Config } from "../../Domain/ValueObjects/dashboard-config.ts";
+import Docker from 'dockerode';
+import type { ContainerDiscovery } from '../../Ports/Docker/container-discovery.ts';
+import type { AppEntry } from '../../Domain/ValueObjects/app-entry.ts';
+import type { Config } from '../../Domain/ValueObjects/dashboard-config.ts';
 
-const LABEL_PREFIX = "homelab.";
+const LABEL_PREFIX = 'homelab.';
 
 type Labels = Record<string, string> | undefined;
 
@@ -12,7 +12,7 @@ function label(labels: Labels, key: string): string | undefined {
 }
 
 function stripName(name: string | undefined): string {
-  return (name || "").replace(/^\//, "");
+  return (name || '').replace(/^\//, '');
 }
 
 /**
@@ -21,8 +21,8 @@ function stripName(name: string | undefined): string {
  */
 function guessIcon(image: string | undefined): string | null {
   if (!image) return null;
-  const noTag = image.split("@")[0].split(":")[0];
-  const parts = noTag.split("/");
+  const noTag = image.split('@')[0].split(':')[0];
+  const parts = noTag.split('/');
   return parts[parts.length - 1] || null;
 }
 
@@ -31,13 +31,13 @@ function guessIcon(image: string | undefined): string | null {
  * label; otherwise the first published (host-mapped) TCP port.
  */
 function pickPort(container: Docker.ContainerInfo, labels: Labels): number | null {
-  const explicit = label(labels, "port");
+  const explicit = label(labels, 'port');
   if (explicit) {
     const n = Number(explicit);
     if (Number.isFinite(n)) return n;
   }
   const ports = (container.Ports || [])
-    .filter((p) => p.Type === "tcp" && p.PublicPort)
+    .filter((p) => p.Type === 'tcp' && p.PublicPort)
     .map((p) => p.PublicPort)
     .sort((a, b) => a - b);
   return ports[0] || null;
@@ -75,24 +75,24 @@ export class DockerodeContainerDiscovery implements ContainerDiscovery {
 
       // Filtering rules
       if (config.discovery.ignore.includes(containerName)) continue;
-      const enable = label(labels, "enable");
-      if (enable === "false") continue;
-      if (config.discovery.requireLabel && enable !== "true") continue;
+      const enable = label(labels, 'enable');
+      if (enable === 'false') continue;
+      if (config.discovery.requireLabel && enable !== 'true') continue;
 
       const port = pickPort(container, labels);
-      const url = label(labels, "url");
+      const url = label(labels, 'url');
 
       // Skip containers with nothing to link to (no url override, no published port).
       if (!url && !port) continue;
 
       apps.push({
-        source: "docker",
+        source: 'docker',
         containerName,
-        name: label(labels, "name") || containerName,
+        name: label(labels, 'name') || containerName,
         url: url || null,
         port: url ? null : port,
-        icon: label(labels, "icon") || guessIcon(container.Image),
-        group: label(labels, "group") || null,
+        icon: label(labels, 'icon') || guessIcon(container.Image),
+        group: label(labels, 'group') || null,
       });
     }
 

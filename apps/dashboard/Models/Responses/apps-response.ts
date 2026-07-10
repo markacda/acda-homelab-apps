@@ -1,4 +1,4 @@
-import type { HealthStatus } from "../../Domain/ValueObjects/health-status.ts";
+import type { HealthStatus } from '../../Domain/ValueObjects/health-status.ts';
 
 /** One tile in the /api/apps response: the client-facing fields plus its health. */
 export interface AppTile extends HealthStatus {

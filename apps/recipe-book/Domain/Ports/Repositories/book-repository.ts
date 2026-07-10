@@ -1,4 +1,4 @@
-import type { Book } from "../../Aggregates/book.ts";
+import type { Book } from '../../Aggregates/book.ts';
 
 /** Persistence port for the Book aggregate. Implemented in the Adapters layer. */
 export interface BookRepository {

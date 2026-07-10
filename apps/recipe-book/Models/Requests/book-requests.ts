@@ -11,7 +11,7 @@ export interface UpdateBookRequest {
   recipeIds?: string[];
 }
 
-export type GenerateFormat = "tex" | "pdf";
+export type GenerateFormat = 'tex' | 'pdf';
 
 /** Body of POST /api/books/:id/generate. */
 export interface GenerateBookRequest {

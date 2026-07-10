@@ -1,4 +1,4 @@
-import type { AppEntry } from "../ValueObjects/app-entry.ts";
+import type { AppEntry } from '../ValueObjects/app-entry.ts';
 
 /**
  * Resolve the URL the server should probe for reachability. For discovered
@@ -13,9 +13,5 @@ export function healthTarget(app: AppEntry, hostAddress: string): string | null 
 
 /** The distinct, probeable targets across a set of apps. */
 export function distinctTargets(apps: AppEntry[], hostAddress: string): string[] {
-  return [
-    ...new Set(
-      apps.map((a) => healthTarget(a, hostAddress)).filter((t): t is string => Boolean(t)),
-    ),
-  ];
+  return [...new Set(apps.map((a) => healthTarget(a, hostAddress)).filter((t): t is string => Boolean(t)))];
 }

@@ -1,4 +1,4 @@
-import type { UsageData } from "../../Domain/ValueObjects/usage.ts";
+import type { UsageData } from '../../Domain/ValueObjects/usage.ts';
 
 // Port for turning an uploaded meter export into domain UsageData. Implemented in
 // the Adapters layer (HomeWizard CSV). Kept out of Domain because the file format

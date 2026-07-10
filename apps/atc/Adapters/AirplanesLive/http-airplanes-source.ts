@@ -1,6 +1,6 @@
-import type { AirplanesSource } from "../../Ports/AirplanesLive/airplanes-source.ts";
-import type { PointQuery } from "../../Domain/ValueObjects/point-query.ts";
-import { ProxyError } from "../../Domain/Exceptions/proxy-error.ts";
+import type { AirplanesSource } from '../../Ports/AirplanesLive/airplanes-source.ts';
+import type { PointQuery } from '../../Domain/ValueObjects/point-query.ts';
+import { ProxyError } from '../../Domain/Exceptions/proxy-error.ts';
 
 const TIMEOUT_MS = 10000; // 10-second upstream timeout
 
@@ -38,18 +38,16 @@ export class HttpAirplanesSource implements AirplanesSource {
       const response = await fetch(apiUrl, {
         signal: controller.signal,
         headers: {
-          "User-Agent": userAgent || "ATC-Server/1.0",
-          Referer: "https://globe.airplanes.live",
-          Origin: "https://globe.airplanes.live",
+          'User-Agent': userAgent || 'ATC-Server/1.0',
+          Referer: 'https://globe.airplanes.live',
+          Origin: 'https://globe.airplanes.live',
         },
       });
       clearTimeout(timeoutId);
 
       if (response.status === 429) {
-        const rateLimitSeconds = Number(response.headers.get("Retry-After"));
-        console.log(
-          `[${new Date().toISOString()}] Backing off for ${rateLimitSeconds} seconds due to rate limit on ${apiUrl}`,
-        );
+        const rateLimitSeconds = Number(response.headers.get('Retry-After'));
+        console.log(`[${new Date().toISOString()}] Backing off for ${rateLimitSeconds} seconds due to rate limit on ${apiUrl}`);
         const resetDate = new Date();
         resetDate.setSeconds(resetDate.getSeconds() + rateLimitSeconds);
         this.rateLimitResetsOn[apiUrl] = resetDate;
@@ -65,14 +63,14 @@ export class HttpAirplanesSource implements AirplanesSource {
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof ProxyError) throw error;
-      if (error instanceof Error && error.name === "AbortError") {
-        throw new ProxyError("Request to api.airplanes.live timed out", 504, {
-          message: "The upstream API did not respond within 10 seconds",
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new ProxyError('Request to api.airplanes.live timed out', 504, {
+          message: 'The upstream API did not respond within 10 seconds',
         });
       }
-      console.error("Error fetching from api.airplanes.live:", error);
-      throw new ProxyError("Failed to fetch data from api.airplanes.live", 500, {
-        message: error instanceof Error ? error.message : "Unknown error",
+      console.error('Error fetching from api.airplanes.live:', error);
+      throw new ProxyError('Failed to fetch data from api.airplanes.live', 500, {
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }

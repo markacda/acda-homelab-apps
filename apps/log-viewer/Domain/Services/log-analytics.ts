@@ -1,18 +1,6 @@
-import type {
-  AccessLogEntry,
-  AppLogEntry,
-  LogLevel,
-  StatusClass,
-  LogBand,
-} from "../ValueObjects/log-entry.ts";
-import type { LogFilter, AppLogFilter } from "../ValueObjects/log-filter.ts";
-import type {
-  Stats,
-  LogStats,
-  EndpointStat,
-  AppStat,
-  LogAppStat,
-} from "../ValueObjects/log-stats.ts";
+import type { AccessLogEntry, AppLogEntry, LogLevel, StatusClass, LogBand } from '../ValueObjects/log-entry.ts';
+import type { LogFilter, AppLogFilter } from '../ValueObjects/log-filter.ts';
+import type { Stats, LogStats, EndpointStat, AppStat, LogAppStat } from '../ValueObjects/log-stats.ts';
 
 // Pure filtering + aggregation over parsed log entries. No I/O here so it can be
 // unit-tested directly, and the query service can reuse it per request.
@@ -23,7 +11,7 @@ function inStatusClass(status: number, cls: StatusClass): boolean {
 }
 
 function matchesQuery(e: AccessLogEntry, needle: string): boolean {
-  const hay = `${e.url ?? ""} ${e.ip ?? ""} ${e.ua ?? ""} ${e.referer ?? ""}`.toLowerCase();
+  const hay = `${e.url ?? ''} ${e.ip ?? ''} ${e.ua ?? ''} ${e.referer ?? ''}`.toLowerCase();
   return hay.includes(needle);
 }
 
@@ -34,8 +22,7 @@ export function filterEntries(entries: AccessLogEntry[], f: LogFilter): AccessLo
     if (f.app?.length && !f.app.includes(e.app)) return false;
     if (f.method?.length && !(e.method !== undefined && f.method.includes(e.method))) return false;
     if (f.status !== undefined && e.status !== f.status) return false;
-    if (f.statusClass?.length && !f.statusClass.some((c) => inStatusClass(e.status, c)))
-      return false;
+    if (f.statusClass?.length && !f.statusClass.some((c) => inStatusClass(e.status, c))) return false;
     if (f.from && e.ts < f.from) return false;
     if (f.to && e.ts > f.to) return false;
     if (f.excludeApp?.length && f.excludeApp.includes(e.app)) return false;
@@ -102,8 +89,8 @@ export function computeStats(entries: AccessLogEntry[], topN = 10): Stats {
     accumulate(app, e);
     byApp.set(e.app, app);
 
-    const method = e.method ?? "?";
-    const url = e.url ?? "?";
+    const method = e.method ?? '?';
+    const url = e.url ?? '?';
     const ek = `${e.app} ${method} ${url}`;
     const ep = byEndpoint.get(ek) ?? { ...emptyBucket(), app: e.app, method, url };
     accumulate(ep, e);
@@ -148,20 +135,18 @@ export function computeStats(entries: AccessLogEntry[], topN = 10): Stats {
     slowestEndpoints: topBy(
       endpoints.filter((e) => e.count >= 3),
       (e) => e.avgDurationMs,
-      topN,
+      topN
     ),
-    statusDistribution: [...byStatus.entries()]
-      .map(([status, count]) => ({ status, count }))
-      .sort((a, b) => a.status - b.status),
+    statusDistribution: [...byStatus.entries()].map(([status, count]) => ({ status, count })).sort((a, b) => a.status - b.status),
     topIps: topBy(
       [...byIp.entries()].map(([ip, count]) => ({ ip, count })),
       (x) => x.count,
-      topN,
+      topN
     ),
     topUserAgents: topBy(
       [...byUa.entries()].map(([ua, count]) => ({ ua, count })),
       (x) => x.count,
-      topN,
+      topN
     ),
     overTime: [...byBucket.entries()]
       .map(([bucket, count]) => ({ bucket, count }))
@@ -172,9 +157,9 @@ export function computeStats(entries: AccessLogEntry[], topN = 10): Stats {
 // ---- application (console) logs -------------------------------------------
 
 function bandFor(level: LogLevel): LogBand {
-  if (level === "error") return "error";
-  if (level === "warn") return "warn";
-  return "info"; // log / info / debug
+  if (level === 'error') return 'error';
+  if (level === 'warn') return 'warn';
+  return 'info'; // log / info / debug
 }
 
 /** Apply a filter to app-log entries. Order is preserved (caller sorts upstream). */
@@ -204,14 +189,14 @@ export function computeLogStats(logs: AppLogEntry[]): LogStats {
 
   for (const e of logs) {
     const band = bandFor(e.level);
-    if (band === "error") errorCount += 1;
-    else if (band === "warn") warnCount += 1;
+    if (band === 'error') errorCount += 1;
+    else if (band === 'warn') warnCount += 1;
     else infoCount += 1;
 
     const app = byApp.get(e.app) ?? { app: e.app, count: 0, errorCount: 0, warnCount: 0 };
     app.count += 1;
-    if (band === "error") app.errorCount += 1;
-    else if (band === "warn") app.warnCount += 1;
+    if (band === 'error') app.errorCount += 1;
+    else if (band === 'warn') app.warnCount += 1;
     byApp.set(e.app, app);
 
     byLevel.set(e.level, (byLevel.get(e.level) ?? 0) + 1);
@@ -225,9 +210,7 @@ export function computeLogStats(logs: AppLogEntry[]): LogStats {
   return {
     overall: { count: logs.length, errorCount, warnCount, infoCount },
     perApp: [...byApp.values()].sort((a, b) => b.count - a.count),
-    levelDistribution: [...byLevel.entries()]
-      .map(([level, count]) => ({ level, count }))
-      .sort((a, b) => b.count - a.count),
+    levelDistribution: [...byLevel.entries()].map(([level, count]) => ({ level, count })).sort((a, b) => b.count - a.count),
     overTime: [...byBucket.entries()]
       .map(([bucket, b]) => ({ bucket, ...b }))
       .sort((a, b) => (a.bucket < b.bucket ? -1 : a.bucket > b.bucket ? 1 : 0)),

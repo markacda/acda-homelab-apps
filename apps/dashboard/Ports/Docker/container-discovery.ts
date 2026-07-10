@@ -1,5 +1,5 @@
-import type { AppEntry } from "../../Domain/ValueObjects/app-entry.ts";
-import type { Config } from "../../Domain/ValueObjects/dashboard-config.ts";
+import type { AppEntry } from '../../Domain/ValueObjects/app-entry.ts';
+import type { Config } from '../../Domain/ValueObjects/dashboard-config.ts';
 
 /**
  * Port for discovering running apps from the container runtime. Implemented in

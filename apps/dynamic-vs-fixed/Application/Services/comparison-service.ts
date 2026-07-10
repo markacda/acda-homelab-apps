@@ -1,9 +1,9 @@
-import type { UsageParser } from "../../Ports/Homewizard/usage-parser.ts";
-import type { PriceProvider } from "../../Ports/EnergyZero/price-provider.ts";
-import type { CalcParams } from "../../Domain/ValueObjects/tariff-params.ts";
-import type { CalculateResponse } from "../../Models/Responses/calculate-response.ts";
-import { calculate } from "../../Domain/Services/cost-calculator.ts";
-import { DomainError } from "../../Domain/Exceptions/domain-error.ts";
+import type { UsageParser } from '../../Ports/Homewizard/usage-parser.ts';
+import type { PriceProvider } from '../../Ports/EnergyZero/price-provider.ts';
+import type { CalcParams } from '../../Domain/ValueObjects/tariff-params.ts';
+import type { CalculateResponse } from '../../Models/Responses/calculate-response.ts';
+import { calculate } from '../../Domain/Services/cost-calculator.ts';
+import { DomainError } from '../../Domain/Exceptions/domain-error.ts';
 
 /**
  * Orchestrates the calculation pipeline: parse the uploaded usage, fetch the
@@ -28,7 +28,7 @@ export class ComparisonService {
     try {
       prices = await this.prices.fetch(usage.periodStart, usage.periodEnd, { includeGas });
     } catch (err) {
-      throw new DomainError(err instanceof Error ? err.message : "Price lookup failed.", 502);
+      throw new DomainError(err instanceof Error ? err.message : 'Price lookup failed.', 502);
     }
 
     const result = calculate(usage, prices, params);

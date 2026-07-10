@@ -1,9 +1,9 @@
-import { Router } from "express";
-import type { Config } from "../../Domain/ValueObjects/dashboard-config.ts";
-import { DashboardService } from "../Services/dashboard-service.ts";
-import { HealthMonitor } from "../Services/Background/health-monitor.ts";
-import { healthTarget } from "../../Domain/Services/health-target.ts";
-import type { AppsResponse } from "../../Models/Responses/apps-response.ts";
+import { Router } from 'express';
+import type { Config } from '../../Domain/ValueObjects/dashboard-config.ts';
+import { DashboardService } from '../Services/dashboard-service.ts';
+import { HealthMonitor } from '../Services/Background/health-monitor.ts';
+import { healthTarget } from '../../Domain/Services/health-target.ts';
+import type { AppsResponse } from '../../Models/Responses/apps-response.ts';
 
 /**
  * HTTP surface for the dashboard: GET /api/apps returns the merged, health-
@@ -22,7 +22,7 @@ export class DashboardController {
     this.health = health;
     const router = Router();
 
-    router.get("/api/apps", async (_req, res) => {
+    router.get('/api/apps', async (_req, res) => {
       try {
         this.health.markClientSeen();
         const apps = await this.dashboard.buildApps();
@@ -49,7 +49,7 @@ export class DashboardController {
         res.json(body);
       } catch (err) {
         console.error(`[api] /api/apps failed: ${(err as Error).message}`);
-        res.status(500).json({ error: "Failed to build app list" });
+        res.status(500).json({ error: 'Failed to build app list' });
       }
     });
 

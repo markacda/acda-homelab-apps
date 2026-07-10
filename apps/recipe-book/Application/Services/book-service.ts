@@ -1,9 +1,9 @@
-import { Book } from "../../Domain/Aggregates/book.ts";
-import type { Recipe } from "../../Domain/Aggregates/recipe.ts";
-import type { BookRepository } from "../../Domain/Ports/Repositories/book-repository.ts";
-import type { RecipeRepository } from "../../Domain/Ports/Repositories/recipe-repository.ts";
-import type { UpdateBookRequest } from "../../Models/Requests/book-requests.ts";
-import { NotFoundError } from "../../Domain/Exceptions/not-found-error.ts";
+import { Book } from '../../Domain/Aggregates/book.ts';
+import type { Recipe } from '../../Domain/Aggregates/recipe.ts';
+import type { BookRepository } from '../../Domain/Ports/Repositories/book-repository.ts';
+import type { RecipeRepository } from '../../Domain/Ports/Repositories/recipe-repository.ts';
+import type { UpdateBookRequest } from '../../Models/Requests/book-requests.ts';
+import { NotFoundError } from '../../Domain/Exceptions/not-found-error.ts';
 
 /**
  * Application service for recipe books: CRUD plus resolving a book's ordered
@@ -24,7 +24,7 @@ export class BookService {
 
   async getOrThrow(id: string): Promise<Book> {
     const book = await this.books.get(id);
-    if (!book) throw new NotFoundError("Book not found.");
+    if (!book) throw new NotFoundError('Book not found.');
     return book;
   }
 
@@ -36,8 +36,8 @@ export class BookService {
 
   async update(id: string, patch: UpdateBookRequest): Promise<Book> {
     const book = await this.getOrThrow(id);
-    if ("name" in patch) book.rename(patch.name ?? "");
-    if ("recipeIds" in patch) book.setRecipeIds(patch.recipeIds ?? []);
+    if ('name' in patch) book.rename(patch.name ?? '');
+    if ('recipeIds' in patch) book.setRecipeIds(patch.recipeIds ?? []);
     await this.books.save(book);
     return book;
   }

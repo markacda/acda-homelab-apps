@@ -1,12 +1,12 @@
-import { DateTime } from "luxon";
-import type { UsageParser, ParseResult } from "../../Ports/Homewizard/usage-parser.ts";
-import type { Interval } from "../../Domain/ValueObjects/usage.ts";
-import { ValidationError } from "../../Domain/Exceptions/validation-error.ts";
+import { DateTime } from 'luxon';
+import type { UsageParser, ParseResult } from '../../Ports/Homewizard/usage-parser.ts';
+import type { Interval } from '../../Domain/ValueObjects/usage.ts';
+import { ValidationError } from '../../Domain/Exceptions/validation-error.ts';
 
-const ZONE = "Europe/Amsterdam";
+const ZONE = 'Europe/Amsterdam';
 
 // Timestamp formats seen in HomeWizard exports (local Amsterdam time).
-const TS_FORMATS = ["yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm", "yyyy-MM-dd"];
+const TS_FORMATS = ['yyyy-MM-dd HH:mm:ss', 'yyyy-MM-dd HH:mm', 'yyyy-MM-dd'];
 
 interface ColumnIndices {
   time: number;
@@ -25,8 +25,8 @@ interface Row {
 }
 
 function detectDelimiter(headerLine: string): string {
-  const candidates = [";", ",", "\t"];
-  let best = ",";
+  const candidates = [';', ',', '\t'];
+  let best = ',';
   let bestCount = -1;
   for (const d of candidates) {
     const count = headerLine.split(d).length - 1;
@@ -41,7 +41,7 @@ function detectDelimiter(headerLine: string): string {
 function splitLine(line: string, delimiter: string): string[] {
   // HomeWizard exports are simple (no quoted fields with embedded delimiters),
   // but tolerate optional surrounding quotes.
-  return line.split(delimiter).map((c) => c.trim().replace(/^"|"$/g, ""));
+  return line.split(delimiter).map((c) => c.trim().replace(/^"|"$/g, ''));
 }
 
 function parseTimestamp(raw: string): DateTime | null {
@@ -57,11 +57,11 @@ function parseTimestamp(raw: string): DateTime | null {
 function parseNumber(raw: string | null | undefined): number | null {
   if (raw == null) return null;
   let s = String(raw).trim();
-  if (s === "") return null;
+  if (s === '') return null;
   // HomeWizard uses '.' as decimal separator, but be defensive: if there is a
   // comma and no dot, treat comma as the decimal separator.
-  if (s.includes(",") && !s.includes(".")) s = s.replace(",", ".");
-  else s = s.replace(/,/g, ""); // stray thousands separators
+  if (s.includes(',') && !s.includes('.')) s = s.replace(',', '.');
+  else s = s.replace(/,/g, ''); // stray thousands separators
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
 }
@@ -116,7 +116,7 @@ export class HomewizardCsvParser implements UsageParser {
       .filter((l) => l.length > 0);
 
     if (lines.length < 2) {
-      throw new ValidationError("CSV has no data rows.");
+      throw new ValidationError('CSV has no data rows.');
     }
 
     const delimiter = detectDelimiter(lines[0]);
@@ -126,9 +126,7 @@ export class HomewizardCsvParser implements UsageParser {
     const hasTariffSplit = map.importT1 !== -1 && map.importT2 !== -1;
     const hasTotal = map.importTotal !== -1;
     if (!hasTariffSplit && !hasTotal) {
-      throw new ValidationError(
-        "Could not find an electricity import column. Detected headers: " + headers.join(", "),
-      );
+      throw new ValidationError('Could not find an electricity import column. Detected headers: ' + headers.join(', '));
     }
     const hasGas = map.gas !== -1;
 
@@ -180,7 +178,7 @@ export class HomewizardCsvParser implements UsageParser {
     }
 
     if (intervals.length === 0) {
-      throw new ValidationError("Not enough rows to compute usage intervals.");
+      throw new ValidationError('Not enough rows to compute usage intervals.');
     }
 
     return {

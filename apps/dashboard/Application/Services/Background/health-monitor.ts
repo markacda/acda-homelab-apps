@@ -1,7 +1,7 @@
-import type { HealthProbe } from "../../../Ports/Health/health-probe.ts";
-import type { AppEntry } from "../../../Domain/ValueObjects/app-entry.ts";
-import type { HealthStatus } from "../../../Domain/ValueObjects/health-status.ts";
-import { distinctTargets } from "../../../Domain/Services/health-target.ts";
+import type { HealthProbe } from '../../../Ports/Health/health-probe.ts';
+import type { AppEntry } from '../../../Domain/ValueObjects/app-entry.ts';
+import type { HealthStatus } from '../../../Domain/ValueObjects/health-status.ts';
+import { distinctTargets } from '../../../Domain/Services/health-target.ts';
 
 /**
  * Owns the in-memory health-status cache and the background probe loop. Probes
@@ -23,8 +23,8 @@ export class HealthMonitor {
   }
 
   getStatus(target: string | null): HealthStatus {
-    if (!target) return { status: "unknown", lastChecked: null };
-    return this.cache.get(target) || { status: "unknown", lastChecked: null };
+    if (!target) return { status: 'unknown', lastChecked: null };
+    return this.cache.get(target) || { status: 'unknown', lastChecked: null };
   }
 
   /**
@@ -43,35 +43,22 @@ export class HealthMonitor {
   }
 
   /** Probe all targets concurrently and update the cache. */
-  async refresh(
-    apps: AppEntry[],
-    hostAddress: string,
-    now: string = new Date().toISOString(),
-  ): Promise<void> {
+  async refresh(apps: AppEntry[], hostAddress: string, now: string = new Date().toISOString()): Promise<void> {
     const targets = distinctTargets(apps, hostAddress);
     await Promise.all(
       targets.map(async (target) => {
         const status = await this.probe.probe(target);
         this.cache.set(target, { status, lastChecked: now });
-      }),
+      })
     );
   }
 
   /** Poll on `intervalMs`, but only while a client polled within `activeWindowMs`. */
-  startLoop(
-    buildApps: () => Promise<AppEntry[]>,
-    hostAddress: string,
-    intervalMs: number,
-    activeWindowMs: number,
-  ): void {
+  startLoop(buildApps: () => Promise<AppEntry[]>, hostAddress: string, intervalMs: number, activeWindowMs: number): void {
     setInterval(() => void this.tick(buildApps, hostAddress, activeWindowMs), intervalMs);
   }
 
-  private async tick(
-    buildApps: () => Promise<AppEntry[]>,
-    hostAddress: string,
-    activeWindowMs: number,
-  ): Promise<void> {
+  private async tick(buildApps: () => Promise<AppEntry[]>, hostAddress: string, activeWindowMs: number): Promise<void> {
     if (Date.now() - this.lastClientSeen > activeWindowMs) return;
     try {
       const apps = await buildApps();

@@ -1,8 +1,8 @@
 // The Requests view: browse, filter and aggregate HTTP access-log entries.
 // Talks to /api/logs, /api/stats, /api/meta.
 
-import { el, card, table, pill, checkboxDropdown, statusClassName, fmtTs, fmtMs } from "./dom.ts";
-import { openSheet, type SheetRow } from "./sheet.ts";
+import { el, card, table, pill, checkboxDropdown, statusClassName, fmtTs, fmtMs } from './dom.ts';
+import { openSheet, type SheetRow } from './sheet.ts';
 
 interface Entry {
   ts: string;
@@ -86,96 +86,96 @@ const EMPTY_STATS: Stats = {
 // "Show discovery agent". Canonical source: @homelab/access-log constants.ts
 // (DISCOVERY_UA). This is a synced copy — the client build is bundler-less and
 // cannot import from apps/Common/, so keep the two in step if the value changes.
-const DISCOVERY_UA = "homelab-dashboard-discovery-agent";
+const DISCOVERY_UA = 'homelab-dashboard-discovery-agent';
 
 /** Mount the Requests view into `root`. Returns a teardown to stop its timer. */
 export function mountRequests(root: HTMLElement): () => void {
   // ---- build the view markup ---------------------------------------------
-  const cardsEl = el("section", { class: "cards" });
+  const cardsEl = el('section', { class: 'cards' });
 
-  const perAppEl = el("div", { class: "table-wrap" });
-  const perEndpointEl = el("div", { class: "table-wrap" });
-  const slowestEl = el("div", { class: "table-wrap" });
-  const statusDistEl = el("div", { class: "table-wrap" });
+  const perAppEl = el('div', { class: 'table-wrap' });
+  const perEndpointEl = el('div', { class: 'table-wrap' });
+  const slowestEl = el('div', { class: 'table-wrap' });
+  const statusDistEl = el('div', { class: 'table-wrap' });
   const panels = el(
-    "section",
-    { class: "panels" },
-    panel("Requests per app", perAppEl),
-    panel("Top endpoints", perEndpointEl),
-    panel("Slowest endpoints", slowestEl),
-    panel("Status codes", statusDistEl),
+    'section',
+    { class: 'panels' },
+    panel('Requests per app', perAppEl),
+    panel('Top endpoints', perEndpointEl),
+    panel('Slowest endpoints', slowestEl),
+    panel('Status codes', statusDistEl)
   );
 
-  const qEl = el("input", {
-    id: "q",
-    type: "search",
-    placeholder: "Search url / ip / user-agent…",
+  const qEl = el('input', {
+    id: 'q',
+    type: 'search',
+    placeholder: 'Search url / ip / user-agent…',
   }) as HTMLInputElement;
-  const appDropdownEl = el("div", { class: "dropdown" });
-  const methodDropdownEl = el("div", { class: "dropdown" });
-  const statusDropdownEl = el("div", { class: "dropdown" });
+  const appDropdownEl = el('div', { class: 'dropdown' });
+  const methodDropdownEl = el('div', { class: 'dropdown' });
+  const statusDropdownEl = el('div', { class: 'dropdown' });
   const rangeEl = rangeSelect();
-  const refreshBtn = el("button", { type: "button" }, "Refresh");
-  const autoEl = el("input", { type: "checkbox" }) as HTMLInputElement;
-  const showSelfEl = el("input", { type: "checkbox" }) as HTMLInputElement;
-  const showDiscoveryEl = el("input", { type: "checkbox" }) as HTMLInputElement;
+  const refreshBtn = el('button', { type: 'button' }, 'Refresh');
+  const autoEl = el('input', { type: 'checkbox' }) as HTMLInputElement;
+  const showSelfEl = el('input', { type: 'checkbox' }) as HTMLInputElement;
+  const showDiscoveryEl = el('input', { type: 'checkbox' }) as HTMLInputElement;
   const filters = el(
-    "section",
-    { class: "filters" },
+    'section',
+    { class: 'filters' },
     qEl,
     appDropdownEl,
     methodDropdownEl,
     statusDropdownEl,
     rangeEl,
     refreshBtn,
-    el("label", { class: "toggle" }, autoEl, "Auto-refresh"),
-    el("label", { class: "toggle" }, showSelfEl, "Show log-viewer logs"),
-    el("label", { class: "toggle" }, showDiscoveryEl, "Show discovery agent"),
+    el('label', { class: 'toggle' }, autoEl, 'Auto-refresh'),
+    el('label', { class: 'toggle' }, showSelfEl, 'Show log-viewer logs'),
+    el('label', { class: 'toggle' }, showDiscoveryEl, 'Show discovery agent')
   );
 
-  const logBody = el("tbody");
-  const loadMoreBtn = el("button", { type: "button" }, "Load more") as HTMLButtonElement;
-  const logMetaEl = el("span", { class: "meta" });
-  const loadMoreEl = el("div", { class: "loadmore" }, loadMoreBtn, logMetaEl);
+  const logBody = el('tbody');
+  const loadMoreBtn = el('button', { type: 'button' }, 'Load more') as HTMLButtonElement;
+  const logMetaEl = el('span', { class: 'meta' });
+  const loadMoreEl = el('div', { class: 'loadmore' }, loadMoreBtn, logMetaEl);
   const logsSection = el(
-    "section",
-    { class: "logs" },
+    'section',
+    { class: 'logs' },
     el(
-      "table",
-      { class: "log-table" },
+      'table',
+      { class: 'log-table' },
       el(
-        "thead",
+        'thead',
         {},
         el(
-          "tr",
+          'tr',
           {},
-          sortableTh("Time", "ts"),
-          sortableTh("App", "app"),
-          el("th", {}, "Method"),
-          el("th", {}, "URL"),
-          sortableTh("Status", "status"),
-          sortableTh("Duration", "durationMs"),
-          el("th", {}, "IP"),
-          el("th", {}, "User-Agent"),
-        ),
+          sortableTh('Time', 'ts'),
+          sortableTh('App', 'app'),
+          el('th', {}, 'Method'),
+          el('th', {}, 'URL'),
+          sortableTh('Status', 'status'),
+          sortableTh('Duration', 'durationMs'),
+          el('th', {}, 'IP'),
+          el('th', {}, 'User-Agent')
+        )
       ),
-      logBody,
+      logBody
     ),
-    loadMoreEl,
+    loadMoreEl
   );
 
-  const metaEl = el("span", { class: "meta" });
+  const metaEl = el('span', { class: 'meta' });
   root.replaceChildren(
-    el("div", { class: "view-head" }, el("h2", { class: "view-title" }, "Requests"), metaEl),
+    el('div', { class: 'view-head' }, el('h2', { class: 'view-title' }, 'Requests'), metaEl),
     cardsEl,
     panels,
     filters,
-    logsSection,
+    logsSection
   );
 
   // ---- state --------------------------------------------------------------
-  let sortField = "ts";
-  let sortDir: "asc" | "desc" = "desc";
+  let sortField = 'ts';
+  let sortDir: 'asc' | 'desc' = 'desc';
   let offset = 0;
   let total = 0;
   let autoTimer: number | undefined;
@@ -183,10 +183,10 @@ export function mountRequests(root: HTMLElement): () => void {
   let loadSeq = 0;
   let sentinelVisible = false;
 
-  const appDropdown = checkboxDropdown(appDropdownEl, "All apps", () => refresh());
-  const methodDropdown = checkboxDropdown(methodDropdownEl, "All methods", () => refresh());
-  const statusDropdown = checkboxDropdown(statusDropdownEl, "All status", () => refresh());
-  statusDropdown.setOptions(["2xx", "3xx", "4xx", "5xx"]);
+  const appDropdown = checkboxDropdown(appDropdownEl, 'All apps', () => refresh());
+  const methodDropdown = checkboxDropdown(methodDropdownEl, 'All methods', () => refresh());
+  const statusDropdown = checkboxDropdown(statusDropdownEl, 'All status', () => refresh());
+  statusDropdown.setOptions(['2xx', '3xx', '4xx', '5xx']);
 
   // Deselecting every option in any filter means "match nothing" — short-circuit
   // to an empty view rather than falling back to the server's "empty = all".
@@ -197,28 +197,28 @@ export function mountRequests(root: HTMLElement): () => void {
   // ---- query building -----------------------------------------------------
   function rangeFrom(): string | null {
     const map: Record<string, number> = {
-      "1h": 3600e3,
-      "24h": 24 * 3600e3,
-      "7d": 7 * 24 * 3600e3,
-      "30d": 30 * 24 * 3600e3,
+      '1h': 3600e3,
+      '24h': 24 * 3600e3,
+      '7d': 7 * 24 * 3600e3,
+      '30d': 30 * 24 * 3600e3,
     };
     const ms = map[rangeEl.value];
     return ms ? new Date(Date.now() - ms).toISOString() : null;
   }
   function baseParams(): URLSearchParams {
     const p = new URLSearchParams();
-    if (qEl.value.trim()) p.set("q", qEl.value.trim());
+    if (qEl.value.trim()) p.set('q', qEl.value.trim());
     const apps = appDropdown.selected();
     const methods = methodDropdown.selected();
     const statuses = statusDropdown.selected();
-    if (apps.length) p.set("app", apps.join(","));
-    if (methods.length) p.set("method", methods.join(","));
-    if (statuses.length) p.set("statusClass", statuses.join(","));
+    if (apps.length) p.set('app', apps.join(','));
+    if (methods.length) p.set('method', methods.join(','));
+    if (statuses.length) p.set('statusClass', statuses.join(','));
     const from = rangeFrom();
-    if (from) p.set("from", from);
+    if (from) p.set('from', from);
     // Hide noise by default; the toggles opt back in to seeing it.
-    if (!showSelfEl.checked) p.set("excludeApp", "log-viewer");
-    if (!showDiscoveryEl.checked) p.set("excludeUa", DISCOVERY_UA);
+    if (!showSelfEl.checked) p.set('excludeApp', 'log-viewer');
+    if (!showDiscoveryEl.checked) p.set('excludeUa', DISCOVERY_UA);
     return p;
   }
 
@@ -226,119 +226,87 @@ export function mountRequests(root: HTMLElement): () => void {
   function renderCards(s: Stats): void {
     const failing = `${s.overall.errorCount.toLocaleString()} of ${s.overall.count.toLocaleString()} requests failed`;
     cardsEl.replaceChildren(
-      card("Total requests", s.overall.count.toLocaleString()),
-      card("Avg response time", fmtMs(s.overall.avgDurationMs)),
-      card(
-        "Errors (4xx+5xx)",
-        String(s.overall.errorCount),
-        s.overall.errorCount ? "warn" : "",
-        failing,
-      ),
-      card(
-        "Error rate",
-        `${(s.overall.errorRate * 100).toFixed(1)}%`,
-        s.overall.errorRate ? "warn" : "",
-        failing,
-      ),
-      card("5xx", String(s.overall.count5xx), s.overall.count5xx ? "bad" : "", "", () => {
-        statusDropdown.setSelected(["5xx"]);
+      card('Total requests', s.overall.count.toLocaleString()),
+      card('Avg response time', fmtMs(s.overall.avgDurationMs)),
+      card('Errors (4xx+5xx)', String(s.overall.errorCount), s.overall.errorCount ? 'warn' : '', failing),
+      card('Error rate', `${(s.overall.errorRate * 100).toFixed(1)}%`, s.overall.errorRate ? 'warn' : '', failing),
+      card('5xx', String(s.overall.count5xx), s.overall.count5xx ? 'bad' : '', '', () => {
+        statusDropdown.setSelected(['5xx']);
         refresh();
       }),
-      card("4xx", String(s.overall.count4xx), "", "", () => {
-        statusDropdown.setSelected(["4xx"]);
+      card('4xx', String(s.overall.count4xx), '', '', () => {
+        statusDropdown.setSelected(['4xx']);
         refresh();
-      }),
+      })
     );
   }
   function renderStatTables(s: Stats): void {
     perAppEl.replaceChildren(
       table(
-        ["App", "Requests", "Avg ms", "Errors"],
-        s.perApp.map((a) => [
-          a.app,
-          String(a.count),
-          String(a.avgDurationMs),
-          String(a.errorCount),
-        ]),
-      ),
+        ['App', 'Requests', 'Avg ms', 'Errors'],
+        s.perApp.map((a) => [a.app, String(a.count), String(a.avgDurationMs), String(a.errorCount)])
+      )
     );
     perEndpointEl.replaceChildren(
       table(
-        ["App", "Method", "URL", "Requests", "Avg ms"],
-        s.perEndpoint.map((e) => [
-          e.app,
-          e.method,
-          e.url,
-          String(e.count),
-          String(e.avgDurationMs),
-        ]),
-        ["", "", "cell-url", "", ""],
-      ),
+        ['App', 'Method', 'URL', 'Requests', 'Avg ms'],
+        s.perEndpoint.map((e) => [e.app, e.method, e.url, String(e.count), String(e.avgDurationMs)]),
+        ['', '', 'cell-url', '', '']
+      )
     );
     slowestEl.replaceChildren(
       table(
-        ["App", "Method", "URL", "Avg ms", "Requests"],
-        s.slowestEndpoints.map((e) => [
-          e.app,
-          e.method,
-          e.url,
-          String(e.avgDurationMs),
-          String(e.count),
-        ]),
-        ["", "", "cell-url", "", ""],
-      ),
+        ['App', 'Method', 'URL', 'Avg ms', 'Requests'],
+        s.slowestEndpoints.map((e) => [e.app, e.method, e.url, String(e.avgDurationMs), String(e.count)]),
+        ['', '', 'cell-url', '', '']
+      )
     );
     statusDistEl.replaceChildren(
       table(
-        ["Status", "Count"],
-        s.statusDistribution.map((d) => [
-          pill(String(d.status), statusClassName(d.status)),
-          String(d.count),
-        ]),
-      ),
+        ['Status', 'Count'],
+        s.statusDistribution.map((d) => [pill(String(d.status), statusClassName(d.status)), String(d.count)])
+      )
     );
   }
 
   function showDetail(e: Entry): void {
     const rows: SheetRow[] = [
-      { label: "Time", value: fmtTs(e.ts) },
-      { label: "App", value: e.app },
-      { label: "Method", value: e.method ?? "—" },
-      { label: "URL", value: e.url ?? "—", mono: true },
-      { label: "Status", value: pill(String(e.status), statusClassName(e.status)) },
-      { label: "Duration", value: fmtMs(e.durationMs) },
-      { label: "IP", value: e.ip ?? "—" },
-      { label: "User-Agent", value: e.ua ?? "—", mono: true },
-      { label: "Referer", value: e.referer ?? "—", mono: true },
-      { label: "Bytes", value: e.bytes === null ? "—" : e.bytes.toLocaleString() },
+      { label: 'Time', value: fmtTs(e.ts) },
+      { label: 'App', value: e.app },
+      { label: 'Method', value: e.method ?? '—' },
+      { label: 'URL', value: e.url ?? '—', mono: true },
+      { label: 'Status', value: pill(String(e.status), statusClassName(e.status)) },
+      { label: 'Duration', value: fmtMs(e.durationMs) },
+      { label: 'IP', value: e.ip ?? '—' },
+      { label: 'User-Agent', value: e.ua ?? '—', mono: true },
+      { label: 'Referer', value: e.referer ?? '—', mono: true },
+      { label: 'Bytes', value: e.bytes === null ? '—' : e.bytes.toLocaleString() },
     ];
     // Response headers + body are captured only for non-2xx responses.
     if (e.resHeaders) {
-      rows.push({ label: "Response headers", value: fmtHeaders(e.resHeaders), mono: true });
+      rows.push({ label: 'Response headers', value: fmtHeaders(e.resHeaders), mono: true });
     }
     if (e.resBody !== undefined) {
-      const body = e.resBodyTruncated
-        ? `${prettyBody(e.resBody)}\n… (truncated)`
-        : prettyBody(e.resBody);
-      rows.push({ label: "Response body", value: body, mono: true });
+      const body = e.resBodyTruncated ? `${prettyBody(e.resBody)}\n… (truncated)` : prettyBody(e.resBody);
+      rows.push({ label: 'Response body', value: body, mono: true });
     }
-    openSheet(`${e.method ?? ""} ${e.url ?? ""}`.trim() || "Request", rows);
+    openSheet(`${e.method ?? ''} ${e.url ?? ''}`.trim() || 'Request', rows);
   }
 
   function logRow(e: Entry): HTMLElement {
     const row = el(
-      "tr",
-      { class: e.status >= 400 ? "err clickable" : "clickable" },
-      el("td", { class: "ts" }, fmtTs(e.ts)),
-      el("td", {}, e.app),
-      el("td", {}, e.method ?? ""),
-      el("td", { class: "url", title: e.url ?? "" }, e.url ?? ""),
-      el("td", {}, pill(String(e.status), statusClassName(e.status))),
-      el("td", { class: "dur" }, fmtMs(e.durationMs)),
-      el("td", { class: "ip" }, e.ip ?? ""),
-      el("td", { class: "ua", title: e.ua ?? "" }, e.ua ?? ""),
+      'tr',
+      { class: e.status >= 400 ? 'err clickable' : 'clickable' },
+      el('td', { class: 'ts' }, fmtTs(e.ts)),
+      el('td', {}, e.app),
+      el('td', {}, e.method ?? ''),
+      el('td', { class: 'url', title: e.url ?? '' }, e.url ?? ''),
+      el('td', {}, pill(String(e.status), statusClassName(e.status))),
+      el('td', { class: 'dur' }, fmtMs(e.durationMs)),
+      el('td', { class: 'ip' }, e.ip ?? ''),
+      el('td', { class: 'ua', title: e.ua ?? '' }, e.ua ?? '')
     );
-    row.addEventListener("click", () => showDetail(e));
+    row.addEventListener('click', () => showDetail(e));
     return row;
   }
 
@@ -360,8 +328,8 @@ export function mountRequests(root: HTMLElement): () => void {
       logBody.replaceChildren();
       total = 0;
       offset = 0;
-      logMetaEl.textContent = "Showing 0 of 0";
-      loadMoreBtn.style.display = "none";
+      logMetaEl.textContent = 'Showing 0 of 0';
+      loadMoreBtn.style.display = 'none';
       return;
     }
     // Don't stack auto-load appends; a reset always proceeds and supersedes any
@@ -371,9 +339,9 @@ export function mountRequests(root: HTMLElement): () => void {
     const seq = ++loadSeq;
     loading = true;
     const p = baseParams();
-    p.set("sort", `${sortField}:${sortDir}`);
-    p.set("limit", String(PAGE));
-    p.set("offset", String(offset));
+    p.set('sort', `${sortField}:${sortDir}`);
+    p.set('limit', String(PAGE));
+    p.set('offset', String(offset));
     try {
       const res = await fetch(`/api/logs?${p.toString()}`);
       if (seq !== loadSeq) return; // a newer load started; drop this response
@@ -389,7 +357,7 @@ export function mountRequests(root: HTMLElement): () => void {
       offset += data.entries.length;
       logMetaEl.textContent = `Showing ${offset.toLocaleString()} of ${total.toLocaleString()}`;
       loadMoreBtn.disabled = offset >= total;
-      loadMoreBtn.style.display = offset >= total ? "none" : "";
+      loadMoreBtn.style.display = offset >= total ? 'none' : '';
     } finally {
       if (seq === loadSeq) loading = false;
     }
@@ -400,26 +368,24 @@ export function mountRequests(root: HTMLElement): () => void {
     await Promise.all([loadStats(), loadLogs(true)]);
   }
   async function loadMeta(): Promise<void> {
-    const res = await fetch("/api/meta");
+    const res = await fetch('/api/meta');
     if (!res.ok) return;
     const meta = (await res.json()) as Meta;
     appDropdown.setOptions(meta.apps);
     methodDropdown.setOptions(meta.methods);
-    metaEl.textContent = `${meta.count.toLocaleString()} requests · updated ${
-      meta.lastRefresh ? fmtTs(meta.lastRefresh) : "—"
-    }`;
+    metaEl.textContent = `${meta.count.toLocaleString()} requests · updated ${meta.lastRefresh ? fmtTs(meta.lastRefresh) : '—'}`;
   }
 
   // ---- wiring -------------------------------------------------------------
   function setSort(field: string): void {
-    if (sortField === field) sortDir = sortDir === "desc" ? "asc" : "desc";
+    if (sortField === field) sortDir = sortDir === 'desc' ? 'asc' : 'desc';
     else {
       sortField = field;
-      sortDir = "desc";
+      sortDir = 'desc';
     }
-    for (const th of logsSection.querySelectorAll<HTMLElement>("th.sortable")) {
+    for (const th of logsSection.querySelectorAll<HTMLElement>('th.sortable')) {
       const active = th.dataset.sort === sortField;
-      th.dataset.dir = active ? sortDir : "";
+      th.dataset.dir = active ? sortDir : '';
     }
     loadLogs(true);
   }
@@ -441,26 +407,26 @@ export function mountRequests(root: HTMLElement): () => void {
       sentinelVisible = entries[0].isIntersecting;
       maybeAutoLoad();
     },
-    { rootMargin: "200px" },
+    { rootMargin: '200px' }
   );
   observer.observe(loadMoreEl);
 
   for (const control of [rangeEl, showSelfEl, showDiscoveryEl]) {
-    control.addEventListener("change", () => refresh());
+    control.addEventListener('change', () => refresh());
   }
   let debounce: number | undefined;
-  qEl.addEventListener("input", () => {
+  qEl.addEventListener('input', () => {
     clearTimeout(debounce);
     debounce = window.setTimeout(() => refresh(), 300);
   });
-  refreshBtn.addEventListener("click", () => {
+  refreshBtn.addEventListener('click', () => {
     loadMeta();
     refresh();
   });
-  loadMoreBtn.addEventListener("click", () => loadLogs(false));
-  autoEl.addEventListener("change", setupAutoRefresh);
-  for (const th of logsSection.querySelectorAll<HTMLElement>("th.sortable")) {
-    th.addEventListener("click", () => setSort(th.dataset.sort!));
+  loadMoreBtn.addEventListener('click', () => loadLogs(false));
+  autoEl.addEventListener('change', setupAutoRefresh);
+  for (const th of logsSection.querySelectorAll<HTMLElement>('th.sortable')) {
+    th.addEventListener('click', () => setSort(th.dataset.sort!));
   }
 
   // initial load
@@ -478,8 +444,8 @@ export function mountRequests(root: HTMLElement): () => void {
 /** Render a captured response header map as one `key: value` line per header. */
 function fmtHeaders(headers: Record<string, string | number | string[]>): string {
   return Object.entries(headers)
-    .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
-    .join("\n");
+    .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+    .join('\n');
 }
 
 /** Pretty-print a JSON response body; fall back to the raw text otherwise. */
@@ -492,22 +458,22 @@ function prettyBody(body: string): string {
 }
 
 function panel(title: string, body: HTMLElement): HTMLElement {
-  return el("div", { class: "panel" }, el("h2", {}, title), body);
+  return el('div', { class: 'panel' }, el('h2', {}, title), body);
 }
 
 function sortableTh(label: string, field: string): HTMLElement {
-  return el("th", { "data-sort": field, class: "sortable" }, label);
+  return el('th', { 'data-sort': field, class: 'sortable' }, label);
 }
 
 function rangeSelect(): HTMLSelectElement {
-  const sel = el("select", { title: "Time range" }) as HTMLSelectElement;
+  const sel = el('select', { title: 'Time range' }) as HTMLSelectElement;
   const opts: [string, string][] = [
-    ["", "All time"],
-    ["1h", "Last hour"],
-    ["24h", "Last 24h"],
-    ["7d", "Last 7 days"],
-    ["30d", "Last 30 days"],
+    ['', 'All time'],
+    ['1h', 'Last hour'],
+    ['24h', 'Last 24h'],
+    ['7d', 'Last 7 days'],
+    ['30d', 'Last 30 days'],
   ];
-  for (const [value, label] of opts) sel.append(el("option", { value }, label));
+  for (const [value, label] of opts) sel.append(el('option', { value }, label));
   return sel;
 }

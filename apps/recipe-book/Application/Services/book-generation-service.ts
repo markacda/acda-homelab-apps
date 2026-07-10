@@ -1,9 +1,9 @@
-import type { Book } from "../../Domain/Aggregates/book.ts";
-import type { DocumentGenerator } from "../../Ports/Latex/document-generator.ts";
-import { BookService } from "./book-service.ts";
-import { ValidationError } from "../../Domain/Exceptions/validation-error.ts";
-import { DomainError } from "../../Domain/Exceptions/domain-error.ts";
-import type { GenerateFormat } from "../../Models/Requests/book-requests.ts";
+import type { Book } from '../../Domain/Aggregates/book.ts';
+import type { DocumentGenerator } from '../../Ports/Latex/document-generator.ts';
+import { BookService } from './book-service.ts';
+import { ValidationError } from '../../Domain/Exceptions/validation-error.ts';
+import { DomainError } from '../../Domain/Exceptions/domain-error.ts';
+import type { GenerateFormat } from '../../Models/Requests/book-requests.ts';
 
 /**
  * Orchestrates rendering a book to a .tex or .pdf via the DocumentGenerator port.
@@ -19,18 +19,15 @@ export class BookGenerationService {
     this.generator = generator;
   }
 
-  async generate(
-    id: string,
-    format: GenerateFormat,
-  ): Promise<{ format: GenerateFormat; recipeCount: number }> {
+  async generate(id: string, format: GenerateFormat): Promise<{ format: GenerateFormat; recipeCount: number }> {
     const book = await this.books.getOrThrow(id);
     const recipes = await this.books.resolveRecipes(book);
-    if (recipes.length === 0) throw new ValidationError("The book has no recipes to generate.");
+    if (recipes.length === 0) throw new ValidationError('The book has no recipes to generate.');
     try {
-      if (format === "pdf") await this.generator.generatePdf(book, recipes);
+      if (format === 'pdf') await this.generator.generatePdf(book, recipes);
       else await this.generator.generateTex(book, recipes);
     } catch (err) {
-      throw new DomainError(err instanceof Error ? err.message : "Generation failed.", 500);
+      throw new DomainError(err instanceof Error ? err.message : 'Generation failed.', 500);
     }
     return { format, recipeCount: recipes.length };
   }

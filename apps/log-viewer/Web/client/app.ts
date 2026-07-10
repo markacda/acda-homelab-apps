@@ -1,12 +1,12 @@
 // Entry point: a tiny hash router that swaps between the landing page, the
 // Requests view and the Logs view, all mounted into <main id="view">.
 
-import { $, el } from "./dom.ts";
-import { closeSheet } from "./sheet.ts";
-import { mountRequests } from "./requests.ts";
-import { mountLogs } from "./logs.ts";
+import { $, el } from './dom.ts';
+import { closeSheet } from './sheet.ts';
+import { mountRequests } from './requests.ts';
+import { mountLogs } from './logs.ts';
 
-const view = $("view");
+const view = $('view');
 
 // Teardown for the currently-mounted view (clears its auto-refresh timer).
 let teardown: (() => void) | undefined;
@@ -45,49 +45,45 @@ interface Tile {
 }
 
 function tile(href: string, icon: string, title: string, desc: string): Tile {
-  const summary = el("div", { class: "tile-summary" }, "…");
+  const summary = el('div', { class: 'tile-summary' }, '…');
   const anchor = el(
-    "a",
-    { class: "tile", href },
-    el("div", { class: "tile-icon" }, icon),
-    el("div", { class: "tile-title" }, title),
-    el("div", { class: "tile-desc" }, desc),
-    summary,
+    'a',
+    { class: 'tile', href },
+    el('div', { class: 'tile-icon' }, icon),
+    el('div', { class: 'tile-title' }, title),
+    el('div', { class: 'tile-desc' }, desc),
+    summary
   );
   return { anchor, summary };
 }
 
 function mountLanding(root: HTMLElement): void {
-  const requestsTile = tile("#/requests", "🌐", "Requests", "Browse & aggregate HTTP access logs");
-  const logsTile = tile("#/logs", "📝", "Logs", "Browse & aggregate application logs");
-  root.replaceChildren(el("section", { class: "tiles" }, requestsTile.anchor, logsTile.anchor));
+  const requestsTile = tile('#/requests', '🌐', 'Requests', 'Browse & aggregate HTTP access logs');
+  const logsTile = tile('#/logs', '📝', 'Logs', 'Browse & aggregate application logs');
+  root.replaceChildren(el('section', { class: 'tiles' }, requestsTile.anchor, logsTile.anchor));
 
-  void fetchOverall("/api/stats").then((o) => {
-    requestsTile.summary.textContent = o
-      ? `${o.count.toLocaleString()} requests · ${o.errorCount.toLocaleString()} errors`
-      : "unavailable";
+  void fetchOverall('/api/stats').then((o) => {
+    requestsTile.summary.textContent = o ? `${o.count.toLocaleString()} requests · ${o.errorCount.toLocaleString()} errors` : 'unavailable';
   });
-  void fetchOverall("/api/app-logs/stats").then((o) => {
+  void fetchOverall('/api/app-logs/stats').then((o) => {
     logsTile.summary.textContent = o
-      ? `${o.count.toLocaleString()} logs · ${o.errorCount.toLocaleString()} errors · ${(
-          o.warnCount ?? 0
-        ).toLocaleString()} warnings`
-      : "unavailable";
+      ? `${o.count.toLocaleString()} logs · ${o.errorCount.toLocaleString()} errors · ${(o.warnCount ?? 0).toLocaleString()} warnings`
+      : 'unavailable';
   });
 }
 
 // ---- routing --------------------------------------------------------------
 
 function currentRoute(): string {
-  const hash = location.hash.replace(/^#/, "");
-  if (hash === "/requests") return "/requests";
-  if (hash === "/logs") return "/logs";
-  return "/";
+  const hash = location.hash.replace(/^#/, '');
+  if (hash === '/requests') return '/requests';
+  if (hash === '/logs') return '/logs';
+  return '/';
 }
 
 function highlightNav(route: string): void {
-  for (const link of document.querySelectorAll<HTMLElement>(".topnav a")) {
-    link.classList.toggle("active", link.getAttribute("href") === `#${route}`);
+  for (const link of document.querySelectorAll<HTMLElement>('.topnav a')) {
+    link.classList.toggle('active', link.getAttribute('href') === `#${route}`);
   }
 }
 
@@ -95,10 +91,10 @@ function render(): void {
   unmount();
   const route = currentRoute();
   highlightNav(route);
-  if (route === "/requests") teardown = mountRequests(view);
-  else if (route === "/logs") teardown = mountLogs(view);
+  if (route === '/requests') teardown = mountRequests(view);
+  else if (route === '/logs') teardown = mountLogs(view);
   else mountLanding(view);
 }
 
-window.addEventListener("hashchange", render);
+window.addEventListener('hashchange', render);
 render();

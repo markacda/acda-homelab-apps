@@ -1,4 +1,4 @@
-import type { PointQuery } from "../../Domain/ValueObjects/point-query.ts";
+import type { PointQuery } from '../../Domain/ValueObjects/point-query.ts';
 
 /**
  * Port for the upstream airplanes.live APIs. Implemented in the Adapters layer.

@@ -1,17 +1,17 @@
-import { join } from "node:path";
-import { createApp, startServer } from "../Common/server-kit/app.ts";
-import { register } from "./Application/Registrations/register.ts";
+import { join } from 'node:path';
+import { createApp, startServer } from '../Common/server-kit/app.ts';
+import { register } from './Application/Registrations/register.ts';
 
 // Thin composition root: create the app on the shared bootstrap, wire the DDD
 // layers via register(), then start listening and kick off the background
 // ingest. Everything else lives under Domain/ Application/ Adapters/ Ports/
 // Models/ Web/ — see ARCHITECTURE.md.
-const app = createApp("log-viewer");
+const app = createApp('log-viewer');
 const ingest = register(app);
 startServer(app, {
-  name: "log-viewer",
+  name: 'log-viewer',
   port: Number(process.env.PORT) || 6004,
-  staticDir: join(process.cwd(), "Web", "public"),
+  staticDir: join(process.cwd(), 'Web', 'public'),
   onListen: () => {
     void ingest.start();
   },

@@ -1,4 +1,4 @@
-import type { RecipeContent } from "../../Domain/Aggregates/recipe.ts";
+import type { RecipeContent } from '../../Domain/Aggregates/recipe.ts';
 
 // Wire shapes accepted by the recipe endpoints. The controllers hand raw bodies
 // to the Application/Mappers, which validate and coerce them into the domain

@@ -1,12 +1,11 @@
-import { test } from "node:test";
-import assert from "node:assert/strict";
-import { DateTime } from "luxon";
-import { HomewizardCsvParser } from "../Adapters/Homewizard/homewizard-csv-parser.ts";
-import { calculate } from "../Domain/Services/cost-calculator.ts";
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { DateTime } from 'luxon';
+import { HomewizardCsvParser } from '../Adapters/Homewizard/homewizard-csv-parser.ts';
+import { calculate } from '../Domain/Services/cost-calculator.ts';
 
-const ZONE = "Europe/Amsterdam";
-const hourKey = (local: string) =>
-  DateTime.fromFormat(local, "yyyy-MM-dd HH:mm", { zone: ZONE }).startOf("hour").toMillis();
+const ZONE = 'Europe/Amsterdam';
+const hourKey = (local: string) => DateTime.fromFormat(local, 'yyyy-MM-dd HH:mm', { zone: ZONE }).startOf('hour').toMillis();
 
 // Cumulative HomeWizard-style export (T1 = low, T2 = high, plus gas).
 const CSV = `Time;Import T1;Import T2;Gas
@@ -15,7 +14,7 @@ const CSV = `Time;Import T1;Import T2;Gas
 2025-01-06 08:00;100.5;201.0;500.2
 2025-01-06 09:00;101.0;202.0;500.5`;
 
-test("parser diffs cumulative readings into intervals", () => {
+test('parser diffs cumulative readings into intervals', () => {
   const parsed = new HomewizardCsvParser().parse(CSV);
   assert.equal(parsed.intervals.length, 3);
   assert.equal(parsed.hasTariffSplit, true);
@@ -29,16 +28,16 @@ test("parser diffs cumulative readings into intervals", () => {
   assert.equal(round(i2.gasM3, 3), 0.3);
 });
 
-test("calculate matches hand-computed fixed & dynamic totals", () => {
+test('calculate matches hand-computed fixed & dynamic totals', () => {
   const parsed = new HomewizardCsvParser().parse(CSV);
 
   const prices = {
     elecByHour: new Map([
-      [hourKey("2025-01-06 00:00"), 0.1],
-      [hourKey("2025-01-06 01:00"), 0.2],
-      [hourKey("2025-01-06 08:00"), 0.05],
+      [hourKey('2025-01-06 00:00'), 0.1],
+      [hourKey('2025-01-06 01:00'), 0.2],
+      [hourKey('2025-01-06 08:00'), 0.05],
     ]),
-    gasByDate: new Map([["2025-01-06", 0.3]]),
+    gasByDate: new Map([['2025-01-06', 0.3]]),
   };
 
   const params = {
@@ -77,7 +76,7 @@ test("calculate matches hand-computed fixed & dynamic totals", () => {
   assert.equal(r.coverage.missingElecHours, 0);
 });
 
-test("meter reset / negative diff is treated as zero, not negative usage", () => {
+test('meter reset / negative diff is treated as zero, not negative usage', () => {
   const csv = `Time,Import,Gas
 2025-03-01 00:00,10.0,5.0
 2025-03-01 00:15,9.0,5.0

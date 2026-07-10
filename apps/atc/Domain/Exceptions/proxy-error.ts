@@ -1,4 +1,4 @@
-import { DomainError } from "./domain-error.ts";
+import { DomainError } from './domain-error.ts';
 
 /**
  * An upstream (airplanes.live) call failed or was rejected. Carries the status to

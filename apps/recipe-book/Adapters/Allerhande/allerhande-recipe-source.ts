@@ -1,6 +1,6 @@
-import type { RecipeSource, ParsedRecipe } from "../../Ports/Allerhande/recipe-source.ts";
-import { BROWSER_UA } from "../browser-user-agent.ts";
-import { parseRecipe } from "./parse.ts";
+import type { RecipeSource, ParsedRecipe } from '../../Ports/Allerhande/recipe-source.ts';
+import { BROWSER_UA } from '../browser-user-agent.ts';
+import { parseRecipe } from './parse.ts';
 
 /**
  * Rewrite Allerhande's short recipe URL to the canonical recipe page. AH shares
@@ -27,11 +27,11 @@ export class AllerhandeRecipeSource implements RecipeSource {
   private async fetchHtml(url: string): Promise<string> {
     const res = await fetch(url, {
       headers: {
-        "User-Agent": BROWSER_UA,
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "nl-NL,nl;q=0.9,en;q=0.8",
+        'User-Agent': BROWSER_UA,
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'nl-NL,nl;q=0.9,en;q=0.8',
       },
-      redirect: "follow",
+      redirect: 'follow',
     });
     if (!res.ok) {
       throw new Error(`Could not fetch recipe page (HTTP ${res.status}).`);

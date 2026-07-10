@@ -1,8 +1,8 @@
-import express from "express";
-import type { Express, RequestHandler, ErrorRequestHandler } from "express";
-import type { Server } from "node:http";
-import { join } from "node:path";
-import { pageLoadLogger, installConsoleLogging, closeLogStreams } from "../access-log/logger.ts";
+import express from 'express';
+import type { Express, RequestHandler, ErrorRequestHandler } from 'express';
+import type { Server } from 'node:http';
+import { join } from 'node:path';
+import { pageLoadLogger, installConsoleLogging, closeLogStreams } from '../access-log/logger.ts';
 
 // Shared Express bootstrap. Folds together the ritual every app's server.ts used
 // to repeat: install console logging, create the app, mount the access logger
@@ -25,7 +25,7 @@ export function createApp(name: string): Express {
 /** Standard health handler: 200 `{ status: "ok" }`. Excluded from the access log. */
 export function healthHandler(): RequestHandler {
   return (_req, res) => {
-    res.json({ status: "ok" });
+    res.json({ status: 'ok' });
   };
 }
 
@@ -53,7 +53,7 @@ export function errorLogger(name: string): ErrorRequestHandler {
 export function errorHandler(_name: string): ErrorRequestHandler {
   return (_err, _req, res, _next) => {
     if (res.headersSent) return;
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: 'Internal server error' });
   };
 }
 
@@ -80,15 +80,15 @@ const SHUTDOWN_TIMEOUT_MS = 10_000;
 export function startServer(app: Express, opts: StartOptions): Server {
   const { name, port, staticDir, onListen } = opts;
 
-  app.get("/healthz", healthHandler());
+  app.get('/healthz', healthHandler());
 
-  const dir = staticDir === undefined ? join(process.cwd(), "public") : staticDir;
+  const dir = staticDir === undefined ? join(process.cwd(), 'public') : staticDir;
   if (dir) app.use(express.static(dir));
 
   app.use(errorLogger(name));
   app.use(errorHandler(name));
 
-  const server = app.listen(port, "0.0.0.0", () => {
+  const server = app.listen(port, '0.0.0.0', () => {
     console.log(`${name} listening on http://0.0.0.0:${port}`);
     onListen?.(server);
   });
@@ -100,7 +100,7 @@ export function startServer(app: Express, opts: StartOptions): Server {
 /** Close the server on SIGTERM/SIGINT, forcing exit if it doesn't drain in time. */
 function installGracefulShutdown(server: Server, name: string): void {
   let shuttingDown = false;
-  const signals = ["SIGTERM", "SIGINT"] as const;
+  const signals = ['SIGTERM', 'SIGINT'] as const;
   for (const signal of signals) {
     process.on(signal, () => {
       if (shuttingDown) return;

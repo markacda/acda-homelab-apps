@@ -17,12 +17,7 @@ export interface CrossoverInputs {
  *
  * Returns null if any input is not a positive, finite number.
  */
-export function crossoverPrice({
-  petrolPrice,
-  consumption,
-  capacity,
-  range,
-}: CrossoverInputs): number | null {
+export function crossoverPrice({ petrolPrice, consumption, capacity, range }: CrossoverInputs): number | null {
   const [p, c, cap, r] = [petrolPrice, consumption, capacity, range].map(Number);
   if (![p, c, cap, r].every((n) => Number.isFinite(n) && n > 0)) return null;
   return (p * r) / (c * cap);

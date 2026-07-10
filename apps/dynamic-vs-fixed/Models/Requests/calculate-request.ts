@@ -1,4 +1,4 @@
-import type { CalcParams } from "../../Domain/ValueObjects/tariff-params.ts";
+import type { CalcParams } from '../../Domain/ValueObjects/tariff-params.ts';
 
 // POST /api/calculate is a multipart/form-data request with:
 //   - `csv`:    the HomeWizard CSV export file

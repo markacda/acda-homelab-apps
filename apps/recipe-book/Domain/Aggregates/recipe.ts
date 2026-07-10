@@ -1,5 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { ValidationError } from "../Exceptions/validation-error.ts";
+import { randomUUID } from 'node:crypto';
+import { ValidationError } from '../Exceptions/validation-error.ts';
 
 // The Recipe aggregate: a single recipe in the shared library, plus the
 // invariants that were previously scattered across server.ts and lib/store.ts
@@ -46,8 +46,8 @@ function nowIso(): string {
 }
 
 function requireTitle(title: string | undefined): string {
-  const trimmed = (title ?? "").trim();
-  if (!trimmed) throw new ValidationError("A recipe title is required.");
+  const trimmed = (title ?? '').trim();
+  if (!trimmed) throw new ValidationError('A recipe title is required.');
   return title as string;
 }
 
@@ -114,15 +114,15 @@ export class Recipe {
 
   /** Apply a partial text-field edit. Only keys present in `edits` are touched. */
   applyEdits(edits: Partial<RecipeContent>): void {
-    if ("title" in edits) this.title = requireTitle(edits.title);
-    if ("ingredients" in edits) this.ingredients = edits.ingredients ?? [];
-    if ("steps" in edits) this.steps = edits.steps ?? [];
-    if ("servings" in edits) this.servings = edits.servings ?? undefined;
-    if ("prepTime" in edits) this.prepTime = edits.prepTime ?? undefined;
-    if ("cookTime" in edits) this.cookTime = edits.cookTime ?? undefined;
-    if ("totalTime" in edits) this.totalTime = edits.totalTime ?? undefined;
-    if ("notes" in edits) this.notes = edits.notes ?? [];
-    if ("category" in edits) this.category = edits.category ?? undefined;
+    if ('title' in edits) this.title = requireTitle(edits.title);
+    if ('ingredients' in edits) this.ingredients = edits.ingredients ?? [];
+    if ('steps' in edits) this.steps = edits.steps ?? [];
+    if ('servings' in edits) this.servings = edits.servings ?? undefined;
+    if ('prepTime' in edits) this.prepTime = edits.prepTime ?? undefined;
+    if ('cookTime' in edits) this.cookTime = edits.cookTime ?? undefined;
+    if ('totalTime' in edits) this.totalTime = edits.totalTime ?? undefined;
+    if ('notes' in edits) this.notes = edits.notes ?? [];
+    if ('category' in edits) this.category = edits.category ?? undefined;
     this.touch();
   }
 

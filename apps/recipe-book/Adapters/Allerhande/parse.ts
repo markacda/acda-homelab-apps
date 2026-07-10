@@ -1,4 +1,4 @@
-import type { ParsedRecipe } from "../../Ports/Allerhande/recipe-source.ts";
+import type { ParsedRecipe } from '../../Ports/Allerhande/recipe-source.ts';
 
 // Pure extraction of a schema.org Recipe from a page's JSON-LD. Allerhande (and
 // most recipe sites) embed a <script type="application/ld+json"> block with the
@@ -13,7 +13,7 @@ import type { ParsedRecipe } from "../../Ports/Allerhande/recipe-source.ts";
  * Returns undefined for anything it can't read (or a zero duration).
  */
 export function parseIsoDuration(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
+  if (typeof value !== 'string') return undefined;
   const m = /^P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?/.exec(value.trim());
   if (!m) return undefined;
   const days = Number(m[1] || 0);
@@ -40,10 +40,10 @@ function collectNodes(value: unknown): Record<string, unknown>[] {
   const visit = (v: unknown): void => {
     if (Array.isArray(v)) {
       v.forEach(visit);
-    } else if (v && typeof v === "object") {
+    } else if (v && typeof v === 'object') {
       const obj = v as Record<string, unknown>;
       nodes.push(obj);
-      if (Array.isArray(obj["@graph"])) obj["@graph"].forEach(visit);
+      if (Array.isArray(obj['@graph'])) obj['@graph'].forEach(visit);
     }
   };
   visit(value);
@@ -51,38 +51,38 @@ function collectNodes(value: unknown): Record<string, unknown>[] {
 }
 
 function hasType(node: Record<string, unknown>, type: string): boolean {
-  const t = node["@type"];
-  if (typeof t === "string") return t === type;
+  const t = node['@type'];
+  if (typeof t === 'string') return t === type;
   if (Array.isArray(t)) return t.includes(type);
   return false;
 }
 
 const ENTITIES: Record<string, string> = {
-  "&amp;": "&",
-  "&lt;": "<",
-  "&gt;": ">",
-  "&quot;": '"',
-  "&#39;": "'",
-  "&apos;": "'",
-  "&nbsp;": " ",
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#39;': "'",
+  '&apos;': "'",
+  '&nbsp;': ' ',
 };
 
 /** Strip HTML tags and decode the handful of entities recipe text uses. */
 export function stripHtml(input: string): string {
   return input
-    .replace(/<[^>]+>/g, " ")
+    .replace(/<[^>]+>/g, ' ')
     .replace(/&[a-z#0-9]+;/gi, (e) => ENTITIES[e.toLowerCase()] ?? e)
-    .replace(/\s+/g, " ")
+    .replace(/\s+/g, ' ')
     .trim();
 }
 
 /** Coerce schema.org `image` (string | ImageObject | array) to a single URL. */
 function firstImageUrl(image: unknown): string | null {
   const pick = (v: unknown): string | null => {
-    if (typeof v === "string") return v;
-    if (v && typeof v === "object") {
+    if (typeof v === 'string') return v;
+    if (v && typeof v === 'object') {
       const url = (v as Record<string, unknown>).url;
-      if (typeof url === "string") return url;
+      if (typeof url === 'string') return url;
     }
     return null;
   };
@@ -100,24 +100,24 @@ function firstImageUrl(image: unknown): string | null {
 function normalizeInstructions(instructions: unknown): string[] {
   const steps: string[] = [];
   const pushText = (v: unknown): void => {
-    if (typeof v === "string") {
+    if (typeof v === 'string') {
       const clean = stripHtml(v);
       if (clean) steps.push(clean);
-    } else if (v && typeof v === "object") {
+    } else if (v && typeof v === 'object') {
       const obj = v as Record<string, unknown>;
-      if (hasType(obj, "HowToSection") && Array.isArray(obj.itemListElement)) {
+      if (hasType(obj, 'HowToSection') && Array.isArray(obj.itemListElement)) {
         obj.itemListElement.forEach(pushText);
-      } else if (typeof obj.text === "string") {
+      } else if (typeof obj.text === 'string') {
         const clean = stripHtml(obj.text);
         if (clean) steps.push(clean);
-      } else if (typeof obj.name === "string") {
+      } else if (typeof obj.name === 'string') {
         const clean = stripHtml(obj.name);
         if (clean) steps.push(clean);
       }
     }
   };
 
-  if (typeof instructions === "string") {
+  if (typeof instructions === 'string') {
     // A single blob: split on newlines or numbered markers.
     return instructions
       .split(/\r?\n+/)
@@ -130,7 +130,7 @@ function normalizeInstructions(instructions: unknown): string[] {
 
 function normalizeIngredients(ingredients: unknown): string[] {
   if (!Array.isArray(ingredients)) return [];
-  return ingredients.map((i) => (typeof i === "string" ? stripHtml(i) : "")).filter(Boolean);
+  return ingredients.map((i) => (typeof i === 'string' ? stripHtml(i) : '')).filter(Boolean);
 }
 
 /**
@@ -141,12 +141,12 @@ function normalizeIngredients(ingredients: unknown): string[] {
  */
 function normalizeYield(recipeYield: unknown): string | undefined {
   const firstInt = (s: string): string | undefined => /\d+/.exec(s)?.[0];
-  if (typeof recipeYield === "string") return firstInt(recipeYield);
-  if (typeof recipeYield === "number") return String(recipeYield);
+  if (typeof recipeYield === 'string') return firstInt(recipeYield);
+  if (typeof recipeYield === 'number') return String(recipeYield);
   if (Array.isArray(recipeYield)) {
     for (const v of recipeYield) {
-      if (typeof v === "number") return String(v);
-      if (typeof v === "string") {
+      if (typeof v === 'number') return String(v);
+      if (typeof v === 'string') {
         const n = firstInt(v);
         if (n) return n;
       }
@@ -156,10 +156,10 @@ function normalizeYield(recipeYield: unknown): string | undefined {
 }
 
 function normalizeCategory(category: unknown): string | undefined {
-  if (typeof category === "string") return category.trim() || undefined;
+  if (typeof category === 'string') return category.trim() || undefined;
   if (Array.isArray(category)) {
-    const first = category.find((v) => typeof v === "string");
-    return typeof first === "string" ? first : undefined;
+    const first = category.find((v) => typeof v === 'string');
+    return typeof first === 'string' ? first : undefined;
   }
   return undefined;
 }
@@ -177,8 +177,8 @@ export function parseRecipe(html: string): ParsedRecipe | null {
       continue; // tolerate a malformed block; try the next one
     }
     for (const node of collectNodes(parsed)) {
-      if (!hasType(node, "Recipe")) continue;
-      const title = typeof node.name === "string" ? stripHtml(node.name) : "";
+      if (!hasType(node, 'Recipe')) continue;
+      const title = typeof node.name === 'string' ? stripHtml(node.name) : '';
       if (!title) continue;
       return {
         title,

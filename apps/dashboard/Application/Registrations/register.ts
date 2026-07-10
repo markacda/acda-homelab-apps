@@ -1,11 +1,11 @@
-import type { Express } from "express";
-import { YamlConfigSource } from "../../Adapters/Config/yaml-config-source.ts";
-import { DockerodeContainerDiscovery } from "../../Adapters/Docker/dockerode-container-discovery.ts";
-import { HttpHealthProbe } from "../../Adapters/Health/http-health-probe.ts";
-import { DashboardService } from "../Services/dashboard-service.ts";
-import { HealthMonitor } from "../Services/Background/health-monitor.ts";
-import { DashboardController } from "../Controllers/dashboard-controller.ts";
-import type { Config } from "../../Domain/ValueObjects/dashboard-config.ts";
+import type { Express } from 'express';
+import { YamlConfigSource } from '../../Adapters/Config/yaml-config-source.ts';
+import { DockerodeContainerDiscovery } from '../../Adapters/Docker/dockerode-container-discovery.ts';
+import { HttpHealthProbe } from '../../Adapters/Health/http-health-probe.ts';
+import { DashboardService } from '../Services/dashboard-service.ts';
+import { HealthMonitor } from '../Services/Background/health-monitor.ts';
+import { DashboardController } from '../Controllers/dashboard-controller.ts';
+import type { Config } from '../../Domain/ValueObjects/dashboard-config.ts';
 
 export interface DashboardRuntime {
   config: Config;
@@ -37,12 +37,6 @@ export function register(app: Express): DashboardRuntime {
 
   return {
     config,
-    startMonitoring: () =>
-      healthMonitor.startLoop(
-        () => dashboardService.buildApps(),
-        config.settings.hostAddress,
-        intervalMs,
-        activeWindowMs,
-      ),
+    startMonitoring: () => healthMonitor.startLoop(() => dashboardService.buildApps(), config.settings.hostAddress, intervalMs, activeWindowMs),
   };
 }

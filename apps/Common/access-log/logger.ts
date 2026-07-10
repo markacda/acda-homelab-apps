@@ -1,22 +1,22 @@
-import { createStream } from "rotating-file-stream";
-import { join } from "node:path";
-import { format } from "node:util";
-import type { IncomingHttpHeaders, OutgoingHttpHeaders } from "node:http";
-import type { RequestHandler } from "express";
+import { createStream } from 'rotating-file-stream';
+import { join } from 'node:path';
+import { format } from 'node:util';
+import type { IncomingHttpHeaders, OutgoingHttpHeaders } from 'node:http';
+import type { RequestHandler } from 'express';
 
-export { DISCOVERY_UA } from "./constants.ts";
+export { DISCOVERY_UA } from './constants.ts';
 
 // Structured per-request access log. One JSON object per line, written to a
 // daily-rotated file. Old files are gzipped and only ~30 are kept, giving a
 // ~1-month retention window. LOG_DIR is a persistent volume in Docker.
-const LOG_DIR = process.env.LOG_DIR || join(process.cwd(), "logs");
+const LOG_DIR = process.env.LOG_DIR || join(process.cwd(), 'logs');
 
 // Shared rotation options for both the access log and the app (console) log.
 const ROTATE_OPTS = {
-  interval: "1d", // rotate daily
+  interval: '1d', // rotate daily
   path: LOG_DIR,
   maxFiles: 30, // keep ~30 days -> 1-month retention
-  compress: "gzip", // gzip rotated files to save disk on the Pi
+  compress: 'gzip', // gzip rotated files to save disk on the Pi
 } as const;
 
 // Lazily open the rotating stream on first write, so importing this module
@@ -24,7 +24,7 @@ const ROTATE_OPTS = {
 let stream: ReturnType<typeof createStream> | undefined;
 function logStream(): ReturnType<typeof createStream> {
   if (!stream) {
-    stream = createStream("access.log", ROTATE_OPTS);
+    stream = createStream('access.log', ROTATE_OPTS);
   }
   return stream;
 }
@@ -34,7 +34,7 @@ function logStream(): ReturnType<typeof createStream> {
 let appStream: ReturnType<typeof createStream> | undefined;
 function appLogStream(): ReturnType<typeof createStream> {
   if (!appStream) {
-    appStream = createStream("app.log", ROTATE_OPTS);
+    appStream = createStream('app.log', ROTATE_OPTS);
   }
   return appStream;
 }
@@ -47,13 +47,11 @@ function appLogStream(): ReturnType<typeof createStream> {
  */
 export function closeLogStreams(): Promise<void> {
   const open = [stream, appStream].filter((s): s is NonNullable<typeof s> => Boolean(s));
-  return Promise.all(open.map((s) => new Promise<void>((resolve) => s.end(resolve)))).then(
-    () => undefined,
-  );
+  return Promise.all(open.map((s) => new Promise<void>((resolve) => s.end(resolve)))).then(() => undefined);
 }
 
 // Health-check polls hit every 30s; keep them out of the page-load log.
-const SKIP_PATHS = new Set(["/healthz", "/health"]);
+const SKIP_PATHS = new Set(['/healthz', '/health']);
 
 // buildEntry only reads these fields, so it accepts anything structurally
 // compatible: a real Express req/res and the lightweight test doubles alike.
@@ -105,14 +103,14 @@ export const BODY_CAP = 32 * 1024;
 const TEXT_CT = /\b(json|text|xml|html|x-www-form-urlencoded)\b/i;
 
 // Response header values that must never be persisted verbatim in long-lived logs.
-const REDACT_HEADERS = new Set(["set-cookie", "authorization"]);
+const REDACT_HEADERS = new Set(['set-cookie', 'authorization']);
 
 /** Copy the response header map, redacting the values of sensitive headers. */
 function redactHeaders(headers: OutgoingHttpHeaders): Record<string, string | number | string[]> {
   const out: Record<string, string | number | string[]> = {};
   for (const [key, value] of Object.entries(headers)) {
     if (value === undefined) continue;
-    out[key] = REDACT_HEADERS.has(key.toLowerCase()) ? "[redacted]" : value;
+    out[key] = REDACT_HEADERS.has(key.toLowerCase()) ? '[redacted]' : value;
   }
   return out;
 }
@@ -130,7 +128,7 @@ export function buildEntry(
   app: string,
   nowIso: string = new Date().toISOString(),
   resBody?: string,
-  resBodyTruncated?: boolean,
+  resBodyTruncated?: boolean
 ): AccessLogEntry {
   const entry: AccessLogEntry = {
     ts: nowIso,
@@ -140,9 +138,9 @@ export function buildEntry(
     status: res.statusCode,
     durationMs,
     ip: req.ip || req.socket?.remoteAddress || null,
-    ua: req.headers?.["user-agent"] || null,
+    ua: req.headers?.['user-agent'] || null,
     referer: req.headers?.referer || null,
-    bytes: Number(res.getHeader?.("content-length")) || null,
+    bytes: Number(res.getHeader?.('content-length')) || null,
   };
   if (isNon2xx(res.statusCode)) {
     const headers = res.getHeaders?.();
@@ -167,11 +165,7 @@ export function pageLoadLogger(app: string): RequestHandler {
     let truncated = false;
     const capture = (chunk: unknown): void => {
       if (!isNon2xx(res.statusCode) || size >= BODY_CAP) return;
-      const buf = Buffer.isBuffer(chunk)
-        ? chunk
-        : typeof chunk === "string"
-          ? Buffer.from(chunk)
-          : undefined;
+      const buf = Buffer.isBuffer(chunk) ? chunk : typeof chunk === 'string' ? Buffer.from(chunk) : undefined;
       if (!buf) return;
       const room = BODY_CAP - size;
       if (buf.length > room) {
@@ -192,27 +186,24 @@ export function pageLoadLogger(app: string): RequestHandler {
     }) as typeof res.write;
     res.end = ((chunk?: unknown, ...rest: unknown[]) => {
       // res.end(cb) passes the callback as the first arg — don't treat it as a body chunk.
-      if (typeof chunk !== "function") capture(chunk);
+      if (typeof chunk !== 'function') capture(chunk);
       return (origEnd as (...args: unknown[]) => unknown)(chunk, ...rest);
     }) as typeof res.end;
 
-    res.on("finish", () => {
+    res.on('finish', () => {
       const durationMs = Math.round(Number(process.hrtime.bigint() - start) / 1e3) / 1e3;
       let body: string | undefined;
       let bodyTruncated = false;
       if (isNon2xx(res.statusCode) && size > 0) {
-        const ct = String(res.getHeader?.("content-type") ?? "");
+        const ct = String(res.getHeader?.('content-type') ?? '');
         if (TEXT_CT.test(ct)) {
-          body = Buffer.concat(chunks).toString("utf8");
+          body = Buffer.concat(chunks).toString('utf8');
           bodyTruncated = truncated; // truncation only meaningful for the captured text
         } else {
-          body = `[binary, ${size} bytes, ${ct || "unknown content-type"}]`;
+          body = `[binary, ${size} bytes, ${ct || 'unknown content-type'}]`;
         }
       }
-      logStream().write(
-        JSON.stringify(buildEntry(req, res, durationMs, app, undefined, body, bodyTruncated)) +
-          "\n",
-      );
+      logStream().write(JSON.stringify(buildEntry(req, res, durationMs, app, undefined, body, bodyTruncated)) + '\n');
     });
     next();
   };
@@ -222,7 +213,7 @@ export function pageLoadLogger(app: string): RequestHandler {
 
 // The console methods we mirror into app.log. `erasableSyntaxOnly` forbids
 // enums, so this is a plain const tuple.
-export const LOG_LEVELS = ["log", "info", "warn", "error", "debug"] as const;
+export const LOG_LEVELS = ['log', 'info', 'warn', 'error', 'debug'] as const;
 export type LogLevel = (typeof LOG_LEVELS)[number];
 
 // A structured application-log record: one JSON object per line in app.log.
@@ -240,7 +231,7 @@ function safeParam(arg: unknown): unknown {
   if (arg instanceof Error) {
     return { name: arg.name, message: arg.message, stack: arg.stack };
   }
-  if (arg === null || typeof arg !== "object") return arg; // primitives pass through
+  if (arg === null || typeof arg !== 'object') return arg; // primitives pass through
   try {
     // Round-trip through JSON so only serializable data survives (drops
     // functions, handles nested structures, and surfaces any toJSON()).
@@ -254,12 +245,7 @@ function safeParam(arg: unknown): unknown {
  * Build a structured application-log entry from console arguments.
  * Pure and side-effect free so it can be unit-tested (inject `nowIso`).
  */
-export function buildAppLogEntry(
-  level: LogLevel,
-  args: unknown[],
-  app: string,
-  nowIso: string = new Date().toISOString(),
-): AppLogEntry {
+export function buildAppLogEntry(level: LogLevel, args: unknown[], app: string, nowIso: string = new Date().toISOString()): AppLogEntry {
   return {
     ts: nowIso,
     app,
@@ -284,7 +270,7 @@ export function installConsoleLogging(app: string): void {
     console[level] = (...args: unknown[]): void => {
       original(...args); // keep the normal stdout/stderr output intact
       try {
-        appLogStream().write(JSON.stringify(buildAppLogEntry(level, args, app)) + "\n");
+        appLogStream().write(JSON.stringify(buildAppLogEntry(level, args, app)) + '\n');
       } catch {
         // Logging must never crash the app; drop the line on any write error.
       }

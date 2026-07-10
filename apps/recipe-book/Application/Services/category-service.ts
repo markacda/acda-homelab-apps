@@ -1,8 +1,8 @@
-import { Category } from "../../Domain/Aggregates/category.ts";
-import type { CategoryRepository } from "../../Domain/Ports/Repositories/category-repository.ts";
-import type { RecipeRepository } from "../../Domain/Ports/Repositories/recipe-repository.ts";
-import type { UpdateCategoryRequest } from "../../Models/Requests/category-requests.ts";
-import { NotFoundError } from "../../Domain/Exceptions/not-found-error.ts";
+import { Category } from '../../Domain/Aggregates/category.ts';
+import type { CategoryRepository } from '../../Domain/Ports/Repositories/category-repository.ts';
+import type { RecipeRepository } from '../../Domain/Ports/Repositories/recipe-repository.ts';
+import type { UpdateCategoryRequest } from '../../Models/Requests/category-requests.ts';
+import { NotFoundError } from '../../Domain/Exceptions/not-found-error.ts';
 
 /**
  * Application service for the managed category list: CRUD, plus cascading a
@@ -25,7 +25,7 @@ export class CategoryService {
 
   async getOrThrow(id: string): Promise<Category> {
     const category = await this.categories.get(id);
-    if (!category) throw new NotFoundError("Category not found.");
+    if (!category) throw new NotFoundError('Category not found.');
     return category;
   }
 
@@ -38,9 +38,9 @@ export class CategoryService {
   /** Rename a category and cascade the new name onto every recipe that used the old one. */
   async update(id: string, patch: UpdateCategoryRequest): Promise<Category> {
     const category = await this.getOrThrow(id);
-    if ("name" in patch) {
+    if ('name' in patch) {
       const oldName = category.name;
-      category.rename(patch.name ?? "");
+      category.rename(patch.name ?? '');
       await this.categories.save(category);
       if (category.name !== oldName) await this.renameOnRecipes(oldName, category.name);
     }
@@ -60,7 +60,7 @@ export class CategoryService {
         .map((r) => {
           r.applyEdits({ category: to });
           return this.recipes.save(r);
-        }),
+        })
     );
   }
 }

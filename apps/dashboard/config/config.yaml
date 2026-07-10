@@ -3,11 +3,11 @@
 # every running container that publishes a port.
 
 settings:
-  title: "Acda Homelab"
+  title: 'Acda Homelab'
   # Address the DASHBOARD uses for server-side health checks. Inside Docker it
   # cannot use localhost, so it reaches host-published ports via the gateway.
   # (docker-compose already maps host.docker.internal -> host-gateway.)
-  hostAddress: "host.docker.internal"
+  hostAddress: 'host.docker.internal'
   healthCheckIntervalSeconds: 30
   # Set to false to disable Docker auto-discovery and show only `apps` below.
   autoDiscover: true
@@ -26,9 +26,9 @@ discovery:
 apps:
   # Home Assistant usually runs in host-network mode, so Docker reports no
   # published port and it isn't auto-discovered — declare it manually here.
-  - name: "Home Assistant"
+  - name: 'Home Assistant'
     port: 8123
-    icon: "home-assistant"
+    icon: 'home-assistant'
   # - name: "Router"
   #   url: "http://192.168.1.1"
   #   icon: "router"          # slug (dashboard-icons), or a full https:// URL, or /icons/foo.png

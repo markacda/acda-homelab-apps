@@ -1,5 +1,5 @@
-import type { AccessLogEntry, AppLogEntry } from "../../Domain/ValueObjects/log-entry.ts";
-import type { ParsedLogs } from "../../Ports/LogStore/log-store.ts";
+import type { AccessLogEntry, AppLogEntry } from '../../Domain/ValueObjects/log-entry.ts';
+import type { ParsedLogs } from '../../Ports/LogStore/log-store.ts';
 
 // Pure JSON-Lines parsing for the structured logs every app writes. Each app
 // persists to its own directory under LOGS_ROOT, but the `app` field is embedded
@@ -10,22 +10,17 @@ export const MAX_ENTRIES = 200_000;
 
 // A request entry needs ts + numeric status.
 function isRequestEntry(v: unknown): v is AccessLogEntry {
-  return (
-    typeof v === "object" &&
-    v !== null &&
-    typeof (v as AccessLogEntry).ts === "string" &&
-    typeof (v as AccessLogEntry).status === "number"
-  );
+  return typeof v === 'object' && v !== null && typeof (v as AccessLogEntry).ts === 'string' && typeof (v as AccessLogEntry).status === 'number';
 }
 
 // An app-log entry needs ts + string level + string message (no status).
 function isAppLogEntry(v: unknown): v is AppLogEntry {
   return (
-    typeof v === "object" &&
+    typeof v === 'object' &&
     v !== null &&
-    typeof (v as AppLogEntry).ts === "string" &&
-    typeof (v as AppLogEntry).level === "string" &&
-    typeof (v as AppLogEntry).message === "string"
+    typeof (v as AppLogEntry).ts === 'string' &&
+    typeof (v as AppLogEntry).level === 'string' &&
+    typeof (v as AppLogEntry).message === 'string'
   );
 }
 
@@ -33,7 +28,7 @@ function isAppLogEntry(v: unknown): v is AppLogEntry {
 export function parseAll(text: string): ParsedLogs {
   const requests: AccessLogEntry[] = [];
   const logs: AppLogEntry[] = [];
-  for (const line of text.split("\n")) {
+  for (const line of text.split('\n')) {
     const trimmed = line.trim();
     if (!trimmed) continue;
     try {

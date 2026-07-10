@@ -1,4 +1,4 @@
-import type { Category } from "../../Aggregates/category.ts";
+import type { Category } from '../../Aggregates/category.ts';
 
 /** Persistence port for the Category aggregate. Implemented in the Adapters layer. */
 export interface CategoryRepository {

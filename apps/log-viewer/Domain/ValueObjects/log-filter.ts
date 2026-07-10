@@ -1,4 +1,4 @@
-import type { StatusClass, LogLevel } from "./log-entry.ts";
+import type { StatusClass, LogLevel } from './log-entry.ts';
 
 /** Filter spec for HTTP access-log entries (empty/absent field = match all). */
 export interface LogFilter {
