@@ -1,0 +1,11 @@
+#!/bin/sh
+# Block the commit unless Prettier reports zero formatting issues.
+# Cross-platform: Git for Windows runs hooks via its bundled POSIX sh, so this
+# same script works on the Windows dev machine and the Linux CI environment.
+
+if ! npm run --silent format:check; then
+  echo
+  echo "pre-commit: Prettier found formatting issues (see above)."
+  echo "  Run 'npm run format' to fix them, then re-stage and commit."
+  exit 1
+fi
