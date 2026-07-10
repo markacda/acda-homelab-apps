@@ -317,7 +317,9 @@ export function mountRequests(root: HTMLElement): () => void {
       rows.push({ label: "Response headers", value: fmtHeaders(e.resHeaders), mono: true });
     }
     if (e.resBody !== undefined) {
-      const body = e.resBodyTruncated ? `${prettyBody(e.resBody)}\n… (truncated)` : prettyBody(e.resBody);
+      const body = e.resBodyTruncated
+        ? `${prettyBody(e.resBody)}\n… (truncated)`
+        : prettyBody(e.resBody);
       rows.push({ label: "Response body", value: body, mono: true });
     }
     openSheet(`${e.method ?? ""} ${e.url ?? ""}`.trim() || "Request", rows);

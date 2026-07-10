@@ -81,7 +81,15 @@ test("buildEntry records headers + body for a non-2xx response, redacting secret
 
 test("buildEntry flags a truncated non-2xx body", () => {
   const res = fakeRes({ statusCode: 502 });
-  const entry = buildEntry(fakeReq(), res, 1, "test-app", "2026-07-06T00:00:00.000Z", "partial", true);
+  const entry = buildEntry(
+    fakeReq(),
+    res,
+    1,
+    "test-app",
+    "2026-07-06T00:00:00.000Z",
+    "partial",
+    true,
+  );
   assert.equal(entry.resBody, "partial");
   assert.equal(entry.resBodyTruncated, true);
 });

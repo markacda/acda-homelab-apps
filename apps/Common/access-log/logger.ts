@@ -210,7 +210,8 @@ export function pageLoadLogger(app: string): RequestHandler {
         }
       }
       logStream().write(
-        JSON.stringify(buildEntry(req, res, durationMs, app, undefined, body, bodyTruncated)) + "\n",
+        JSON.stringify(buildEntry(req, res, durationMs, app, undefined, body, bodyTruncated)) +
+          "\n",
       );
     });
     next();
