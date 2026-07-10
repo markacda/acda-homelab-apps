@@ -14,7 +14,7 @@ let g = {};
 
 let loadFinished = false;
 let Dump1090Version = "unknown version";
-let RefreshInterval = 1000;
+let RefreshInterval = 3000;
 let globeSimLoad = 6;
 let aggregator = false;
 let enable_uat = false;
@@ -430,7 +430,7 @@ if (uuid) {
     // don't need receiver / chunks json
 } else if (aggregator) {
     console.log("Using aggregator fast-path load!");
-    let data = {"reapi":true,"refresh":1000,"history":1,"dbServer":true,"globeIndexGrid":3,"globeIndexSpecialTiles":[],"version":"aggregator backend"};
+    let data = {"reapi":true,"refresh":3000,"history":1,"dbServer":true,"globeIndexGrid":3,"globeIndexSpecialTiles":[],"version":"aggregator backend"};
     get_receiver_defer = jQuery.Deferred().resolve(data);
     test_chunk_defer = jQuery.Deferred().reject();
 } else {

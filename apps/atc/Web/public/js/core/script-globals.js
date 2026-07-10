@@ -39,6 +39,11 @@ let distanceMeasurementState = {
     label: null,
     isActive: false
 };
+// Distance-measure interaction mode (header "D" button); transient, not persisted.
+let distanceMode = false;
+// Set true when a long-press toggled a speed vector, so the following synthetic
+// click is swallowed instead of (de)selecting the plane.
+let longPressFired = false;
 let iconLayer;
 let trailLayers;
 let heatFeatures = [];

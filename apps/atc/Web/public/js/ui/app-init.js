@@ -366,6 +366,24 @@ function earlyInitPage() {
     });
     setGlobalScale(userScale, "init");
 
+    if (loStore['speedVectorMinutes'] != null)
+        speedVectorMinutes = parseInt(loStore['speedVectorMinutes']) || 2;
+    jQuery('#speedVectorValue').text(speedVectorMinutes + ' min');
+    jQuery('#speedVectorSlider').slider({
+        value: speedVectorMinutes,
+        step: 1,
+        min: 1,
+        max: 10,
+        slide: function(event, ui) {
+            jQuery('#speedVectorValue').text(ui.value + ' min');
+        },
+        change: function(event, ui) {
+            speedVectorMinutes = ui.value;
+            loStore['speedVectorMinutes'] = speedVectorMinutes;
+            jQuery('#speedVectorValue').text(ui.value + ' min');
+        },
+    });
+
     if (usp.has('hideButtons'))
         hideButtons = true;
 
