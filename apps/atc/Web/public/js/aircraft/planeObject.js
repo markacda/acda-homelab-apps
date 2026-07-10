@@ -1682,7 +1682,7 @@ PlaneObject.prototype.updateData = function(now, last, data, init) {
 
     // Calculate speed vector projection
     if (this.position != null && this.track != null && this.gs != null) {
-        const projectionSeconds = 120; // Project 120 seconds ahead
+        const projectionSeconds = speedVectorMinutes * 60; // configurable length (minutes)
         const currentLon = this.position[0];
         const currentLat = this.position[1];
 

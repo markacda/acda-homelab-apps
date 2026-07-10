@@ -461,6 +461,9 @@ let dynGlobeRate = false; // enable use of globeRates.json in index.html directo
 let multiOutline = false;
 let inhibitIframe = false;
 
+// Speed-vector projection length in whole minutes (ATC style); persisted to loStore.
+let speedVectorMinutes = 2;
+
 
 // !!! Please set the latitude / longitude in the decoder rather than
 // setting it here !!!
