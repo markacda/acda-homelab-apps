@@ -214,7 +214,7 @@ export function mountLogs(root: HTMLElement): () => void {
       renderPanels(EMPTY_STATS);
       return;
     }
-    const res = await fetch(`/api/app-logs/stats?${baseParams().toString()}`);
+    const res = await fetch(`api/app-logs/stats?${baseParams().toString()}`);
     if (!res.ok) return;
     const { stats } = (await res.json()) as { stats: LogStats };
     renderCards(stats);
@@ -240,7 +240,7 @@ export function mountLogs(root: HTMLElement): () => void {
     p.set('limit', String(PAGE));
     p.set('offset', String(offset));
     try {
-      const res = await fetch(`/api/app-logs?${p.toString()}`);
+      const res = await fetch(`api/app-logs?${p.toString()}`);
       if (seq !== loadSeq) return; // a newer load started; drop this response
       if (!res.ok) {
         logMetaEl.textContent = `Failed to load logs (HTTP ${res.status})`;
@@ -265,7 +265,7 @@ export function mountLogs(root: HTMLElement): () => void {
     await Promise.all([loadStats(), loadLogs(true)]);
   }
   async function loadMeta(): Promise<void> {
-    const res = await fetch('/api/app-logs/meta');
+    const res = await fetch('api/app-logs/meta');
     if (!res.ok) return;
     const meta = (await res.json()) as LogMeta;
     appDropdown.setOptions(meta.apps);

@@ -10,7 +10,7 @@ const app = createApp('dashboard');
 const { config, startMonitoring } = register(app);
 startServer(app, {
   name: 'dashboard',
-  port: Number(process.env.PORT) || 8080,
+  port: Number(process.env.PORT) || 6000,
   staticDir: join(process.cwd(), 'Web', 'public'),
   onListen: () => {
     console.log(`[server] ${config.settings.title} autoDiscover=${config.settings.autoDiscover} hostAddress=${config.settings.hostAddress}`);

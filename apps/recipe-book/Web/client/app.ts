@@ -69,7 +69,7 @@ async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 /** URL for one stored image filename. */
 function fileSrc(file: string): string {
-  return `/images/${file}`;
+  return `images/${file}`;
 }
 
 /** Title image (images[0]) of a recipe, or null. */
@@ -91,7 +91,7 @@ let editingImages: string[] = []; // gallery of the recipe currently in the edit
 // ---- library --------------------------------------------------------------
 
 async function loadRecipes(): Promise<void> {
-  recipes = await api<Recipe[]>('/api/recipes');
+  recipes = await api<Recipe[]>('api/recipes');
   renderLibrary();
 }
 
@@ -125,7 +125,7 @@ function renderLibrary(): void {
 // ---- books ----------------------------------------------------------------
 
 async function loadBooks(): Promise<void> {
-  books = await api<Book[]>('/api/books');
+  books = await api<Book[]>('api/books');
   if (activeBookId && !books.some((b) => b.id === activeBookId)) activeBookId = null;
   if (!activeBookId && books.length) activeBookId = books[0].id;
   renderBookSelect();
@@ -148,7 +148,7 @@ async function refreshActiveBook(): Promise<void> {
     $('noBook').classList.remove('hidden');
     return;
   }
-  activeBook = await api<BookDetail>(`/api/books/${activeBookId}`);
+  activeBook = await api<BookDetail>(`api/books/${activeBookId}`);
   $('noBook').classList.add('hidden');
   $('bookView').classList.remove('hidden');
   renderBookView();
@@ -183,7 +183,7 @@ function renderBookView(): void {
 
 async function saveBookOrder(recipeIds: string[]): Promise<void> {
   if (!activeBookId) return;
-  await api(`/api/books/${activeBookId}`, {
+  await api(`api/books/${activeBookId}`, {
     method: 'PATCH',
     body: JSON.stringify({ recipeIds }),
   });
@@ -193,7 +193,7 @@ async function saveBookOrder(recipeIds: string[]): Promise<void> {
 // ---- categories -----------------------------------------------------------
 
 async function loadCategories(): Promise<void> {
-  categories = await api<Category[]>('/api/categories');
+  categories = await api<Category[]>('api/categories');
   if (activeCategoryId && !categories.some((c) => c.id === activeCategoryId)) activeCategoryId = null;
   if (!activeCategoryId && categories.length) activeCategoryId = categories[0].id;
   renderCategorySelect();
@@ -215,7 +215,7 @@ function activeCategory(): Category | null {
 async function newCategory(): Promise<void> {
   const name = prompt('Name for the new category:');
   if (!name?.trim()) return;
-  const category = await api<Category>('/api/categories', {
+  const category = await api<Category>('api/categories', {
     method: 'POST',
     body: JSON.stringify({ name: name.trim() }),
   });
@@ -228,7 +228,7 @@ async function renameCategory(): Promise<void> {
   if (!category) return;
   const name = prompt('New name:', category.name);
   if (!name?.trim()) return;
-  await api(`/api/categories/${category.id}`, {
+  await api(`api/categories/${category.id}`, {
     method: 'PATCH',
     body: JSON.stringify({ name: name.trim() }),
   });
@@ -242,7 +242,7 @@ async function deleteCategory(): Promise<void> {
   const category = activeCategory();
   if (!category) return;
   if (!confirm(`Delete category “${category.name}”? Recipes keep their current category text.`)) return;
-  await api(`/api/categories/${category.id}`, { method: 'DELETE' });
+  await api(`api/categories/${category.id}`, { method: 'DELETE' });
   activeCategoryId = null;
   await loadCategories();
 }
@@ -335,13 +335,13 @@ async function saveEditor(): Promise<void> {
   }
   try {
     if (editingId) {
-      await api(`/api/recipes/${editingId}`, {
+      await api(`api/recipes/${editingId}`, {
         method: 'PATCH',
         body: JSON.stringify(fields),
       });
     } else {
       const imageUrl = $<HTMLInputElement>('edImageUrl').value.trim();
-      await api('/api/recipes', {
+      await api('api/recipes', {
         method: 'POST',
         body: JSON.stringify({ ...fields, imageUrl }),
       });
@@ -367,7 +367,7 @@ async function addImageFromUrl(): Promise<void> {
   if (!imageUrl) return;
   setStatus($('edImageStatus'), 'Downloading image…', 'info');
   try {
-    const updated = await api<Recipe>(`/api/recipes/${editingId}/images`, {
+    const updated = await api<Recipe>(`api/recipes/${editingId}/images`, {
       method: 'POST',
       body: JSON.stringify({ imageUrl }),
     });
@@ -390,7 +390,7 @@ async function uploadImage(): Promise<void> {
   try {
     const fd = new FormData();
     fd.append('image', file);
-    const res = await fetch(`/api/recipes/${editingId}/images`, { method: 'POST', body: fd });
+    const res = await fetch(`api/recipes/${editingId}/images`, { method: 'POST', body: fd });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error((data as { error?: string }).error || 'Upload failed.');
     $<HTMLInputElement>('edImageFile').value = '';
@@ -405,7 +405,7 @@ async function uploadImage(): Promise<void> {
 async function saveGallery(): Promise<void> {
   if (!editingId) return;
   try {
-    const updated = await api<Recipe>(`/api/recipes/${editingId}`, {
+    const updated = await api<Recipe>(`api/recipes/${editingId}`, {
       method: 'PATCH',
       body: JSON.stringify({ images: editingImages }),
     });
@@ -430,7 +430,7 @@ async function importRecipe(): Promise<void> {
   btn.disabled = true;
   setStatus($('addStatus'), 'Fetching and parsing recipe…', 'info');
   try {
-    const recipe = await api<Recipe>('/api/recipes/import', {
+    const recipe = await api<Recipe>('api/recipes/import', {
       method: 'POST',
       body: JSON.stringify({ url }),
     });
@@ -452,7 +452,7 @@ async function importRecipe(): Promise<void> {
 async function newBook(): Promise<void> {
   const name = prompt('Name for the new recipe book:');
   if (!name?.trim()) return;
-  const book = await api<Book>('/api/books', {
+  const book = await api<Book>('api/books', {
     method: 'POST',
     body: JSON.stringify({ name: name.trim() }),
   });
@@ -464,7 +464,7 @@ async function renameBook(): Promise<void> {
   if (!activeBook) return;
   const name = prompt('New name:', activeBook.name);
   if (!name?.trim()) return;
-  await api(`/api/books/${activeBook.id}`, {
+  await api(`api/books/${activeBook.id}`, {
     method: 'PATCH',
     body: JSON.stringify({ name: name.trim() }),
   });
@@ -474,7 +474,7 @@ async function renameBook(): Promise<void> {
 async function deleteBook(): Promise<void> {
   if (!activeBook) return;
   if (!confirm(`Delete book “${activeBook.name}”? Recipes in the library are kept.`)) return;
-  await api(`/api/books/${activeBook.id}`, { method: 'DELETE' });
+  await api(`api/books/${activeBook.id}`, { method: 'DELETE' });
   activeBookId = null;
   await loadBooks();
 }
@@ -512,7 +512,7 @@ async function generate(format: 'tex' | 'pdf'): Promise<void> {
   btns.forEach((b) => (b.disabled = true));
   setStatus($('genStatus'), format === 'pdf' ? 'Compiling PDF (first run downloads LaTeX packages)…' : 'Generating .tex…', 'info');
   try {
-    const out = await api<{ url: string; format: string; recipeCount: number }>(`/api/books/${activeBookId}/generate`, {
+    const out = await api<{ url: string; format: string; recipeCount: number }>(`api/books/${activeBookId}/generate`, {
       method: 'POST',
       body: JSON.stringify({ format }),
     });
@@ -546,7 +546,7 @@ $('library').addEventListener('click', (e) => {
   else if (act === 'edit' && recipe) openEditor(recipe);
   else if (act === 'delete') {
     if (confirm('Delete this recipe from the library?')) {
-      void api(`/api/recipes/${id}`, { method: 'DELETE' }).then(() => {
+      void api(`api/recipes/${id}`, { method: 'DELETE' }).then(() => {
         void loadRecipes();
         void refreshActiveBook();
       });

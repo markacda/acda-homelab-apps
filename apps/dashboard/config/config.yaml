@@ -18,6 +18,7 @@ discovery:
   # Container names to never show.
   ignore:
     - dashboard
+    - proxy
     - portainer_agent
     - mqtt
 
@@ -35,7 +36,15 @@ apps:
   #   group: "Infra"
 
 # Per-container overrides, keyed by container name. Set `hidden: true` to hide.
+# The `url:` values below are the reverse-proxy paths (served by the `proxy`
+# container), so tiles link to <ip>/atc etc. Discovery still fills in each app's
+# published port, which the server-side health check uses (see health-target.ts).
 overrides:
+  atc-frontend: { url: /atc }
+  ev-crossover: { url: /laden-of-tanken }
+  dynamic-vs-fixed: { url: /dynamisch-of-vast }
+  recipe-book: { url: /receptenboek }
+  log-viewer: { url: /logs }
   # sonarr:
   #   name: "Sonarr"
   #   icon: "sonarr"

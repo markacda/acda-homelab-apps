@@ -39,9 +39,9 @@ COPY --from=builder /repo/apps/dashboard/Web/public ./Web/public
 # Bundle the default config; docker-compose mounts ./config over it read-only.
 COPY apps/dashboard/config ./config
 
-ENV PORT=8080
+ENV PORT=6000
 ENV LOG_DIR=/app/logs
-EXPOSE 8080
+EXPOSE 6000
 
 # Writable log dir. A named volume mounted here persists the structured access logs.
 RUN mkdir -p /app/logs
@@ -52,6 +52,6 @@ RUN mkdir -p /app/logs
 # no containers, leaving only the manually-configured tiles.
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "fetch('http://localhost:8080/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://localhost:6000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 CMD ["node", "dist/apps/dashboard/server.js"]

@@ -60,8 +60,10 @@ export class BookController {
       const format = req.body?.format === 'pdf' ? 'pdf' : 'tex';
       const result = await this.generation.generate(req.params.id, format);
       res.json({
+        // Relative so the link works both directly and behind the reverse proxy
+        // (which serves recipe-book under a path prefix, e.g. /receptenboek).
         format: result.format,
-        url: `/api/books/${req.params.id}/download/${result.format}`,
+        url: `api/books/${req.params.id}/download/${result.format}`,
         recipeCount: result.recipeCount,
       });
     });

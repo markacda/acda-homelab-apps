@@ -172,7 +172,7 @@ el('calc').addEventListener('submit', async (e) => {
     fd.append('csv', file);
     fd.append('params', JSON.stringify(collectParams()));
 
-    const res = await fetch('/api/calculate', { method: 'POST', body: fd });
+    const res = await fetch('api/calculate', { method: 'POST', body: fd });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Calculation failed.');
 

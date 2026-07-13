@@ -5,11 +5,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 A monorepo (npm workspaces) of small independent Node/Express webapps that run as
-Docker containers on a Raspberry Pi 5 (ARM64), each on its own port, aggregated by
-a single `docker-compose.yml`. `apps/*` are the deployable apps; `apps/Common/*` are
-the shared libraries. See `README.md` for the per-port app catalog, and
-`ARCHITECTURE.md` for the DDD/Clean-Architecture layout every app now follows
-(`apps/recipe-book` is the reference implementation).
+Docker containers on a Raspberry Pi 5 (ARM64), each on its own `600x` port,
+aggregated by a single `docker-compose.yml`. An nginx `proxy` container fronts
+them all on host 80/443 and routes by path (dashboard at `/`, each app under a
+prefix such as `/atc`); it strips the prefix before forwarding, so apps stay
+unaware of it **provided their client code uses relative URLs** (`fetch('api/…')`,
+not `/api/…`). See `proxy/nginx.conf`. `apps/*` are the deployable apps;
+`apps/Common/*` are the shared libraries. See `README.md` for the URL/port
+catalog, and `ARCHITECTURE.md` for the DDD/Clean-Architecture layout every app now
+follows (`apps/recipe-book` is the reference implementation).
 
 ## Commands
 
@@ -110,7 +114,10 @@ app dir to the root `package.json` `workspaces` list. Build from the repo-root
 Docker context with a non-root `node` user, then add a service to
 `docker-compose.yml` on the next free port (with a `homelab.name` label,
 `NODE_ENV=production`, and a `/healthz` healthcheck) and, if it logs, a read-only
-volume mount in the `log-viewer` service.
+volume mount in the `log-viewer` service. To expose it on a pretty path, add a
+`location` block to `proxy/nginx.conf` (and use relative URLs in its client code);
+to show it on the dashboard at that path, add an `overrides:` entry in
+`apps/dashboard/config/config.yaml`.
 
 **Env vars.** `PORT`, `LOG_DIR` (persistent log volume), `DATA_DIR` (persistent
 state — `dynamic-vs-fixed`, `recipe-book`), plus app-specific ones (dashboard:

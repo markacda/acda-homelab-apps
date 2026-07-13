@@ -1,18 +1,26 @@
 # acda-homelab-apps
 
 A monorepo of small Node webapps that run in Docker on a Raspberry Pi 5 (ARM64),
-each on its own port, all aggregated by a single `docker-compose.yml`.
+all aggregated by a single `docker-compose.yml`. An nginx `proxy` container fronts
+them on the standard web port and routes by path (dashboard at `/`, each app under
+its own prefix). Every app also stays directly reachable on its own `600x` port.
 
-## Port map
+## URL map
 
-| Port            | App                | Description                                                                                                                 |
-| --------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| 80 / 443 / 8080 | `dashboard`        | Landing page: tiled dashboard that auto-discovers the other apps via the Docker socket and health-checks them               |
-| 6001            | `atc`              | Live aircraft-tracking frontend (airplanes.live), TypeScript/Express server + static map UI                                 |
-| 6002            | `ev-crossover`     | Electricity price (€/kWh) at which charging is cheaper than petrol                                                          |
-| 6003            | `dynamic-vs-fixed` | Whether a dynamic (hourly-market) energy contract beats your fixed one, from HomeWizard usage + EnergyZero prices (NL)      |
-| 6004            | `log-viewer`       | Browse, search, filter and aggregate the structured access logs written by every app (per-app/per-endpoint stats, errors)   |
-| 6005            | `recipe-book`      | Import Albert Heijn (Allerhande) recipes into a shared library, assemble named recipe books, and export them as LaTeX / PDF |
+Served through the proxy on `http://<pi-host>/` (recommended):
+
+| Path                 | App                | Direct port | Description                                                                                                                 |
+| -------------------- | ------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `/`                  | `dashboard`        | 6000        | Landing page: tiled dashboard that auto-discovers the other apps via the Docker socket and health-checks them               |
+| `/atc`               | `atc`              | 6001        | Live aircraft-tracking frontend (airplanes.live), TypeScript/Express server + static map UI                                 |
+| `/laden-of-tanken`   | `ev-crossover`     | 6002        | Electricity price (€/kWh) at which charging is cheaper than petrol                                                          |
+| `/dynamisch-of-vast` | `dynamic-vs-fixed` | 6003        | Whether a dynamic (hourly-market) energy contract beats your fixed one, from HomeWizard usage + EnergyZero prices (NL)      |
+| `/logs`              | `log-viewer`       | 6004        | Browse, search, filter and aggregate the structured access logs written by every app (per-app/per-endpoint stats, errors)   |
+| `/receptenboek`      | `recipe-book`      | 6005        | Import Albert Heijn (Allerhande) recipes into a shared library, assemble named recipe books, and export them as LaTeX / PDF |
+
+The proxy (`proxy/nginx.conf`) strips the path prefix before forwarding, so each
+app is unaware it's served under a subpath — the only requirement is that app
+client code uses **relative** URLs (e.g. `fetch('api/…')`, not `/api/…`).
 
 ## Run all apps
 
@@ -20,7 +28,8 @@ each on its own port, all aggregated by a single `docker-compose.yml`.
 docker compose up -d --build
 ```
 
-Then open the app in a browser, e.g. http://<pi-host>:6002 .
+Then open the dashboard at http://<pi-host>/ , or an app directly, e.g.
+http://<pi-host>/laden-of-tanken (or its direct port http://<pi-host>:6002 ).
 
 Stop everything:
 
@@ -106,4 +115,10 @@ In dev, point it at the repo's logs with `LOGS_ROOT=./apps npm run dev -w log-vi
    from `apps/Common/server-kit` — it mounts the access logger, exposes `/healthz`,
    serves `public/`, binds `0.0.0.0`, and wires graceful shutdown + an error
    handler. Reuse `apps/Common/http-utils` for query/body parsing and file uploads.
+   Use **relative** URLs in client code (`fetch('api/…')`, `src="images/…"`) so the
+   app works under the reverse proxy's path prefix.
 3. Add a service to the root `docker-compose.yml` on the next free port (6006, 6007…).
+4. Add a `location /<path>/ { proxy_pass http://<service>:<port>/; … }` block (plus the
+   trailing-slash redirect) to `proxy/nginx.conf`, and — if it should appear on the
+   dashboard — an `overrides:` entry in `apps/dashboard/config/config.yaml` pointing its
+   tile at the new path.

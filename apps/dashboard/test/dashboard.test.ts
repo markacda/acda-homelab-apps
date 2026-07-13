@@ -54,10 +54,17 @@ test('mergeApps orders apps alphabetically by name', () => {
   );
 });
 
-test('healthTarget prefers explicit url, then host+port', () => {
+test('healthTarget prefers absolute url, then host+port', () => {
   assert.equal(healthTarget({ url: 'http://x.local' }, 'host.docker.internal'), 'http://x.local');
   assert.equal(healthTarget({ port: 8123 }, 'host.docker.internal'), 'http://host.docker.internal:8123');
   assert.equal(healthTarget({}, 'host.docker.internal'), null);
+});
+
+test('healthTarget probes the port for relative (reverse-proxy) urls', () => {
+  // A relative url like "/atc" is a client link, not server-probeable: prefer the port.
+  assert.equal(healthTarget({ url: '/atc', port: 6001 }, 'host.docker.internal'), 'http://host.docker.internal:6001');
+  // With no port to fall back to, the relative url is returned as a last resort.
+  assert.equal(healthTarget({ url: '/atc' }, 'host.docker.internal'), '/atc');
 });
 
 test('isHealthStale: never-probed targets are stale', () => {
