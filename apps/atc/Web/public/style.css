@@ -455,6 +455,14 @@ select.error, textarea.error, input.error {
     height: calc( 38px * var(--SCALE));
     z-index: 9;
 }
+#header_top_left {
+    text-align: left;
+    position: absolute;
+    left: calc( 0px * var(--SCALE));
+    top: calc( 0px * var(--SCALE));
+    height: calc( 38px * var(--SCALE));
+    z-index: 9;
+}
 
 .svgButton {
     background-color: var(--ACCENT);

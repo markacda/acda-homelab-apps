@@ -486,6 +486,10 @@ function earlyInitPage() {
         toggleTrackLabels();
     }
     buttonActive('#A', atcStyle);
+    buttonActive('#band_G', showBandGround);
+    buttonActive('#band_T', showBandTower);
+    buttonActive('#band_A', showBandApproach);
+    buttonActive('#band_C', showBandArea);
     if (loStore['tableInView'] == "true" || usp.has('tableInView')) {
         toggleTableInView('enable');
     }
