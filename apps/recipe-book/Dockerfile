@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Built from the repo root so the shared ../../tsconfig.base.json is in context:
 #   docker build -f apps/recipe-book/Dockerfile .
 
@@ -11,22 +12,26 @@ COPY tsconfig.base.json ./
 # dist/, so its deps must be installed here for that compile to resolve.
 WORKDIR /repo/apps/Common/access-log
 COPY apps/Common/access-log/package.json ./
-RUN npm install
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --prefer-offline --no-audit --no-fund
 COPY apps/Common/access-log/ ./
 # Shared server-kit bootstrap (createApp/startServer), imported by server.ts.
 WORKDIR /repo/apps/Common/server-kit
 COPY apps/Common/server-kit/package.json ./
-RUN npm install
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --prefer-offline --no-audit --no-fund
 COPY apps/Common/server-kit/ ./
 # Shared http-utils helpers (memoryUpload/optStr/toStringArray), imported by server.ts.
 WORKDIR /repo/apps/Common/http-utils
 COPY apps/Common/http-utils/package.json ./
-RUN npm install
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --prefer-offline --no-audit --no-fund
 COPY apps/Common/http-utils/ ./
 WORKDIR /repo/apps/recipe-book
 # Manifest first for dependency-layer caching.
 COPY apps/recipe-book/package.json ./
-RUN npm install
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --prefer-offline --no-audit --no-fund
 # App sources (server, the DDD layers, Web/client, tsconfigs, LaTeX templates).
 COPY apps/recipe-book/ ./
 RUN npm run build
@@ -38,9 +43,11 @@ WORKDIR /app
 # Shipped in the Alpine community repo (ARM64 + amd64). If a future base image
 # drops it, swap this stage for a Debian bookworm-slim base + the official
 # Tectonic install script.
-RUN apk add --no-cache tectonic
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add tectonic
 COPY apps/recipe-book/package.json ./
-RUN npm install --omit=dev
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --prefer-offline --no-audit --no-fund --omit=dev
 COPY --from=builder /repo/apps/recipe-book/dist ./dist
 # Client assets are served from Web/public (see server.ts staticDir).
 COPY --from=builder /repo/apps/recipe-book/Web/public ./Web/public
