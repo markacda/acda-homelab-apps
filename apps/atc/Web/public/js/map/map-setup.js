@@ -391,36 +391,11 @@ function ol_map_init() {
         evt.stopPropagation();
     });
 
-    // Handle right-click (contextmenu) to toggle speed vector
+    // Handle right-click (contextmenu) to toggle speed vector. Shares the single
+    // toggle path (and its dedupe) with the touch long-press handler below.
     OLMap.on('contextmenu', function(evt) {
         evt.preventDefault(); // Prevent default browser context menu
-
-        let planeHex = null;
-        let source = webgl ? webglFeatures : PlaneIconFeatures;
-        let evtCoords = evt.map.getCoordinateFromPixel(evt.pixel);
-        let feature = source.getClosestFeatureToCoordinate(evtCoords);
-
-        if (feature) {
-            let fPixel = evt.map.getPixelFromCoordinate(feature.getGeometry().getCoordinates());
-            let a = fPixel[0] - evt.pixel[0];
-            let b = fPixel[1] - evt.pixel[1];
-            let c = globalScale * (onMobile ? 30 : 20);
-            if (a**2 + b**2 < c**2) {
-                planeHex = feature.hex;
-            }
-        }
-
-        if (planeHex && planeHex.indexOf('_vector') < 0) {
-            // Get the plane object
-            let plane = g.planes[planeHex];
-            if (plane) {
-                // Toggle speed vector
-                plane.showSpeedVector = !plane.showSpeedVector;
-                // Update the marker to show/hide the vector
-                plane.updateMarker();
-            }
-        }
-
+        toggleSpeedVectorAtPixel(evt.pixel);
         evt.stopPropagation();
     });
 
@@ -538,6 +513,7 @@ function ol_map_init() {
             // mouse click), so the plane isn't also selected.
             if (longPressFired) {
                 suppressClicksUntil = performance.now() + 700;
+                longPressFired = false;
             }
             cancelLongPress();
         });
@@ -566,6 +542,11 @@ function toggleSpeedVectorAtPixel(pixel) {
 
     let plane = g.planes[planeHex];
     if (plane) {
+        // A touch long-press fires both our long-press timer and a `contextmenu`
+        // event; dedupe so the vector isn't toggled twice (on then off).
+        const now = performance.now();
+        if (now - lastVectorToggleAt < 700) return;
+        lastVectorToggleAt = now;
         plane.showSpeedVector = !plane.showSpeedVector;
         plane.updateMarker();
         // Mark this gesture as a long-press; the pointerup handler then swallows

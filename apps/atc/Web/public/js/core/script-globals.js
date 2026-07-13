@@ -48,6 +48,10 @@ let longPressFired = false;
 // long-press. Anchored at pointer release so it covers both the touch `click`
 // and the trailing compatibility-mouse `click`, regardless of press duration.
 let suppressClicksUntil = 0;
+// Timestamp (performance.now()) of the last speed-vector toggle, used to dedupe
+// the double toggle a touch long-press causes (the long-press timer AND the
+// browser `contextmenu` event both fire for the same gesture).
+let lastVectorToggleAt = 0;
 let iconLayer;
 let trailLayers;
 let heatFeatures = [];
