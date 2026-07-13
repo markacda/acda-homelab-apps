@@ -515,25 +515,10 @@ function adjust_baro_alt(alt) {
 }
 
 function globeRateUpdate() {
-    if (aggregator) {
-        dynGlobeRate = true;
-        if (0) {
-            const cookieExp = getCookie('asdf_id').split('_')[0];
-            const ts = new Date().getTime();
-            if (!cookieExp || cookieExp < ts + 3600*1000)
-                setCookie('airplanes_live_sid', ((ts + 2*86400*1000) + '_' + Math.random().toString(36).substring(2, 15)), 2);
-        }
-    }
-    if (dynGlobeRate) {
-        return jQuery.ajax({url:'/globeRates.json', cache: false, dataType: 'json', }).done(function(data) {
-            if (data.simload != null)
-                globeSimLoad = data.simload;
-            if (data.refresh != null && globeIndex)
-                RefreshInterval = data.refresh;
-        });
-    } else {
-        return jQuery.Deferred().resolve();
-    }
+    // globeRates.json (an upstream tar1090 file that steered the client refresh
+    // rate) was never vendored here and 404s upstream too, so this is a no-op.
+    // `dynGlobeRate` stays false, so no timer arms and no request is made.
+    return jQuery.Deferred().resolve();
 }
 globeRateUpdate();
 

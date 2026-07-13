@@ -45,8 +45,8 @@ function iconEl(app: AppTile): HTMLElement {
     img.onerror = () => img.replaceWith(fallbackIcon());
     return img;
   }
-  if (app.icon) {
-    // Treat as a slug: try the dashboard-icons CDN, fall back to the emoji.
+  if (app.icon && /^[a-z0-9._-]+$/i.test(app.icon)) {
+    // Slug-shaped: try the dashboard-icons CDN, fall back to the emoji.
     const img = document.createElement('img');
     img.className = 'tile-icon';
     img.src = `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/${app.icon}.png`;
@@ -55,14 +55,20 @@ function iconEl(app: AppTile): HTMLElement {
     img.onerror = () => img.replaceWith(fallbackIcon());
     return img;
   }
+  // Anything else (e.g. an emoji) is rendered as text.
+  if (app.icon) return emojiIcon(app.icon);
   return fallbackIcon();
 }
 
-function fallbackIcon(): HTMLDivElement {
+function emojiIcon(text: string): HTMLDivElement {
   const wrap = document.createElement('div');
   wrap.className = 'tile-icon emoji';
-  wrap.textContent = FALLBACK_EMOJI;
+  wrap.textContent = text;
   return wrap;
+}
+
+function fallbackIcon(): HTMLDivElement {
+  return emojiIcon(FALLBACK_EMOJI);
 }
 
 function tileEl(app: AppTile): HTMLAnchorElement {
