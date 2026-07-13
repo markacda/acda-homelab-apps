@@ -265,10 +265,9 @@ function ol_map_init() {
     });
 
     OLMap.on(['click', 'dblclick'], function(evt) {
-        // A long-press just toggled a speed vector; swallow the trailing click(s).
-        // On touch this covers both OL's click (from the touch pointerup) and the
-        // browser's compatibility-mouse click that follows touchend.
-        if (performance.now() < suppressClicksUntil) {
+        // A long-press just toggled a speed vector; swallow the trailing click.
+        if (longPressFired) {
+            longPressFired = false;
             evt.stopPropagation();
             return;
         }
@@ -391,11 +390,36 @@ function ol_map_init() {
         evt.stopPropagation();
     });
 
-    // Handle right-click (contextmenu) to toggle speed vector. Shares the single
-    // toggle path (and its dedupe) with the touch long-press handler below.
+    // Handle right-click (contextmenu) to toggle speed vector
     OLMap.on('contextmenu', function(evt) {
         evt.preventDefault(); // Prevent default browser context menu
-        toggleSpeedVectorAtPixel(evt.pixel);
+
+        let planeHex = null;
+        let source = webgl ? webglFeatures : PlaneIconFeatures;
+        let evtCoords = evt.map.getCoordinateFromPixel(evt.pixel);
+        let feature = source.getClosestFeatureToCoordinate(evtCoords);
+
+        if (feature) {
+            let fPixel = evt.map.getPixelFromCoordinate(feature.getGeometry().getCoordinates());
+            let a = fPixel[0] - evt.pixel[0];
+            let b = fPixel[1] - evt.pixel[1];
+            let c = globalScale * (onMobile ? 30 : 20);
+            if (a**2 + b**2 < c**2) {
+                planeHex = feature.hex;
+            }
+        }
+
+        if (planeHex && planeHex.indexOf('_vector') < 0) {
+            // Get the plane object
+            let plane = g.planes[planeHex];
+            if (plane) {
+                // Toggle speed vector
+                plane.showSpeedVector = !plane.showSpeedVector;
+                // Update the marker to show/hide the vector
+                plane.updateMarker();
+            }
+        }
+
         evt.stopPropagation();
     });
 
@@ -507,16 +531,7 @@ function ol_map_init() {
         }
     });
     ['pointerup', 'pointercancel', 'pointerleave'].forEach(function(t) {
-        vp.addEventListener(t, function() {
-            // If this gesture toggled a speed vector, swallow every click that
-            // fires shortly after release (the touch click + the compatibility
-            // mouse click), so the plane isn't also selected.
-            if (longPressFired) {
-                suppressClicksUntil = performance.now() + 700;
-                longPressFired = false;
-            }
-            cancelLongPress();
-        });
+        vp.addEventListener(t, cancelLongPress);
     });
 
     // show the hover box
@@ -542,16 +557,9 @@ function toggleSpeedVectorAtPixel(pixel) {
 
     let plane = g.planes[planeHex];
     if (plane) {
-        // A touch long-press fires both our long-press timer and a `contextmenu`
-        // event; dedupe so the vector isn't toggled twice (on then off).
-        const now = performance.now();
-        if (now - lastVectorToggleAt < 700) return;
-        lastVectorToggleAt = now;
         plane.showSpeedVector = !plane.showSpeedVector;
         plane.updateMarker();
-        // Mark this gesture as a long-press; the pointerup handler then swallows
-        // the trailing click(s) so the plane isn't also selected.
-        longPressFired = true;
+        longPressFired = true; // suppress the trailing synthetic click
     }
 }
 
