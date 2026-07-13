@@ -33,6 +33,8 @@ RUN npm install --omit=dev
 # Compiled backend and the vendored static frontend it serves (resolved at ./Web/public).
 COPY --from=builder /repo/apps/atc/dist ./dist
 COPY apps/atc/Web/public ./Web/public
+# Cached upstream DB snapshots served when the proxied backend is unreachable.
+COPY apps/atc/proxy-fallback ./proxy-fallback
 
 EXPOSE 6001
 ENV NODE_ENV=production

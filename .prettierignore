@@ -8,3 +8,6 @@ apps/*/public/*.js
 
 # atc ships vendored frontend libs / browser JS with no build pipeline
 apps/atc/Web/public
+
+# atc cached upstream JSON snapshots served on proxy failure (data, not source)
+apps/atc/proxy-fallback

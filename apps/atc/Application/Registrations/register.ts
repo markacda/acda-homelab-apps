@@ -5,6 +5,7 @@ import cors from 'cors';
 import type { CorsOptions } from 'cors';
 import compression from 'compression';
 import { HttpAirplanesSource } from '../../Adapters/AirplanesLive/http-airplanes-source.ts';
+import { FallbackAirplanesSource } from '../../Adapters/AirplanesLive/fallback-airplanes-source.ts';
 import { AirplanesController } from '../Controllers/airplanes-controller.ts';
 import { errorMapping } from '../Filters/error-mapping.ts';
 
@@ -29,7 +30,9 @@ export function register(app: Express): void {
   // at "/".
   app.use(express.static(join(process.cwd(), 'Web', 'public'), { maxAge: '1d', etag: true }));
 
-  const source = new HttpAirplanesSource();
+  // Wrap the HTTP source so pass-through DB requests fall back to the cached
+  // snapshots under proxy-fallback/ when the upstream backend is unreachable.
+  const source = new FallbackAirplanesSource(new HttpAirplanesSource(), join(process.cwd(), 'proxy-fallback'));
   const controller = new AirplanesController(source);
   app.use('/api', controller.router);
 
