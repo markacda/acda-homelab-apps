@@ -1032,7 +1032,6 @@ function handleVisibilityChange() {
     // tab is no longer hidden
     if (!tabHidden && !timersActive) {
         loadFinished && jQuery("#timers_paused").css('display','none');
-        globeRateUpdate();
         if (heatmap || replay || globeIndex || pTracks) {
             noLongerHidden();
         } else {

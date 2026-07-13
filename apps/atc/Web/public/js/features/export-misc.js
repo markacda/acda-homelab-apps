@@ -514,15 +514,5 @@ function adjust_baro_alt(alt) {
     return res;
 }
 
-function globeRateUpdate() {
-    // globeRates.json (an upstream tar1090 file that steered the client refresh
-    // rate) was never vendored here and 404s upstream too, so this is a no-op.
-    // `dynGlobeRate` stays false, so no timer arms and no request is made.
-    return jQuery.Deferred().resolve();
-}
-globeRateUpdate();
-
-
-
 parseURLIcaos();
 initialize();
