@@ -496,71 +496,13 @@ function ol_map_init() {
         }
     });
 
-    // Long-press a plane to toggle its speed vector (touch + mouse-hold). This is the
-    // mobile-friendly equivalent of the desktop right-click handler above. We attach to
-    // the raw viewport so it works regardless of which OL map events fire; a ~500ms
-    // stationary press triggers the toggle, and any drag/pan (pointer move) cancels it.
-    let lpTimer = null;
-    let lpStart = null;
-    const LP_MS = 500;
-    const LP_MOVE = 12;
-    const vp = OLMap.getViewport();
-    const cancelLongPress = function() {
-        if (lpTimer) {
-            clearTimeout(lpTimer);
-            lpTimer = null;
-        }
-    };
-    vp.addEventListener('pointerdown', function(e) {
-        if (e.button && e.button !== 0) return; // primary button / touch only
-        longPressFired = false; // reset at the start of every gesture
-        lpStart = [e.clientX, e.clientY];
-        cancelLongPress();
-        lpTimer = setTimeout(function() {
-            lpTimer = null;
-            toggleSpeedVectorAtPixel(OLMap.getEventPixel(e));
-        }, LP_MS);
-    });
-    vp.addEventListener('pointermove', function(e) {
-        if (lpTimer && lpStart) {
-            const dx = e.clientX - lpStart[0];
-            const dy = e.clientY - lpStart[1];
-            if (dx * dx + dy * dy > LP_MOVE * LP_MOVE) {
-                cancelLongPress();
-            }
-        }
-    });
-    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function(t) {
-        vp.addEventListener(t, cancelLongPress);
-    });
+    // Speed vector toggle is handled by the map 'contextmenu' handler above, which
+    // fires for both a desktop right-click and a mobile touch-hold (Chrome Android
+    // synthesizes contextmenu from a long-press). A single path = a single toggle,
+    // so the vector no longer flickers on mobile.
 
     // show the hover box
     checkPointermove();
-}
-
-// Toggle the speed vector for the plane nearest the given screen pixel (if within the
-// same hit-tolerance the click/contextmenu handlers use). Skips `_vector` line features.
-function toggleSpeedVectorAtPixel(pixel) {
-    let evtCoords = OLMap.getCoordinateFromPixel(pixel);
-    let source = webgl ? webglFeatures : PlaneIconFeatures;
-    let feature = source.getClosestFeatureToCoordinate(evtCoords);
-    if (!feature) return;
-
-    let fPixel = OLMap.getPixelFromCoordinate(feature.getGeometry().getCoordinates());
-    let a = fPixel[0] - pixel[0];
-    let b = fPixel[1] - pixel[1];
-    let c = globalScale * (onMobile ? 30 : 20);
-    if (a**2 + b**2 >= c**2) return;
-
-    let planeHex = feature.hex;
-    if (!planeHex || planeHex.indexOf('_vector') >= 0) return;
-
-    let plane = g.planes[planeHex];
-    if (plane) {
-        plane.showSpeedVector = !plane.showSpeedVector;
-        plane.updateMarker();
-        longPressFired = true; // suppress the trailing synthetic click
-    }
 }
 
 // Header "D" button: toggle distance-measure interaction mode on/off.
