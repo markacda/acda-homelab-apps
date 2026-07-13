@@ -25,10 +25,11 @@ export function register(app: Express): void {
   app.use(cors(corsOptions));
   app.use(compression());
 
-  // Vendored browser frontend, served with light caching. Web/public resolves
-  // from cwd (app root in dev, /app in Docker); express.static serves index.html
-  // at "/".
-  app.use(express.static(join(process.cwd(), 'Web', 'public'), { maxAge: '1d', etag: true }));
+  // Vendored browser frontend, served always-revalidate (maxAge 0 + ETag): the
+  // browser revalidates every load so a redeploy is picked up immediately, while
+  // unchanged assets still return 304. Web/public resolves from cwd (app root in
+  // dev, /app in Docker); express.static serves index.html at "/".
+  app.use(express.static(join(process.cwd(), 'Web', 'public'), { maxAge: 0, etag: true }));
 
   // Wrap the HTTP source so pass-through DB requests fall back to the cached
   // snapshots under proxy-fallback/ when the upstream backend is unreachable.
