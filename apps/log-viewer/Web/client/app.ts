@@ -62,10 +62,10 @@ function mountLanding(root: HTMLElement): void {
   const logsTile = tile('#/logs', '📝', 'Logs', 'Browse & aggregate application logs');
   root.replaceChildren(el('section', { class: 'tiles' }, requestsTile.anchor, logsTile.anchor));
 
-  void fetchOverall('/api/stats').then((o) => {
+  void fetchOverall('api/stats').then((o) => {
     requestsTile.summary.textContent = o ? `${o.count.toLocaleString()} requests · ${o.errorCount.toLocaleString()} errors` : 'unavailable';
   });
-  void fetchOverall('/api/app-logs/stats').then((o) => {
+  void fetchOverall('api/app-logs/stats').then((o) => {
     logsTile.summary.textContent = o
       ? `${o.count.toLocaleString()} logs · ${o.errorCount.toLocaleString()} errors · ${(o.warnCount ?? 0).toLocaleString()} warnings`
       : 'unavailable';

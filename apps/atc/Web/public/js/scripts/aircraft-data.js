@@ -388,8 +388,10 @@ function fetchData(options) {
     radiusNM = Math.max(25, Math.min(250, radiusNM)); // Clamp between 25 and 250 NM
 
     let ac_url = [];
-    // Call local proxy server which forwards to api.airplanes.live
-    let apiUrl = `/api/airplanes/${mapCenter[1].toFixed(4)}/${mapCenter[0].toFixed(4)}/${Math.round(radiusNM)}`;
+    // Call local proxy server which forwards to api.airplanes.live. Relative
+    // (no leading slash) so it works both directly and behind the reverse proxy
+    // (served under /atc), matching the other api/... calls.
+    let apiUrl = `api/airplanes/${mapCenter[1].toFixed(4)}/${mapCenter[0].toFixed(4)}/${Math.round(radiusNM)}`;
     ac_url.push(apiUrl);
 
     pendingFetches += ac_url.length;
