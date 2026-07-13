@@ -1926,10 +1926,27 @@ function altitudeLines (segment) {
         color = monochromeTracks;
 
     const modeS = (segment.dataSource == 'modeS');
-    const lineKey = '_' + color + debugTracks + noVanish + segment.estimated + newWidth + modeS + segment.noLabel + segment.estimatedFill;
+    const lineKey = '_' + color + debugTracks + noVanish + segment.estimated + newWidth + modeS + segment.noLabel + segment.estimatedFill + atcStyle;
 
     if (lineStyleCache[lineKey])
         return lineStyleCache[lineKey];
+
+    // ATC mode: render the trail as a line of colored dots (same altitude color as
+    // the plane), with no connecting stroke — regardless of estimated/modeS/fresh state.
+    if (atcStyle) {
+        lineStyleCache[lineKey] = new ol.style.Style({
+            image: new ol.style.Circle({
+                radius: 2 * newWidth,
+                fill: new ol.style.Fill({
+                    color: color
+                })
+            }),
+            geometry: function(feature) {
+                return new ol.geom.MultiPoint(feature.getGeometry().getCoordinates());
+            }
+        });
+        return lineStyleCache[lineKey];
+    }
 
     let multiplier = segment.estimated ? 0.6 : 1;
 

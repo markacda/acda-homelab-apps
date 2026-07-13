@@ -108,6 +108,9 @@ function toggleAtcStyle() {
         g.planesOrdered[key].updateMarker();
     }
 
+    remakeTrails();     // rebuild trail features so they pick up the dots/line style
+    refreshSelected();
+
     buttonActive('#A', atcStyle);
 }
 
