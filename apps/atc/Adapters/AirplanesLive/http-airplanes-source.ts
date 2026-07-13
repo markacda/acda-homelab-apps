@@ -19,7 +19,10 @@ export class HttpAirplanesSource implements AirplanesSource {
   }
 
   fetchGlobe(path: string, userAgent?: string): Promise<unknown> {
-    const url = `https://globe.airplanes.live/${path}`;
+    // The aircraft database moved to static.airplanes.live/db/; live traces and
+    // globe_history still come from globe.airplanes.live.
+    const base = path.startsWith('db/') ? 'https://static.airplanes.live/' : 'https://globe.airplanes.live/';
+    const url = `${base}${path}`;
     console.log(`[${new Date().toISOString()}] Fetching ${url}`);
     return this.call(url, userAgent);
   }

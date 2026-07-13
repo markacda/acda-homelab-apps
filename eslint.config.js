@@ -17,6 +17,8 @@ export default [
       // source, not the generated output.
       'apps/*/Web/public/*.js',
       'apps/atc/Web/public/**',
+      // Cached upstream JSON snapshots served on proxy failure — data, not code.
+      'apps/atc/proxy-fallback/**',
     ],
   },
   js.configs.recommended,
