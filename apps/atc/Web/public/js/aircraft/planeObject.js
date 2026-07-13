@@ -1933,6 +1933,8 @@ function altitudeLines (segment) {
 
     // ATC mode: render the trail as a line of colored dots (same altitude color as
     // the plane), with no connecting stroke — regardless of estimated/modeS/fresh state.
+    // One dot per segment (its own position); updateLines() decimates which segments
+    // draw so the dots land roughly every other update (~6s) instead of every update.
     if (atcStyle) {
         lineStyleCache[lineKey] = new ol.style.Style({
             image: new ol.style.Circle({
@@ -1942,7 +1944,7 @@ function altitudeLines (segment) {
                 })
             }),
             geometry: function(feature) {
-                return new ol.geom.MultiPoint(feature.getGeometry().getCoordinates());
+                return new ol.geom.Point(feature.getGeometry().getFirstCoordinate());
             }
         });
         return lineStyleCache[lineKey];
@@ -2069,10 +2071,21 @@ PlaneObject.prototype.updateLines = function() {
 
     // create any missing fixed line features
 
+    // ATC mode draws the trail as dots; thin them to every other update (~6s) by
+    // keeping only segments whose timestamp falls in an even RefreshInterval bucket.
+    const dotStep = (RefreshInterval > 0 ? RefreshInterval : 3000) / 1000;
+
     for (let i = this.track_linesegs.length-1; i >= 0; i--) {
         let seg = this.track_linesegs[i];
         if (seg.feature && (!trackLabels || seg.label))
             break;
+
+        if (atcStyle && !seg.feature && (Math.floor(seg.ts / dotStep) % 2) !== 0) {
+            // skip this dot to space the trail out to ~2x the update interval
+            seg.feature = true;
+            seg.label = true;
+            continue;
+        }
 
         if ((filterTracks && altFiltered(seg.altitude)) || altitudeLines(seg) == nullStyle) {
             seg.feature = true;
