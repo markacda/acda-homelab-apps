@@ -44,6 +44,10 @@ let distanceMode = false;
 // Set true when a long-press toggled a speed vector, so the following synthetic
 // click is swallowed instead of (de)selecting the plane.
 let longPressFired = false;
+// Timestamp (performance.now()) until which map clicks are swallowed after a
+// long-press. Anchored at pointer release so it covers both the touch `click`
+// and the trailing compatibility-mouse `click`, regardless of press duration.
+let suppressClicksUntil = 0;
 let iconLayer;
 let trailLayers;
 let heatFeatures = [];

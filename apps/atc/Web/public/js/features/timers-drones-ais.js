@@ -31,9 +31,6 @@ function setIntervalTimers() {
         jQuery("#timers_paused").css('display','none');
     }
     console.log(localTime(new Date()) + " set timers ");
-    if (dynGlobeRate && !uuid) {
-        timers.globeRateUpdate = setInterval(globeRateUpdate, 180000);
-    }
     pollPositionInterval();
     setAutoselect();
 

@@ -514,30 +514,5 @@ function adjust_baro_alt(alt) {
     return res;
 }
 
-function globeRateUpdate() {
-    if (aggregator) {
-        dynGlobeRate = true;
-        if (0) {
-            const cookieExp = getCookie('asdf_id').split('_')[0];
-            const ts = new Date().getTime();
-            if (!cookieExp || cookieExp < ts + 3600*1000)
-                setCookie('airplanes_live_sid', ((ts + 2*86400*1000) + '_' + Math.random().toString(36).substring(2, 15)), 2);
-        }
-    }
-    if (dynGlobeRate) {
-        return jQuery.ajax({url:'/globeRates.json', cache: false, dataType: 'json', }).done(function(data) {
-            if (data.simload != null)
-                globeSimLoad = data.simload;
-            if (data.refresh != null && globeIndex)
-                RefreshInterval = data.refresh;
-        });
-    } else {
-        return jQuery.Deferred().resolve();
-    }
-}
-globeRateUpdate();
-
-
-
 parseURLIcaos();
 initialize();

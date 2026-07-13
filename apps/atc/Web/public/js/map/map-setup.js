@@ -265,9 +265,10 @@ function ol_map_init() {
     });
 
     OLMap.on(['click', 'dblclick'], function(evt) {
-        // A long-press just toggled a speed vector; swallow the trailing click.
-        if (longPressFired) {
-            longPressFired = false;
+        // A long-press just toggled a speed vector; swallow the trailing click(s).
+        // On touch this covers both OL's click (from the touch pointerup) and the
+        // browser's compatibility-mouse click that follows touchend.
+        if (performance.now() < suppressClicksUntil) {
             evt.stopPropagation();
             return;
         }
@@ -531,7 +532,15 @@ function ol_map_init() {
         }
     });
     ['pointerup', 'pointercancel', 'pointerleave'].forEach(function(t) {
-        vp.addEventListener(t, cancelLongPress);
+        vp.addEventListener(t, function() {
+            // If this gesture toggled a speed vector, swallow every click that
+            // fires shortly after release (the touch click + the compatibility
+            // mouse click), so the plane isn't also selected.
+            if (longPressFired) {
+                suppressClicksUntil = performance.now() + 700;
+            }
+            cancelLongPress();
+        });
     });
 
     // show the hover box
@@ -559,7 +568,9 @@ function toggleSpeedVectorAtPixel(pixel) {
     if (plane) {
         plane.showSpeedVector = !plane.showSpeedVector;
         plane.updateMarker();
-        longPressFired = true; // suppress the trailing synthetic click
+        // Mark this gesture as a long-press; the pointerup handler then swallows
+        // the trailing click(s) so the plane isn't also selected.
+        longPressFired = true;
     }
 }
 

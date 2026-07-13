@@ -174,11 +174,6 @@ function fetchFail(jqxhr, status, error) {
             jQuery("#update_error_detail").text(errText);
             jQuery("#update_error").css('display','block');
             StaleReceiverCount++;
-        } else {
-            if (C429++ > 16) {
-                globeRateUpdate();
-                C429 = 0;
-            }
         }
     } catch (e) {
         console.error(e);
@@ -321,7 +316,6 @@ function afterFirstFetch() {
 }
 
 let debugFetch = false;
-let C429 = 0;
 let fetchCalls = 0;
 let fetchDoneCount = 0;
 function fetchData(options) {

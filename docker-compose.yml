@@ -9,6 +9,7 @@ services:
     container_name: atc-frontend
     labels:
       - 'homelab.name=ATC'
+      - 'homelab.icon=✈️'
     ports:
       # Host 6001 avoids Home Assistant's used ports (80/443 proxy, 8123, 1883, 4357)
       - '6001:6001'
@@ -33,6 +34,7 @@ services:
     container_name: ev-crossover
     labels:
       - 'homelab.name=Laden of tanken?'
+      - 'homelab.icon=🔌'
     ports:
       - '6002:6002'
     environment:
@@ -56,6 +58,7 @@ services:
     container_name: dynamic-vs-fixed
     labels:
       - 'homelab.name=Dynamisch of vast contract?'
+      - 'homelab.icon=⚡'
     ports:
       - '6003:6003'
     environment:
@@ -81,6 +84,7 @@ services:
     container_name: log-viewer
     labels:
       - 'homelab.name=Logs'
+      - 'homelab.icon=🪲'
     ports:
       - '6004:6004'
     environment:
@@ -115,6 +119,7 @@ services:
     container_name: recipe-book
     labels:
       - 'homelab.name=Receptenboek'
+      - 'homelab.icon=🍳'
     ports:
       - '6005:6005'
     environment:
