@@ -46,6 +46,34 @@ function toggleLabels() {
         remakeTrails();
 }
 
+function toggleBandGround() {
+    showBandGround = !showBandGround;
+    loStore['bandGround'] = showBandGround;
+    refreshFeatures();
+    buttonActive('#band_G', showBandGround);
+}
+
+function toggleBandTower() {
+    showBandTower = !showBandTower;
+    loStore['bandTower'] = showBandTower;
+    refreshFeatures();
+    buttonActive('#band_T', showBandTower);
+}
+
+function toggleBandApproach() {
+    showBandApproach = !showBandApproach;
+    loStore['bandApproach'] = showBandApproach;
+    refreshFeatures();
+    buttonActive('#band_A', showBandApproach);
+}
+
+function toggleBandArea() {
+    showBandArea = !showBandArea;
+    loStore['bandArea'] = showBandArea;
+    refreshFeatures();
+    buttonActive('#band_C', showBandArea);
+}
+
 function toggleExtendedLabels(options) {
     if (isNaN(g.extendedLabels))
         g.extendedLabels = 0;

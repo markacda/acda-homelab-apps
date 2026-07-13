@@ -247,6 +247,12 @@ if (usp.has('atcStyle')) {
     atcStyle = true;
 }
 
+// altitude-band visibility toggles (G/T/A/C). G defaults off, T/A/C default on.
+let showBandGround   = (loStore['bandGround']   == "true");
+let showBandTower    = (loStore['bandTower']    != "false");
+let showBandApproach = (loStore['bandApproach'] != "false");
+let showBandArea     = (loStore['bandArea']     != "false");
+
 const customTiles = usp.get('customTiles');
 if (customTiles)
     loStore['customTiles'] = customTiles;

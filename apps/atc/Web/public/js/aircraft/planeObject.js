@@ -765,8 +765,27 @@ PlaneObject.prototype.getMarkerColor = function(options) {
     return [h, s, l];
 };
 
-function altitudeColor(altitude) {
+// Whether the altitude-band toggle (G/T/A/C) for this altitude is enabled.
+// A pure function of altitude, so it drives marker color, label and trail alike.
+function altBandActive(altitude) {
     altitude = adjust_baro_alt(altitude);
+    if (altitude == null) return true;              // unknown alt: leave as-is
+    if (altitude === "ground") return showBandGround;
+    if (altitude <= 2000) return showBandTower;
+    if (altitude <= 6000) return showBandApproach;
+    return showBandArea;
+}
+
+function altitudeColor(altitude) {
+    const bandOn = altBandActive(altitude);
+    altitude = adjust_baro_alt(altitude);
+    // Muted band -> grey (as grounded aircraft render by default).
+    // Active ground -> color like air at 0 ft (the lowest-altitude ramp color).
+    if (!bandOn) {
+        altitude = "ground";
+    } else if (altitude === "ground") {
+        altitude = 0;
+    }
     let h, s, l;
 
     if (altitude == null) {
@@ -850,7 +869,7 @@ PlaneObject.prototype.updateIcon = function() {
 
     if ( g.enableLabels && (!multiSelect || (multiSelect && this.selected)) &&
         (
-            (g.zoomLvl >= labelZoom && this.altitude != "ground" && this.dataSource != "ais")
+            (g.zoomLvl >= labelZoom && altBandActive(this.altitude) && this.dataSource != "ais")
             || (g.zoomLvl >= labelZoomGround - 2 && this.speed > 5 && !this.fakeHex)
             || (g.zoomLvl >= labelZoomGround + 0 && !this.fakeHex)
             || (g.zoomLvl >= labelZoomGround + 1)
@@ -1997,7 +2016,7 @@ function altitudeLines (segment) {
 // Update our planes tail line,
 PlaneObject.prototype.updateLines = function() {
     this.drawLine = false;
-    if (!this.visible || this.position == null || (!this.selected && !SelectedAllPlanes)) {
+    if (!this.visible || this.position == null || (!this.selected && !SelectedAllPlanes && !altBandActive(this.altitude))) {
         if (this.linesDrawn) {
             this.clearLines();
         }
