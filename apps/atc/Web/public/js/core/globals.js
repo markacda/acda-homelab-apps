@@ -1,19 +1,19 @@
 // This was functionality of script.js, moved it to here to start the downloading of track history earlier
-"use strict";
+'use strict';
 
-console.time("Page Load");
+console.time('Page Load');
 
 // TAR1090 application object
 let TAR;
 TAR = (function (global, jQuery, TAR) {
-    return TAR;
-}(window, jQuery, TAR || {}));
+  return TAR;
+})(window, jQuery, TAR || {});
 
 // global object to store big stuff ... avoid clojur stupidity keeping the reference to big objects
 let g = {};
 
 let loadFinished = false;
-let Dump1090Version = "unknown version";
+let Dump1090Version = 'unknown version';
 let RefreshInterval = 3000;
 let globeSimLoad = 6;
 let aggregator = false;
@@ -65,46 +65,52 @@ let inhibitFetch = false;
 
 let usp;
 try {
-    // let's make this case insensitive
-    usp = {
-        params: new URLSearchParams(),
-        has: function(s) {return this.params.has(s.toLowerCase());},
-        get: function(s) {
-            let val = this.params.get(s.toLowerCase());
-            if (val) {
-                // make XSS a bit harder
-                val = val.replace(/[<>#&]/g, '');
-                //console.log("usp.get(" + s + ") = " + val);
-            }
-            return val;
-        },
-        getFloat: function(s) {
-            if (!this.params.has(s.toLowerCase())) return null;
-            const param =  this.params.get(s.toLowerCase());
-            if (!param) return null;
-            const val = parseFloat(param);
-            if (isNaN(val)) return null;
-            return val;
-        },
-        getInt: function(s)  {
-            if (!this.params.has(s.toLowerCase())) return null;
-            const param =  this.params.get(s.toLowerCase());
-            if (!param) return null;
-            const val = parseInt(param, 10);
-            if (isNaN(val)) return null;
-            return val;
-        }
-    };
-    const inputParams = new URLSearchParams(window.location.search);
-    for (const [k, v] of inputParams) {
-        usp.params.append(k.toLowerCase(), v);
-    }
+  // let's make this case insensitive
+  usp = {
+    params: new URLSearchParams(),
+    has: function (s) {
+      return this.params.has(s.toLowerCase());
+    },
+    get: function (s) {
+      let val = this.params.get(s.toLowerCase());
+      if (val) {
+        // make XSS a bit harder
+        val = val.replace(/[<>#&]/g, '');
+        //console.log("usp.get(" + s + ") = " + val);
+      }
+      return val;
+    },
+    getFloat: function (s) {
+      if (!this.params.has(s.toLowerCase())) return null;
+      const param = this.params.get(s.toLowerCase());
+      if (!param) return null;
+      const val = parseFloat(param);
+      if (isNaN(val)) return null;
+      return val;
+    },
+    getInt: function (s) {
+      if (!this.params.has(s.toLowerCase())) return null;
+      const param = this.params.get(s.toLowerCase());
+      if (!param) return null;
+      const val = parseInt(param, 10);
+      if (isNaN(val)) return null;
+      return val;
+    },
+  };
+  const inputParams = new URLSearchParams(window.location.search);
+  for (const [k, v] of inputParams) {
+    usp.params.append(k.toLowerCase(), v);
+  }
 } catch (error) {
-    console.error(error);
-    usp = {
-        has: function() {return false;},
-        get: function() {return null;},
-    }
+  console.error(error);
+  usp = {
+    has: function () {
+      return false;
+    },
+    get: function () {
+      return null;
+    },
+  };
 }
 
 var loStore;
@@ -113,7 +119,7 @@ var loStore;
 // Mimics localStorage, including events.
 // It will work just like localStorage, except for the persistant storage part.
 
-var fakeLocalStorage = function() {
+var fakeLocalStorage = function () {
   var fakeLocalStorage = {};
   var storage;
   // If Storage exists we modify it to write to our fakeLocalStorage object instead.
@@ -122,600 +128,587 @@ var fakeLocalStorage = function() {
   storage = loStore;
   // For older IE
   if (!window.location.origin) {
-    window.location.origin = window.location.protocol + "//" + window.location.hostname + (window.location.port ? ':' + window.location.port: '');
+    window.location.origin = window.location.protocol + '//' + window.location.hostname + (window.location.port ? ':' + window.location.port : '');
   }
-  var dispatchStorageEvent = function(key, newValue) {
-    var oldValue = (key == null) ? null : storage.getItem(key); // `==` to match both null and undefined
+  var dispatchStorageEvent = function (key, newValue) {
+    var oldValue = key == null ? null : storage.getItem(key); // `==` to match both null and undefined
     var url = location.href.substr(location.origin.length);
     var storageEvent = document.createEvent('StorageEvent'); // For IE, http://stackoverflow.com/a/25514935/1214183
     storageEvent.initStorageEvent('storage', false, false, key, oldValue, newValue, url, null);
     window.dispatchEvent(storageEvent);
   };
-  storage.key = function(i) {
+  storage.key = function (i) {
     var key = Object.keys(fakeLocalStorage)[i];
     return typeof key === 'string' ? key : null;
   };
-  storage.getItem = function(key) {
+  storage.getItem = function (key) {
     return typeof fakeLocalStorage[key] === 'string' ? fakeLocalStorage[key] : null;
   };
-  storage.setItem = function(key, value) {
+  storage.setItem = function (key, value) {
     dispatchStorageEvent(key, value);
     fakeLocalStorage[key] = String(value);
   };
-  storage.removeItem = function(key) {
+  storage.removeItem = function (key) {
     dispatchStorageEvent(key, null);
     delete fakeLocalStorage[key];
   };
-  storage.clear = function() {
+  storage.clear = function () {
     dispatchStorageEvent(null, null);
     fakeLocalStorage = {};
   };
 };
 
-
-if (true || window.location.href.match(/airplanes.live/) && window.location.pathname == '/') {
-    aggregator = true;
+if (true || (window.location.href.match(/airplanes.live/) && window.location.pathname == '/')) {
+  aggregator = true;
 }
 if (0 && window.self != window.top) {
-    fakeLocalStorage();
+  fakeLocalStorage();
 } else {
-    try {
-        loStore = window.localStorage;
-        loStore.setItem('localStorageTest', 1);
-        loStore.removeItem('localStorageTest');
-    } catch (error) {
-
-        fakeLocalStorage();
-        /*
+  try {
+    loStore = window.localStorage;
+    loStore.setItem('localStorageTest', 1);
+    loStore.removeItem('localStorageTest');
+  } catch (error) {
+    fakeLocalStorage();
+    /*
     const splat = "Your browser isn't supporting localStorage.\nSafari / Apple: turn off \"Block Cookies\"!";
     jQuery("#js_error").text(splat);
     jQuery("#js_error").css('display','block');
     throw 'FATAL, your browser does not support localStorage!';
     */
-    }
+  }
 }
 
 const lopaStore = new Proxy(loStore, {
-    get(loStore, key) {
-        key = String(window.location.origin) + String(window.location.pathname) + key;
-        return loStore[key];
-    },
-    set(loStore, key, value) {
-        key = String(window.location.origin) + String(window.location.pathname) + key;
-        return loStore[key] = value;
-    },
+  get(loStore, key) {
+    key = String(window.location.origin) + String(window.location.pathname) + key;
+    return loStore[key];
+  },
+  set(loStore, key, value) {
+    key = String(window.location.origin) + String(window.location.pathname) + key;
+    return (loStore[key] = value);
+  },
 });
 
 let firstError = true;
 if (usp.has('showerrors') || usp.has('jse')) {
-    window.onerror = function (msg, url, lineNo, columnNo, error) {
-        if (firstError) {
-            firstError = false;
-            let splat = '';
-            splat += 'Uncaught JS Error:' + url + ' line ' + lineNo + '\n';
-            splat += msg + '\n';
-            if (error && error.stack)
-                splat += '\n' + error.stack;
-            jQuery("#js_error").text(splat);
-            jQuery("#js_error").css('display','block');
-        }
-        return false;
+  window.onerror = function (msg, url, lineNo, columnNo, error) {
+    if (firstError) {
+      firstError = false;
+      let splat = '';
+      splat += 'Uncaught JS Error:' + url + ' line ' + lineNo + '\n';
+      splat += msg + '\n';
+      if (error && error.stack) splat += '\n' + error.stack;
+      jQuery('#js_error').text(splat);
+      jQuery('#js_error').css('display', 'block');
     }
+    return false;
+  };
 } else {
-    window.onerror = function (msg, url, lineNo, columnNo, error) {
-        return false;
-    }
+  window.onerror = function (msg, url, lineNo, columnNo, error) {
+    return false;
+  };
 }
 
 function resetSettings() {
-    loStore.clear();
-    if (window.history && window.history.replaceState) {
-        window.history.replaceState("object or string", "Title", window.location.pathname);
-        location.reload();
-    }
+  loStore.clear();
+  if (window.history && window.history.replaceState) {
+    window.history.replaceState('object or string', 'Title', window.location.pathname);
+    location.reload();
+  }
 }
 if (usp.has('reset')) {
-    resetSettings();
+  resetSettings();
 }
 
 const feed = usp.get('feed');
 if (feed != null) {
-    console.log('feed: ' + feed);
-    let split = feed.split(',');
-    if (split.length > 0) {
-        uuid = [];
-        for (let i in split) {
-            uuid.push(encodeURIComponent(split[i]));
-        }
-    } else {
-        console.error('uuid / feed fail!');
+  console.log('feed: ' + feed);
+  let split = feed.split(',');
+  if (split.length > 0) {
+    uuid = [];
+    for (let i in split) {
+      uuid.push(encodeURIComponent(split[i]));
     }
+  } else {
+    console.error('uuid / feed fail!');
+  }
 }
 if (usp.has('uuid')) {
-    filterUuid = usp.get('uuid');
+  filterUuid = usp.get('uuid');
 }
 if (usp.has('tfrs')) {
-    tfrs = true;
+  tfrs = true;
 }
 
 let uk_advisory = false;
 if (usp.has('uk_advisory')) {
-    uk_advisory = true;
+  uk_advisory = true;
 }
-let atcStyle = (loStore['atcStyle'] != "false");
+let atcStyle = loStore['atcStyle'] != 'false';
 if (usp.has('atcStyle')) {
-    atcStyle = true;
+  atcStyle = true;
 }
 
 // altitude-band visibility toggles (G/T/A/C). G defaults off, T/A/C default on.
-let showBandGround   = (loStore['bandGround']   == "true");
-let showBandTower    = (loStore['bandTower']    != "false");
-let showBandApproach = (loStore['bandApproach'] != "false");
-let showBandArea     = (loStore['bandArea']     != "false");
+let showBandGround = loStore['bandGround'] == 'true';
+let showBandTower = loStore['bandTower'] != 'false';
+let showBandApproach = loStore['bandApproach'] != 'false';
+let showBandArea = loStore['bandArea'] != 'false';
 
 const customTiles = usp.get('customTiles');
-if (customTiles)
-    loStore['customTiles'] = customTiles;
-if (customTiles == 'remove')
-    loStore.removeItem('customTiles');
+if (customTiles) loStore['customTiles'] = customTiles;
+if (customTiles == 'remove') loStore.removeItem('customTiles');
 
 const bingKey = usp.get('BingMapsAPIKey');
-if (bingKey)
-    loStore['bingKey'] = bingKey;
-if (bingKey == 'remove')
-    loStore.removeItem('bingKey');
+if (bingKey) loStore['bingKey'] = bingKey;
+if (bingKey == 'remove') loStore.removeItem('bingKey');
 
 if (usp.has('l3harris') || usp.has('ift')) {
-    l3harris = true;
+  l3harris = true;
 }
 if (usp.has('r') || usp.has('replay')) {
-    replay = true;
+  replay = true;
 }
 function arraybufferRequest() {
-    let xhrOverride = new XMLHttpRequest();
-    xhrOverride.responseType = 'arraybuffer';
-    return xhrOverride;
+  let xhrOverride = new XMLHttpRequest();
+  xhrOverride.responseType = 'arraybuffer';
+  return xhrOverride;
 }
 
 if (usp.has('heatmap') || usp.has('realHeat')) {
+  heatmap = {};
 
-    heatmap = {};
+  heatmap.max = 32000;
+  heatmap.init = true;
+  heatmap.duration = 24;
+  heatmap.end = new Date().getTime();
 
-    heatmap.max = 32000;
-    heatmap.init = true;
-    heatmap.duration = 24;
-    heatmap.end = (new Date()).getTime();
+  let tmp = parseFloat(usp.get('heatDuration'));
+  if (!isNaN(tmp)) heatmap.duration = tmp;
+  if (heatmap.duration < 0.5) heatmap.duration = 0.5;
+  tmp = parseFloat(usp.get('heatEnd'));
+  if (!isNaN(tmp)) heatmap.end -= tmp * 3600 * 1000;
+  if (usp.has('heatLines')) heatmap.lines = true;
+  if (usp.has('heatfilters')) heatmap.filters = true;
+  tmp = parseFloat(usp.get('heatAlpha'));
+  if (!isNaN(tmp)) {
+    heatmap.alpha = tmp;
+    console.log('heatmap.alpha = ' + tmp);
+  }
+  heatmap.radius = 2.5;
+  if (usp.has('realHeat')) {
+    heatmap.max = 50000;
+    heatmap.real = true;
+    heatmap.radius = 1.5;
+    heatmap.blur = 4;
+    heatmap.weight = 0.25;
 
-    let tmp = parseFloat(usp.get('heatDuration'));
-    if (!isNaN(tmp))
-        heatmap.duration = tmp;
-    if (heatmap.duration < 0.5)
-        heatmap.duration = 0.5;
-    tmp = parseFloat(usp.get('heatEnd'));
-    if (!isNaN(tmp))
-        heatmap.end -= tmp * 3600 * 1000;
-    if (usp.has('heatLines'))
-        heatmap.lines = true;
-    if (usp.has('heatfilters'))
-        heatmap.filters = true;
-    tmp = parseFloat(usp.get('heatAlpha'));
-    if (!isNaN(tmp)) {
-        heatmap.alpha = tmp;
-        console.log('heatmap.alpha = ' + tmp);
-    }
-    heatmap.radius = 2.5;
-    if (usp.has('realHeat')) {
-        heatmap.max = 50000;
-        heatmap.real = true;
-        heatmap.radius = 1.5;
-        heatmap.blur = 4;
-        heatmap.weight = 0.25;
+    tmp = parseFloat(usp.get('heatBlur'));
+    if (!isNaN(tmp)) heatmap.blur = tmp;
 
-        tmp = parseFloat(usp.get('heatBlur'));
-        if (!isNaN(tmp))
-            heatmap.blur = tmp;
-
-        tmp = parseFloat(usp.get('heatWeight'));
-        if (!isNaN(tmp))
-            heatmap.weight = tmp;
-    }
-    tmp = parseFloat(usp.get('heatRadius'));
-    if (!isNaN(tmp))
-        heatmap.radius = tmp;
-    let val;
-    if (val = parseInt(usp.get('heatmap'), 10))
-        heatmap.max = val;
-    if (usp.has('heatManualRedraw'))
-        heatmap.manualRedraw = true;
+    tmp = parseFloat(usp.get('heatWeight'));
+    if (!isNaN(tmp)) heatmap.weight = tmp;
+  }
+  tmp = parseFloat(usp.get('heatRadius'));
+  if (!isNaN(tmp)) heatmap.radius = tmp;
+  let val;
+  if ((val = parseInt(usp.get('heatmap'), 10))) heatmap.max = val;
+  if (usp.has('heatManualRedraw')) heatmap.manualRedraw = true;
 }
 {
-    let value;
-    if ((value = usp.getFloat('pTracksInterval')) != null) {
-        pTracksInterval = value;
-    }
+  let value;
+  if ((value = usp.getFloat('pTracksInterval')) != null) {
+    pTracksInterval = value;
+  }
 }
 if (usp.has('pTracks')) {
-    let tmp = parseFloat(usp.get('pTracks'))
-    if (tmp > 0 && tmp < 9999)
-        pTracks = tmp;
-    else
-        pTracks = 9999;
+  let tmp = parseFloat(usp.get('pTracks'));
+  if (tmp > 0 && tmp < 9999) pTracks = tmp;
+  else pTracks = 9999;
 }
 
 function getDay(date) {
-    if ((utcTimesLive && !showTrace) || (utcTimesHistoric && showTrace))
-        return date.getUTCDate();
-    else
-        return date.getDate();
+  if ((utcTimesLive && !showTrace) || (utcTimesHistoric && showTrace)) return date.getUTCDate();
+  else return date.getDate();
 }
 function zuluTime(date) {
-    return date.getUTCHours().toString().padStart(2,'0')
-        + ":" + date.getUTCMinutes().toString().padStart(2,'0')
-        + ":" + date.getUTCSeconds().toString().padStart(2,'0');
+  return (
+    date.getUTCHours().toString().padStart(2, '0') +
+    ':' +
+    date.getUTCMinutes().toString().padStart(2, '0') +
+    ':' +
+    date.getUTCSeconds().toString().padStart(2, '0')
+  );
 }
 let TIMEZONE;
 if (navigator.language == 'en-US') {
-    TIMEZONE = new Date().toLocaleTimeString('en-US', {timeZoneName:'short'}).split(' ')[2];
+  TIMEZONE = new Date().toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ')[2];
 } else {
-    TIMEZONE = new Date().toLocaleTimeString('en-GB', {timeZoneName:'short'}).split(' ')[1];
+  TIMEZONE = new Date().toLocaleTimeString('en-GB', { timeZoneName: 'short' }).split(' ')[1];
 }
-TIMEZONE = TIMEZONE.replace("GMT", "UTC");
+TIMEZONE = TIMEZONE.replace('GMT', 'UTC');
 function localTime(date) {
-    return date.getHours().toString().padStart(2,'0')
-        + ":" + date.getMinutes().toString().padStart(2,'0')
-        + ":" + date.getSeconds().toString().padStart(2,'0');
+  return (
+    date.getHours().toString().padStart(2, '0') +
+    ':' +
+    date.getMinutes().toString().padStart(2, '0') +
+    ':' +
+    date.getSeconds().toString().padStart(2, '0')
+  );
 }
 function zDateString(date) {
-    let string = date.getUTCFullYear() + '-'
-        + (date.getUTCMonth() + 1).toString().padStart(2, '0') + '-'
-        + date.getUTCDate().toString().padStart(2, '0')
-    return string;
+  let string =
+    date.getUTCFullYear() + '-' + (date.getUTCMonth() + 1).toString().padStart(2, '0') + '-' + date.getUTCDate().toString().padStart(2, '0');
+  return string;
 }
 
 function sDateString(date) {
-    let string = date.getUTCFullYear() + '/'
-        + (date.getUTCMonth() + 1).toString().padStart(2, '0') + '/'
-        + date.getUTCDate().toString().padStart(2, '0')
-    return string;
+  let string =
+    date.getUTCFullYear() + '/' + (date.getUTCMonth() + 1).toString().padStart(2, '0') + '/' + date.getUTCDate().toString().padStart(2, '0');
+  return string;
 }
 
 function lDateString(date) {
-    let string = date.getFullYear() + '-'
-        + (date.getMonth() + 1).toString().padStart(2, '0') + '-'
-        + date.getDate().toString().padStart(2, '0')
-    return string;
+  let string = date.getFullYear() + '-' + (date.getMonth() + 1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0');
+  return string;
 }
 
 function chunksDefer() {
-    return jQuery.ajax({
-        url:'chunks/chunks.json',
-        cache: false,
-        dataType: 'json',
-        timeout: 4000,
-    });
+  return jQuery.ajax({
+    url: 'chunks/chunks.json',
+    cache: false,
+    dataType: 'json',
+    timeout: 4000,
+  });
 }
 
 function handleJsonWorker(e) {
-    const url = e.data.url;
-    //console.log("url finished: " + url);
-    const defer = g.jwr[url];
-    delete g.jwr[url];
+  const url = e.data.url;
+  //console.log("url finished: " + url);
+  const defer = g.jwr[url];
+  delete g.jwr[url];
 
-    defer.resolve(e.data.json);
-};
+  defer.resolve(e.data.json);
+}
 
 function jsonGetWorker(url) {
-    const defer = jQuery.Deferred();
-    g.jwr[url] = defer;
-    const wid = g.jsonGetId++ % g.jsonWorker.length;
-    //console.log(`using worker ${wid}`);
-    g.jsonWorker[wid].postMessage(url);
+  const defer = jQuery.Deferred();
+  g.jwr[url] = defer;
+  const wid = g.jsonGetId++ % g.jsonWorker.length;
+  //console.log(`using worker ${wid}`);
+  g.jsonWorker[wid].postMessage(url);
 
-    return defer;
+  return defer;
 }
 
 g.jWorkers = 0;
 if (g.jWorkers) {
-    g.jwr = {};
+  g.jwr = {};
 
-    g.jsonWorker = [];
-    g.jsonGetId = 0;
+  g.jsonWorker = [];
+  g.jsonGetId = 0;
 
-    for (let i = 0; i < g.jWorkers; i++) {
-        const worker = new Worker("js/util/jsonWorker.js");
-        g.jsonWorker.push(worker);
-        worker.onmessage = handleJsonWorker;
-    }
-
+  for (let i = 0; i < g.jWorkers; i++) {
+    const worker = new Worker('js/util/jsonWorker.js');
+    g.jsonWorker.push(worker);
+    worker.onmessage = handleJsonWorker;
+  }
 }
 
 let get_receiver_defer;
 let test_chunk_defer;
 const hostname = window.location.hostname;
 if (uuid) {
-    // don't need receiver / chunks json
+  // don't need receiver / chunks json
 } else if (aggregator) {
-    console.log("Using aggregator fast-path load!");
-    let data = {"reapi":true,"refresh":3000,"history":1,"dbServer":true,"globeIndexGrid":3,"globeIndexSpecialTiles":[],"version":"aggregator backend"};
-    get_receiver_defer = jQuery.Deferred().resolve(data);
-    test_chunk_defer = jQuery.Deferred().reject();
+  console.log('Using aggregator fast-path load!');
+  let data = { reapi: true, refresh: 3000, history: 1, dbServer: true, globeIndexGrid: 3, globeIndexSpecialTiles: [], version: 'aggregator backend' };
+  get_receiver_defer = jQuery.Deferred().resolve(data);
+  test_chunk_defer = jQuery.Deferred().reject();
 } else {
-    // get configuration json files, will be used in initialize function
+  // get configuration json files, will be used in initialize function
 
-    {get_receiver_defer = jQuery.ajax({
-        url: 'data/receiver.json',
-        cache: false,
-        dataType: 'json',
-        timeout: 10000,
-    });}
-    {test_chunk_defer = chunksDefer();}
+  {
+    get_receiver_defer = jQuery.ajax({
+      url: 'data/receiver.json',
+      cache: false,
+      dataType: 'json',
+      timeout: 10000,
+    });
+  }
+  {
+    test_chunk_defer = chunksDefer();
+  }
 }
 
-{jQuery.getJSON('api/globe-airplanes-live/' + databaseFolder + "/ranges.js").done(function(ranges) {
+{
+  jQuery.getJSON('api/globe-airplanes-live/' + databaseFolder + '/ranges.js').done(function (ranges) {
     if (!ranges || !ranges.military) {
-        console.error("couldn't load milRanges.");
-        return;
+      console.error("couldn't load milRanges.");
+      return;
     }
     for (let i in ranges.military) {
-        const r = ranges.military[i];
-        const a = +("0x" + r[0]);
-        const b = +("0x" + r[1]);
-        if (isNaN(a) || isNaN(b))
-            continue;
-        milRanges.push([a, b]);
+      const r = ranges.military[i];
+      const a = +('0x' + r[0]);
+      const b = +('0x' + r[1]);
+      if (isNaN(a) || isNaN(b)) continue;
+      milRanges.push([a, b]);
     }
-});}
-
+  });
+}
 
 let heatmapLoadingState = {};
 function loadHeatChunk() {
-    if (heatmapLoadingState.index >= heatChunks.length) {
-        heatmapDefer.resolve();
-        return; // done, stop recursing
-    }
+  if (heatmapLoadingState.index >= heatChunks.length) {
+    heatmapDefer.resolve();
+    return; // done, stop recursing
+  }
 
-    let time = new Date(heatmapLoadingState.start + heatmapLoadingState.index * heatmapLoadingState.interval);
-    let sDate = sDateString(time);
-    let index = 2 * time.getUTCHours() + Math.floor(time.getUTCMinutes() / 30);
+  let time = new Date(heatmapLoadingState.start + heatmapLoadingState.index * heatmapLoadingState.interval);
+  let sDate = sDateString(time);
+  let index = 2 * time.getUTCHours() + Math.floor(time.getUTCMinutes() / 30);
 
+  let base = 'globe_history/';
 
-    let base = "globe_history/";
+  let URL = base + sDate + '/heatmap/' + index.toString().padStart(2, '0') + '.bin.ttf';
+  let req = jQuery.ajax({
+    url: URL,
+    method: 'GET',
+    num: heatmapLoadingState.index,
+    xhr: arraybufferRequest,
+  });
+  heatmapLoadingState.index++;
 
-    let URL = base + sDate + "/heatmap/" +
-        index.toString().padStart(2, '0') + ".bin.ttf";
-    let req = jQuery.ajax({
-        url: URL,
-        method: 'GET',
-        num: heatmapLoadingState.index,
-        xhr: arraybufferRequest,
+  const sliceEnd = new Date(time.getTime() + (30 * 60 - 1) * 1000);
+  console.log(zDateString(time) + ' ' + zuluTime(time) + ' - ' + zuluTime(sliceEnd) + ' ' + URL);
+
+  {
+    req.done(function (responseData) {
+      heatmapLoadingState.completed++;
+      jQuery('#loader_progress').attr('value', heatmapLoadingState.completed);
+      heatChunks[this.num] = responseData;
+      loadHeatChunk();
     });
-    heatmapLoadingState.index++;
-
-    const sliceEnd = new Date(time.getTime() + (30 * 60 - 1) * 1000);
-    console.log(zDateString(time) + ' ' + zuluTime(time) + ' - ' + zuluTime(sliceEnd) + ' ' + URL);
-
-    {req.done(function (responseData) {
-        heatmapLoadingState.completed++;
-        jQuery("#loader_progress").attr('value', heatmapLoadingState.completed);
-        heatChunks[this.num] = responseData;
-        loadHeatChunk();
-    });}
-    {req.fail(function(jqxhr, status, error) {
-        loadHeatChunk();
-    });}
+  }
+  {
+    req.fail(function (jqxhr, status, error) {
+      loadHeatChunk();
+    });
+  }
 }
 
 if (!heatmap) {
-    heatmapDefer.resolve();
+  heatmapDefer.resolve();
 } else {
-    // round heatmap end to half hour
-    heatmap.end = Math.floor(heatmap.end / (1800 * 1000)) * (1800 * 1000);
-    let end = heatmap.end;
-    let start = end - heatmap.duration * 3600 * 1000; // timestamp in ms
-    let interval = 1800 * 1000;
-    let numChunks = Math.round((end - start) / interval);
-    console.log('numChunks: ' + numChunks + ' heatDuration: ' + heatmap.duration + ' heatEnd: ' + new Date(heatmap.end) + ' / ' + new Date(heatmap.end).toUTCString());
-    heatChunks = Array(numChunks).fill(null);
-    heatPoints = Array(numChunks).fill(null);
-    // load chunks sequentially via recursion:
-    heatmapLoadingState.index = 0;
-    heatmapLoadingState.interval = interval;
-    heatmapLoadingState.start = start;
+  // round heatmap end to half hour
+  heatmap.end = Math.floor(heatmap.end / (1800 * 1000)) * (1800 * 1000);
+  let end = heatmap.end;
+  let start = end - heatmap.duration * 3600 * 1000; // timestamp in ms
+  let interval = 1800 * 1000;
+  let numChunks = Math.round((end - start) / interval);
+  console.log(
+    'numChunks: ' +
+      numChunks +
+      ' heatDuration: ' +
+      heatmap.duration +
+      ' heatEnd: ' +
+      new Date(heatmap.end) +
+      ' / ' +
+      new Date(heatmap.end).toUTCString()
+  );
+  heatChunks = Array(numChunks).fill(null);
+  heatPoints = Array(numChunks).fill(null);
+  // load chunks sequentially via recursion:
+  heatmapLoadingState.index = 0;
+  heatmapLoadingState.interval = interval;
+  heatmapLoadingState.start = start;
 
-    heatmapLoadingState.completed = 0;
-    jQuery("#loader_progress").attr('value', heatmapLoadingState.completed);
-    jQuery("#loader_progress").attr('max', numChunks);
+  heatmapLoadingState.completed = 0;
+  jQuery('#loader_progress').attr('value', heatmapLoadingState.completed);
+  jQuery('#loader_progress').attr('max', numChunks);
 
-    // 2 async chains of heat chunk loading:
-    loadHeatChunk();
-    setTimeout(loadHeatChunk, 500);
+  // 2 async chains of heat chunk loading:
+  loadHeatChunk();
+  setTimeout(loadHeatChunk, 500);
 }
 
 if (uuid != null) {
-    receiverJson = null;
-    Dump1090Version = 'unknown';
-    RefreshInterval = 5000;
-    configureReceiver.resolve();
-    //console.time("Downloaded History");
+  receiverJson = null;
+  Dump1090Version = 'unknown';
+  RefreshInterval = 5000;
+  configureReceiver.resolve();
+  //console.time("Downloaded History");
 } else {
-    get_receiver_defer.fail(function(data){
+  get_receiver_defer.fail(function (data) {
+    setTimeout(function () {
+      jQuery('#loader').addClass('hidden');
+      jQuery('#update_error_detail').text("Seems the decoder / receiver / backend isn't working correctly!");
+      jQuery('#update_error').css('display', 'block');
+    }, 2000);
 
-        setTimeout(function() {
-            jQuery("#loader").addClass("hidden");
-            jQuery("#update_error_detail").text("Seems the decoder / receiver / backend isn't working correctly!");
-            jQuery("#update_error").css('display','block');
-        }, 2000);
+    setTimeout(function () {
+      location.reload();
+    }, 10000);
+  });
+  get_receiver_defer.done(function (data) {
+    receiverJson = data;
+    Dump1090Version = data.version;
+    RefreshInterval = data.refresh;
+    nHistoryItems = data.history < 2 ? 0 : data.history;
+    reApi = data.reapi ? true : false;
+    if (usp.has('noglobe') || usp.has('ptracks')) {
+      data.globeIndexGrid = null; // disable globe on user request
+    }
+    dbServer = data.dbServer ? true : false;
 
-        setTimeout(function() {
-            location.reload();
-        }, 10000);
-    });
-    get_receiver_defer.done(function(data){
-        receiverJson = data;
-        Dump1090Version = data.version;
-        RefreshInterval = data.refresh;
-        nHistoryItems = (data.history < 2) ? 0 : data.history;
-        reApi = data.reapi ? true : false;
-        if (usp.has('noglobe') || usp.has('ptracks')) {
-            data.globeIndexGrid = null; // disable globe on user request
+    haveTraces = Boolean(data.haveTraces || data.globeIndexGrid);
+
+    if (data.readsb) {
+      jQuery('#decoder_pre').text('decoder:');
+      jQuery('#decoder_link').text('readsb');
+      jQuery('#decoder_link').attr('href', 'https://github.com/wiedehopf/readsb#readsb');
+    }
+
+    if (heatmap || replay || filterUuid) {
+      if (replay && data.globeIndexGrid != null) globeIndex = 1;
+      HistoryChunks = false;
+      nHistoryItems = 0;
+      get_history();
+    } else if (data.globeIndexGrid != null) {
+      HistoryChunks = false;
+      nHistoryItems = 0;
+      globeIndex = 1;
+
+      if (receiverJson.globeIndexGrid) {
+        globeIndexGrid = receiverJson.globeIndexGrid;
+        globeIndex = 1;
+        globeIndexSpecialTiles = [];
+        for (let i = 0; i < receiverJson.globeIndexSpecialTiles.length; i++) {
+          let tile = receiverJson.globeIndexSpecialTiles[i];
+          globeIndexSpecialTiles.push([tile.south, tile.west, tile.north, tile.east]);
         }
-        dbServer = (data.dbServer) ? true : false;
+      }
 
-        haveTraces = Boolean(data.haveTraces || data.globeIndexGrid);
-
-        if (data.readsb) {
-            jQuery("#decoder_pre").text("decoder:");
-            jQuery("#decoder_link").text("readsb");
-            jQuery("#decoder_link").attr("href", "https://github.com/wiedehopf/readsb#readsb");
-        }
-
-        if (heatmap || replay || filterUuid) {
-            if (replay && data.globeIndexGrid != null)
-                globeIndex = 1;
-            HistoryChunks = false;
+      get_history();
+    } else {
+      test_chunk_defer
+        .done(function (data) {
+          HistoryChunks = true;
+          console.log('Chunks enabled!');
+          chunkNames = (pTracks ? data.chunks_all : data.chunks) || [];
+          nHistoryItems = chunkNames.length;
+          if (usp.has('showTrace')) {
             nHistoryItems = 0;
-            get_history();
-        } else if (data.globeIndexGrid != null) {
-            HistoryChunks = false;
-            nHistoryItems = 0;
-            globeIndex = 1;
-
-
-            if (receiverJson.globeIndexGrid) {
-                globeIndexGrid = receiverJson.globeIndexGrid;
-                globeIndex = 1;
-                globeIndexSpecialTiles = [];
-                for (let i = 0; i < receiverJson.globeIndexSpecialTiles.length; i++) {
-                    let tile = receiverJson.globeIndexSpecialTiles[i];
-                    globeIndexSpecialTiles.push([tile.south, tile.west, tile.north, tile.east]);
-                }
-            }
-
-            get_history();
-        } else {
-            test_chunk_defer.done(function(data) {
-                HistoryChunks = true;
-                console.log("Chunks enabled!");
-                chunkNames = (pTracks ? data.chunks_all : data.chunks) || [];
-                nHistoryItems = chunkNames.length;
-                if (usp.has('showTrace')) {
-                    nHistoryItems = 0;
-                }
-                enable_uat = (data.enable_uat == "true");
-                enable_pf_data = (data.pf_data == "true");
-                if (enable_uat)
-                    console.log("UAT/978 enabled!");
-                get_history();
-            }).fail(function() {
-                HistoryChunks = false;
-                get_history();
-            });
-        }
-    });
+          }
+          enable_uat = data.enable_uat == 'true';
+          enable_pf_data = data.pf_data == 'true';
+          if (enable_uat) console.log('UAT/978 enabled!');
+          get_history();
+        })
+        .fail(function () {
+          HistoryChunks = false;
+          get_history();
+        });
+    }
+  });
 }
 
 function get_history() {
-    if (!loadFinished) {
-        if (!globeIndex && !uuid) {
-            let request = jQuery.ajax({ url: 'upintheair.json',
-                cache: true,
-                dataType: 'json' });
-            request.done(function(data) {
-                calcOutlineData = data;
-            });
-            request.always(function() {
-                configureReceiver.resolve();
-            });
-        } else {
-            configureReceiver.resolve();
-        }
+  if (!loadFinished) {
+    if (!globeIndex && !uuid) {
+      let request = jQuery.ajax({ url: 'upintheair.json', cache: true, dataType: 'json' });
+      request.done(function (data) {
+        calcOutlineData = data;
+      });
+      request.always(function () {
+        configureReceiver.resolve();
+      });
+    } else {
+      configureReceiver.resolve();
+    }
+  }
+
+  deferHistory = [];
+  HistoryItemsLoaded = 0;
+
+  if (nHistoryItems > 0) {
+    jQuery('#loader_progress').attr('max', nHistoryItems + 1);
+    console.time('Downloaded History');
+
+    nHistoryItems++;
+    let request = jQuery.ajax({ url: 'data/aircraft.json', timeout: historyTimeout * 800, cache: false, dataType: 'json' });
+    deferHistory.push(request);
+    if (enable_uat) {
+      nHistoryItems++;
+      request = jQuery.ajax({ url: 'chunks/978.json', timeout: historyTimeout * 800, cache: false, dataType: 'json' });
+      deferHistory.push(request);
     }
 
-    deferHistory = [];
-    HistoryItemsLoaded = 0;
-
-    if (nHistoryItems > 0) {
-        jQuery("#loader_progress").attr('max',nHistoryItems + 1);
-        console.time("Downloaded History");
-
-        nHistoryItems++;
-        let request = jQuery.ajax({ url: 'data/aircraft.json',
-            timeout: historyTimeout*800,
-            cache: false,
-            dataType: 'json' });
-        deferHistory.push(request);
-        if (enable_uat) {
-            nHistoryItems++;
-            request = jQuery.ajax({ url: 'chunks/978.json',
-                timeout: historyTimeout*800,
-                cache: false,
-                dataType: 'json' });
-            deferHistory.push(request);
-        }
-
-        if (HistoryChunks) {
-            //console.log("Starting to load history (" + nHistoryItems + " chunks)");
-            for (let i = chunkNames.length-1; i >= 0; i--) {
-                get_history_item(i);
-            }
-        } else  {
-            //console.log("Starting to load history (" + nHistoryItems + " items)");
-            for (let i = nHistoryItems-1; i >= 0; i--) {
-                get_history_item(i);
-            }
-        }
-
+    if (HistoryChunks) {
+      //console.log("Starting to load history (" + nHistoryItems + " chunks)");
+      for (let i = chunkNames.length - 1; i >= 0; i--) {
+        get_history_item(i);
+      }
+    } else {
+      //console.log("Starting to load history (" + nHistoryItems + " items)");
+      for (let i = nHistoryItems - 1; i >= 0; i--) {
+        get_history_item(i);
+      }
     }
-    historyQueued.resolve();
+  }
+  historyQueued.resolve();
 }
 
 function get_history_item(i) {
-    let request;
+  let request;
 
-    if (HistoryChunks) {
-        const url = 'chunks/' + chunkNames[i];
+  if (HistoryChunks) {
+    const url = 'chunks/' + chunkNames[i];
 
-        if (g.jWorkers) {
-            request = jsonGetWorker(url);
-        } else {
-            request = jQuery.ajax({ url: url,
-                timeout: historyTimeout * 1000,
-                dataType: 'json'
-            });
-        }
+    if (g.jWorkers) {
+      request = jsonGetWorker(url);
     } else {
-
-        request = jQuery.ajax({ url: 'data/history_' + i + '.json',
-            timeout: nHistoryItems * 80, // Allow 40 ms load time per history entry
-            cache: false,
-            dataType: 'json' });
+      request = jQuery.ajax({ url: url, timeout: historyTimeout * 1000, dataType: 'json' });
     }
+  } else {
+    request = jQuery.ajax({
+      url: 'data/history_' + i + '.json',
+      timeout: nHistoryItems * 80, // Allow 40 ms load time per history entry
+      cache: false,
+      dataType: 'json',
+    });
+  }
 
-    request
-        .done(function(json) {
-            jQuery("#loader_progress").attr('value',++HistoryItemsLoaded);
-        })
-        .fail(function(jqxhr, status, error) {
-            jQuery("#loader_progress").attr('value',++HistoryItemsLoaded);
-        });
+  request
+    .done(function (json) {
+      jQuery('#loader_progress').attr('value', ++HistoryItemsLoaded);
+    })
+    .fail(function (jqxhr, status, error) {
+      jQuery('#loader_progress').attr('value', ++HistoryItemsLoaded);
+    });
 
-    deferHistory.push(request);
+  deferHistory.push(request);
 }
 
 function getCookie(cname) {
-  let name = cname + "=";
+  let name = cname + '=';
   let ca = decodeURIComponent(document.cookie).split(';');
-  for(let i = 0; i < ca.length; i++) {
+  for (let i = 0; i < ca.length; i++) {
     let c = ca[i];
-    while (c.charAt(0) == ' ') { c = c.substring(1); }
-    if (c.indexOf(name) == 0) { return c.substring(name.length, c.length); }
+    while (c.charAt(0) == ' ') {
+      c = c.substring(1);
+    }
+    if (c.indexOf(name) == 0) {
+      return c.substring(name.length, c.length);
+    }
   }
-  return "";
+  return '';
 }
 
 function setCookie(cname, cvalue, exdays) {
-    let d = new Date();
-    d.setTime(d.getTime() + (exdays*24*60*60*1000));
-    let expires = "expires="+ d.toUTCString();
-    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+  let d = new Date();
+  d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
+  let expires = 'expires=' + d.toUTCString();
+  document.cookie = cname + '=' + cvalue + ';' + expires + ';path=/';
 }

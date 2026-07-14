@@ -6,8 +6,12 @@ dist
 # Compiled client output (generated from client/*.ts)
 apps/*/public/*.js
 
-# atc ships vendored frontend libs / browser JS with no build pipeline
-apps/atc/Web/public
+# atc: vendored third-party libs (minified) and static assets stay unformatted;
+# our own client code (js/**, index.html, style.css) is formatted like every app.
+apps/atc/Web/public/libs
+apps/atc/Web/public/flags
+apps/atc/Web/public/geojson
+apps/atc/Web/public/images
 
 # atc cached upstream JSON snapshots served on proxy failure (data, not source)
 apps/atc/proxy-fallback
