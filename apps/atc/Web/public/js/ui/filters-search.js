@@ -111,6 +111,9 @@ function toggleAtcStyle() {
     remakeTrails();     // rebuild trail features so they pick up the dots/line style
     refreshSelected();
 
+    if (atcStyle)
+        fetchVisibleTrails();   // pull short recent trails for planes already on screen
+
     buttonActive('#A', atcStyle);
 }
 

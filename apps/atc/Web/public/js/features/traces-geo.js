@@ -659,6 +659,8 @@ function getTrace(newPlane, hex, options) {
     if (options.list) {
         newPlane = options.list.pop()
         if (!newPlane) {
+            if (options.onDrain)
+                options.onDrain();
             return;
         }
         hex = newPlane.icao;
@@ -746,7 +748,22 @@ function getTrace(newPlane, hex, options) {
                 }
                 options.defer.resolve(options);
                 if (options.onlyRecent && options.list) {
+                    // ATC mode shows only the last ~tempTrailsTimeout of trail; trim the
+                    // fetched recent trace to that window now so it loads at the right
+                    // length instead of flashing the full recent history until the reaper
+                    // catches up.
+                    if (atcStyle)
+                        newPlane.reapTrail();
                     newPlane.updateLines();
+                    getTrace(null, null, options);
+                }
+                this.options = null;
+            })
+            .fail(function() {
+                // Keep the onlyRecent batch chain going if one plane's recent trace
+                // is missing (404 etc.) instead of stalling the rest of the queue.
+                const options = this.options;
+                if (options && options.onlyRecent && options.list) {
                     getTrace(null, null, options);
                 }
                 this.options = null;
@@ -804,5 +821,37 @@ function getTrace(newPlane, hex, options) {
     });
 
     return newPlane;
+}
+
+// In ATC mode, load each plane's short recent trail from the server the first time
+// it becomes visible (fresh load, refresh, or a plane panned into view) so the dotted
+// trail appears immediately instead of accruing over the ~45s trail window. Fetched at
+// most once per plane (recentTraceRequested guard). A single getTrace() chain drains a
+// shared queue: it rides getTrace()'s built-in traceRate backoff (solidT stays false),
+// so a busy map stays polite to the upstream API. A running chain pops from the same
+// queue, so later ticks just top it up rather than starting a second (which would
+// clobber the shared getTraceTimeout under throttle); a new chain starts only once the
+// previous one has drained the queue (tracked via the onDrain callback).
+let trailQueue = [];
+let trailChainActive = false;
+function fetchVisibleTrails() {
+    if (!atcStyle || showTrace || replay)
+        return;
+
+    for (let i = 0; i < g.planesOrdered.length; i++) {
+        const plane = g.planesOrdered[i];
+        if (plane.visible && plane.position != null && !plane.recentTraceRequested) {
+            plane.recentTraceRequested = true;
+            trailQueue.push(plane);
+        }
+    }
+    if (!trailChainActive && trailQueue.length) {
+        trailChainActive = true;
+        getTrace(null, null, {
+            onlyRecent: true,
+            list: trailQueue,
+            onDrain: function() { trailChainActive = false; },
+        });
+    }
 }
 
