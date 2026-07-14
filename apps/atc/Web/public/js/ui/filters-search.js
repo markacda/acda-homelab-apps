@@ -42,10 +42,17 @@ function toggleLabels() {
   if (showTrace) remakeTrails();
 }
 
+// Band membership feeds altitudeColor(), which drives both the markers and the
+// altitude-chart legend, so redraw the legend alongside the features.
+function refreshAltitudeChart() {
+  if (TAR.altitudeChart && TAR.altitudeChart.render) TAR.altitudeChart.render();
+}
+
 function toggleBandGround() {
   showBandGround = !showBandGround;
   loStore['bandGround'] = showBandGround;
   refreshFeatures();
+  refreshAltitudeChart();
   buttonActive('#band_G', showBandGround);
 }
 
@@ -53,6 +60,7 @@ function toggleBandTower() {
   showBandTower = !showBandTower;
   loStore['bandTower'] = showBandTower;
   refreshFeatures();
+  refreshAltitudeChart();
   buttonActive('#band_T', showBandTower);
 }
 
@@ -60,6 +68,7 @@ function toggleBandApproach() {
   showBandApproach = !showBandApproach;
   loStore['bandApproach'] = showBandApproach;
   refreshFeatures();
+  refreshAltitudeChart();
   buttonActive('#band_A', showBandApproach);
 }
 
@@ -67,6 +76,7 @@ function toggleBandArea() {
   showBandArea = !showBandArea;
   loStore['bandArea'] = showBandArea;
   refreshFeatures();
+  refreshAltitudeChart();
   buttonActive('#band_C', showBandArea);
 }
 

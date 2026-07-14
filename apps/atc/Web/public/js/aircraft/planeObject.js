@@ -980,9 +980,13 @@ PlaneObject.prototype.updateIcon = function () {
       } else {
         verticalRateTriangle = '';
       }
-      let atcAlt = Math.round(convert_altitude(alt / 100.0, DisplayUnits))
-        .toString()
-        .padStart(3, '0');
+      let atcAltFL = Math.round(convert_altitude(alt / 100.0, DisplayUnits));
+      // Pad the magnitude, keeping the sign ahead of the zeros (e.g. -01, not 0-1).
+      let atcAlt =
+        (atcAltFL < 0 ? '-' : '') +
+        Math.abs(atcAltFL)
+          .toString()
+          .padStart(atcAltFL < 0 ? 2 : 3, '0');
       labelText += atcAlt + ' ' + atcSpeed + verticalRateTriangle;
       if (!!this.icaoType || !!this.wtc) labelText += '\n' + this.icaoType + ' ' + this.wtc;
     } else if (g.extendedLabels == 3) {
