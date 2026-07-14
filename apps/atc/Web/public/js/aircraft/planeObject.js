@@ -868,15 +868,8 @@ PlaneObject.prototype.setMarkerRgb = function() {
 };
 
 // --- Label placement helpers ---------------------------------------------
-// Compass positions and their screen-space unit direction (y is down).
+// Compass positions, ordered so index = round(bearing / 45) % 8.
 const LABEL_DIRS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-const LABEL_DIAG = Math.SQRT1_2; // sqrt(2)/2, the diagonal unit component
-const LABEL_DIR_VEC = {
-    N:  [0, -1],             NE: [LABEL_DIAG, -LABEL_DIAG],
-    E:  [1, 0],              SE: [LABEL_DIAG, LABEL_DIAG],
-    S:  [0, 1],              SW: [-LABEL_DIAG, LABEL_DIAG],
-    W:  [-1, 0],             NW: [-LABEL_DIAG, -LABEL_DIAG],
-};
 
 // Cached 2D context used only to measure label text extents.
 let _labelMeasureCtx = null;
@@ -1063,7 +1056,6 @@ PlaneObject.prototype.updateIcon = function() {
 
     if (this.styleKey != styleKey || !this.marker.getStyle()) {
         this.styleKey = styleKey;
-        let style;
         if (labelText) {
             // Build the font locally with the zoom scale baked in so the measured
             // block matches the rendered text exactly (ol Text `scale` would not
@@ -1073,57 +1065,61 @@ PlaneObject.prototype.updateIcon = function() {
             const font = `${labelStyle} ${fpx}px/${lpx}px ${labelFamily}`;
 
             const blk = measureLabelBlock(labelText, font);
-            const gap = this.shape.w * 0.5 * 0.74 * this.scale * lzScale;
+            // Place the label just outside the icon so a leader line fits in the
+            // gap. iconR is the icon half-size (icons don't shrink with lzScale).
+            const iconR = this.shape.w * 0.5 * this.scale;
+            const gap = iconR + 12 * globalScale * lzScale;
             const off = labelBlockOffset(this.labelPos, blk.w, blk.h, gap);
 
-            style = {
-                image: this.markerIcon,
-                text: new ol.style.Text({
-                    text: labelText,
-                    fill: labelFill,
-                    stroke: labelStrokeNarrow,
-                    textAlign: 'left',
-                    textBaseline: 'top',
-                    font: font,
-                    offsetX: off[0],
-                    offsetY: off[1],
-                }),
-                zIndex: this.zIndex,
-            };
-        } else {
-            style = {
-                image: this.markerIcon,
-                zIndex: this.zIndex,
-            };
-        }
-        if (webgl)
-            delete style.image;
-        this.markerStyle = new ol.style.Style(style);
+            const textStyle = new ol.style.Text({
+                text: labelText,
+                fill: labelFill,
+                stroke: labelStrokeNarrow,
+                textAlign: 'left',
+                textBaseline: 'top',
+                font: font,
+                offsetX: off[0],
+                offsetY: off[1],
+            });
+            this.markerStyle = new ol.style.Style(
+                webgl
+                    ? { text: textStyle, zIndex: this.zIndex }
+                    : { image: this.markerIcon, text: textStyle, zIndex: this.zIndex }
+            );
 
-        if (labelText) {
-            // Short thin leader line drawn in pixel space from just outside the
-            // icon toward (but not touching) the label (Change 3).
-            const gap = this.shape.w * 0.5 * 0.74 * this.scale * lzScale;
-            const nearR = gap * 0.45;
-            const farR = gap * 0.98;
-            const dir = LABEL_DIR_VEC[this.labelPos] || LABEL_DIR_VEC.NE;
+            // Leader line: from just outside the icon to the point on the label
+            // block nearest the plane (clamp the plane point onto the block rect,
+            // which yields the nearest corner for diagonal placements and the
+            // nearest edge midpoint for cardinal ones).
+            const left = off[0], right = off[0] + blk.w;
+            const top = off[1], bottom = off[1] + blk.h;
+            const nx = Math.max(left, Math.min(right, 0));
+            const ny = Math.max(top, Math.min(bottom, 0));
+            const nd = Math.hypot(nx, ny) || 1;
+            const ux = nx / nd, uy = ny / nd;
+            const r0 = iconR + 2 * globalScale;   // start just outside the icon
+            const r1 = nd - 3 * globalScale;      // stop just before the label
             const leaderStyle = new ol.style.Style({
+                zIndex: this.zIndex,
                 renderer: (px, state) => {
+                    if (r1 <= r0) return;
                     const ctx = state.context;
                     const pr = state.pixelRatio;
                     ctx.save();
                     ctx.beginPath();
-                    ctx.moveTo(px[0] + dir[0] * nearR * pr, px[1] + dir[1] * nearR * pr);
-                    ctx.lineTo(px[0] + dir[0] * farR * pr, px[1] + dir[1] * farR * pr);
+                    ctx.moveTo(px[0] + ux * r0 * pr, px[1] + uy * r0 * pr);
+                    ctx.lineTo(px[0] + ux * r1 * pr, px[1] + uy * r1 * pr);
                     ctx.strokeStyle = 'rgba(255,255,255,0.6)';
                     ctx.lineWidth = 1 * pr;
                     ctx.stroke();
                     ctx.restore();
                 },
-                zIndex: this.zIndex,
             });
             this.marker.setStyle([leaderStyle, this.markerStyle]);
         } else {
+            this.markerStyle = new ol.style.Style(
+                webgl ? { zIndex: this.zIndex } : { image: this.markerIcon, zIndex: this.zIndex }
+            );
             this.marker.setStyle(this.markerStyle);
         }
     }
