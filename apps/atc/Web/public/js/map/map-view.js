@@ -305,6 +305,7 @@ function updateVisible() {
         aircraftShown += (plane.visible && plane.inView);
     }
     checkScale();
+    fetchVisibleTrails();
 }
 
 function mapRefresh(redraw) {
