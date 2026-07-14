@@ -2,10 +2,9 @@
 // early.js takes care of getting some history files while the html page and
 // some javascript libraries are still loading, hopefully speeding up loading
 
+'use strict';
 
-"use strict";
-
-g.planes        = {};
+g.planes = {};
 g.planesOrdered = [];
 g.route_cache = [];
 g.route_check_todo = {};
@@ -32,12 +31,12 @@ let locationDotFeatures = new ol.source.Vector();
 let distanceMeasurementFeatures = new ol.source.Vector();
 let distanceMeasurementLayer;
 let distanceMeasurementState = {
-    firstPlaneIcao: null,
-    secondPlaneIcao: null,
-    mouseCoordinate: null,
-    line: null,
-    label: null,
-    isActive: false
+  firstPlaneIcao: null,
+  secondPlaneIcao: null,
+  mouseCoordinate: null,
+  line: null,
+  label: null,
+  isActive: false,
 };
 // Distance-measure interaction mode (header "D" button); transient, not persisted.
 let distanceMode = false;
@@ -55,7 +54,7 @@ let iconCache = {};
 let addToIconCache = [];
 let lineStyleCache = {};
 let replayPlanes = {};
-let PlaneFilter   = {};
+let PlaneFilter = {};
 let SelectedPlane = null;
 let sp = null;
 let SelPlanes = [];
@@ -99,7 +98,7 @@ let lastRenderExtent;
 let pendingFetches = 0;
 let firstFetch = true;
 let debugCounter = 0;
-let pathName = window.location.pathname.replace(/\/+/, '/') || "/";
+let pathName = window.location.pathname.replace(/\/+/, '/') || '/';
 let sourcesFilter = null;
 let sources = ['adsb', ['uat', 'adsr'], 'mlat', 'tisb', 'modeS', 'other', 'adsc', 'ais'];
 let flagFilter = null;
@@ -113,7 +112,7 @@ let traceDateString = null;
 let traceOpts = {};
 let icaoParam = null;
 let newWidth = lineWidth;
-let SiteOverride = (SiteLat != null && SiteLon != null);
+let SiteOverride = SiteLat != null && SiteLon != null;
 let onJumpInput = null;
 let labelFill = null;
 let blackFill = null;
@@ -149,7 +148,6 @@ let nextQuerySelected = 0;
 let enableDynamicCachebusting = false;
 g.lastRefreshInt = 1000;
 let reapTimeout = globeIndex ? 240 : 480;
-
 
 let baroCorrectQNH = 1013.25;
 
@@ -198,4 +196,3 @@ let badDot;
 let badDotMlat;
 
 let showingReplayBar = false;
-

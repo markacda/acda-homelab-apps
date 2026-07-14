@@ -3,7 +3,7 @@
 // This file is for the default settings, use config.js instead to make settings.
 //
 // --------------------------------------------------------
-"use strict";
+'use strict';
 
 // avoid errors for people who don't understand javascript and change config.js
 let yes = true;
@@ -21,7 +21,7 @@ let MessageRateInTitle = false;
 // metric (m, km, km/h) or imperial (ft, mi, mph) units are used in the
 // plane table and in the detailed plane info. Valid values are
 // "nautical", "metric", or "imperial".
-let DisplayUnits = "nautical";
+let DisplayUnits = 'nautical';
 
 // -- Map settings ----------------------------------------
 // These settings are overridden by any position information
@@ -29,15 +29,14 @@ let DisplayUnits = "nautical";
 // degrees.
 
 // The google maps zoom level, 0 - 16, lower is further out
-let DefaultZoomLvl   = 9;
+let DefaultZoomLvl = 9;
 
 let autoselectCoords = null;
 
 let showGrid = false;
 
-
-let SiteShow    = true;           // true to show a center marker
-let SiteName    = "My Radar Site"; // tooltip of the marker
+let SiteShow = true; // true to show a center marker
+let SiteName = 'My Radar Site'; // tooltip of the marker
 
 // Update GPS location (keep map centered on GPS location)
 let updateLocation = false;
@@ -59,7 +58,7 @@ let actual_range_outline_dash = null; // null - solid line, [5, 5] - dashed line
 let actual_range_show = true;
 
 // which map is displayed to new visitors
-let MapType_tar1090 = "osm";
+let MapType_tar1090 = 'osm';
 let defaultOverlays = [];
 let dwdLayers = 'dwd:RADOLAN-RY';
 
@@ -69,14 +68,14 @@ let mapDimPercentage = 0.45;
 let mapContrastPercentage = 0;
 
 // opacities for various overlays
-let nexradOpacity = 0.35
-let dwdRadolanOpacity = 0.30;
-let rainViewerRadarOpacity = 0.30;
-let rainViewerCloudsOpacity = 0.30;
+let nexradOpacity = 0.35;
+let dwdRadolanOpacity = 0.3;
+let rainViewerRadarOpacity = 0.3;
+let rainViewerCloudsOpacity = 0.3;
 let noaaInfraredOpacity = 0.35;
 let noaaRadarOpacity = 0.35;
-let openAIPOpacity = 0.70;
-let tfrOpacity = 0.70;
+let openAIPOpacity = 0.7;
+let tfrOpacity = 0.7;
 
 let offlineMapDetail = -1;
 let offlineMapDetailOFM = -1;
@@ -107,7 +106,7 @@ let lineWidth = 1.15;
 let OutlineADSBColor = '#000000';
 
 // Outline width for aircraft icons
-let outlineWidth = 0.90;
+let outlineWidth = 0.9;
 
 // constant html color for markers / tracks
 let monochromeMarkers = null;
@@ -118,77 +117,78 @@ let altitudeChartDefaultState = true;
 // These settings control the coloring of aircraft by altitude.
 // All color values are given as Hue (0-359) / Saturation (0-100) / Lightness (0-100)
 let ColorByAlt = {
-	// HSL for planes with unknown altitude:
-	unknown : { h: 0,   s: 0,   l: 75 },
+  // HSL for planes with unknown altitude:
+  unknown: { h: 0, s: 0, l: 75 },
 
-	// HSL for planes that are on the ground:
-	ground  : { h: 220, s: 0, l: 30 },
+  // HSL for planes that are on the ground:
+  ground: { h: 220, s: 0, l: 30 },
 
-	air : {
-		// These define altitude-to-hue mappings
-		// at particular altitudes; the hue
-		// for intermediate altitudes that lie
-		// between the provided altitudes is linearly
-		// interpolated.
-		//
-		// Mappings must be provided in increasing
-		// order of altitude.
-		//
-		// Altitudes below the first entry use the
-		// hue of the first entry; altitudes above
-		// the last entry use the hue of the last
-		// entry.
-		h: [ { alt: 0,  val: 20 },    // orange
-			{ alt: 2000, val: 32.5 },   // yellow
-			{ alt: 4000, val: 43 },   // yellow
-			{ alt: 6000, val: 54 },   // yellow
-			{ alt: 8000, val: 72 },   // yellow
-			{ alt: 9000, val: 85 },   // green yellow
-			{ alt: 11000, val: 140 },   // light green
-			{ alt: 40000, val: 300 } , // magenta
-			{ alt: 51000, val: 360 } , // red
-		],
-		s: 88,
-		l: [
-			{ h: 0,   val: 53},
-			{ h: 20,  val: 50},
-			{ h: 32,  val: 54},
-			{ h: 40,  val: 52},
-			{ h: 46,  val: 51},
-			{ h: 50,  val: 46},
-			{ h: 60,  val: 43},
-			{ h: 80,  val: 41},
-			{ h: 100, val: 41},
-			{ h: 120, val: 41},
-			{ h: 140, val: 41},
-			{ h: 160, val: 40},
-			{ h: 180, val: 40},
-			{ h: 190, val: 44},
-			{ h: 198, val: 50},
-			{ h: 200, val: 58},
-			{ h: 220, val: 58},
-			{ h: 240, val: 58},
-			{ h: 255, val: 55},
-			{ h: 266, val: 55},
-			{ h: 270, val: 58},
-			{ h: 280, val: 58},
-			{ h: 290, val: 47},
-			{ h: 300, val: 43},
-			{ h: 310, val: 48},
-			{ h: 320, val: 48},
-			{ h: 340, val: 52},
-			{ h: 360, val: 53},
-		],
-	},
+  air: {
+    // These define altitude-to-hue mappings
+    // at particular altitudes; the hue
+    // for intermediate altitudes that lie
+    // between the provided altitudes is linearly
+    // interpolated.
+    //
+    // Mappings must be provided in increasing
+    // order of altitude.
+    //
+    // Altitudes below the first entry use the
+    // hue of the first entry; altitudes above
+    // the last entry use the hue of the last
+    // entry.
+    h: [
+      { alt: 0, val: 20 }, // orange
+      { alt: 2000, val: 32.5 }, // yellow
+      { alt: 4000, val: 43 }, // yellow
+      { alt: 6000, val: 54 }, // yellow
+      { alt: 8000, val: 72 }, // yellow
+      { alt: 9000, val: 85 }, // green yellow
+      { alt: 11000, val: 140 }, // light green
+      { alt: 40000, val: 300 }, // magenta
+      { alt: 51000, val: 360 }, // red
+    ],
+    s: 88,
+    l: [
+      { h: 0, val: 53 },
+      { h: 20, val: 50 },
+      { h: 32, val: 54 },
+      { h: 40, val: 52 },
+      { h: 46, val: 51 },
+      { h: 50, val: 46 },
+      { h: 60, val: 43 },
+      { h: 80, val: 41 },
+      { h: 100, val: 41 },
+      { h: 120, val: 41 },
+      { h: 140, val: 41 },
+      { h: 160, val: 40 },
+      { h: 180, val: 40 },
+      { h: 190, val: 44 },
+      { h: 198, val: 50 },
+      { h: 200, val: 58 },
+      { h: 220, val: 58 },
+      { h: 240, val: 58 },
+      { h: 255, val: 55 },
+      { h: 266, val: 55 },
+      { h: 270, val: 58 },
+      { h: 280, val: 58 },
+      { h: 290, val: 47 },
+      { h: 300, val: 43 },
+      { h: 310, val: 48 },
+      { h: 320, val: 48 },
+      { h: 340, val: 52 },
+      { h: 360, val: 53 },
+    ],
+  },
 
-	// Changes added to the color of the currently selected plane
-	selected : { h: 0, s: 10, l: 5 },
+  // Changes added to the color of the currently selected plane
+  selected: { h: 0, s: 10, l: 5 },
 
-	// Changes added to the color of planes that have stale position info
-	stale :    { h: 0, s: -35, l: 9 },
+  // Changes added to the color of planes that have stale position info
+  stale: { h: 0, s: -35, l: 9 },
 
-	// Changes added to the color of planes that have positions from mlat
-	mlat :     { h: 0, s: 0, l: 0 }
+  // Changes added to the color of planes that have positions from mlat
+  mlat: { h: 0, s: 0, l: 0 },
 };
 
 // For a monochrome display try this:
@@ -211,13 +211,13 @@ let SiteCirclesColors = ['#000000', '#000000', '#000000'];
 let SiteCirclesLineDash = null; // null - solid line, [5, 5] - dashed line with 5 pixel lines and spaces in between
 
 // Controls page title, righthand pane when nothing is selected
-let PageName = "ATC - Live";
+let PageName = 'ATC - Live';
 
 // Show country flags by ICAO addresses?
 let ShowFlags = true;
 
 // UNUSED, kept here so config.js doesn't break for potential users
-let FlagPath = "";
+let FlagPath = '';
 
 // Set to false to disable the ChartBundle base layers (US coverage only)
 let ChartBundleLayers = true;
@@ -240,7 +240,7 @@ let BingMapsAPIKey = null;
 //
 let MapboxAPIKey = null;
 
-let pf_data = ["chunks/pf.json"]
+let pf_data = ['chunks/pf.json'];
 
 let mapOrientation = 0; // This determines what is up, normally north (0 degrees)
 
@@ -278,8 +278,8 @@ let uatNoTISB = false;
 let filterTISB = false;
 
 // image configuration link (back to a webUI for feeder setup)
-let imageConfigLink = "";
-let imageConfigText = "";
+let imageConfigLink = '';
+let imageConfigText = '';
 
 let flightawareLinks = false;
 let shareBaseUrl = false;
@@ -313,35 +313,34 @@ let squareMania = false;
 
 // Columns that have a // in front of them are shown.
 let HideCols = [
-	"#icao",
-//	"#country",
-//	"#flight",
-//	"#route",
-	"#registration",
-//	"#type",
-//	"#squawk",
-//	"#altitude",
-//	"#speed",
-	"#vert_rate",
-//	"#sitedist",
-	"#track",
-	"#msgs",
-	"#seen",
-//	"#rssi",
-	"#lat",
-	"#lon",
-	"#data_source",
-	"#military",
-    "#wd",
-    "#ws",
-]
-
+  '#icao',
+  //	"#country",
+  //	"#flight",
+  //	"#route",
+  '#registration',
+  //	"#type",
+  //	"#squawk",
+  //	"#altitude",
+  //	"#speed",
+  '#vert_rate',
+  //	"#sitedist",
+  '#track',
+  '#msgs',
+  '#seen',
+  //	"#rssi",
+  '#lat',
+  '#lon',
+  '#data_source',
+  '#military',
+  '#wd',
+  '#ws',
+];
 
 // show aircraft pictures
 let showPictures = true;
 // get pictures from planespotters.net
 let planespottersAPI = true;
-let planespottersAPIurl = "https://api.planespotters.net/pub/photos/";
+let planespottersAPIurl = 'https://api.planespotters.net/pub/photos/';
 // get pictures from planespotting.be
 let planespottingAPI = false;
 
@@ -352,7 +351,7 @@ let useIataAirportCodes = true; // DEPRECATED, forces routeDisplay to icao when 
 // configure route display, possible values: iata, icao, city (can use multiple like this: 'iata,city')
 let routeDisplay = 'iata';
 // which routeApi service to use
-let routeApiUrl = "https://adsb.im/api/0/routeset";
+let routeApiUrl = 'https://adsb.im/api/0/routeset';
 // alternative: "https://api.adsb.lol/api/0/routeset";
 // routeApiUrl = ""; // to disable route API so it can't be enabled by a website visitor
 let debugRoute = false; // bunch of debugging console output for route api
@@ -390,7 +389,7 @@ let askLocation = false; // requires https for geolocation
 let filterMaxRange = 1e8; // 100 000 km should include all planes on earth ;)
 
 let jaeroTimeout = 35 * 60; // in seconds
-let jaeroLabel = "ADS-C"; // relabel the ADS-C data if used for other purposes (i.e. HFDL / acars2pos)
+let jaeroLabel = 'ADS-C'; // relabel the ADS-C data if used for other purposes (i.e. HFDL / acars2pos)
 
 let seenTimeout = 58; // in seconds
 let seenTimeoutMlat = 58; // in seconds
@@ -399,15 +398,15 @@ let darkModeDefault = true; // turn on dark mode by default (change in browser p
 
 let tableInView = false; // only show aircraft in current view (V button)
 
-let audio_url = ["", "", "", "", "", ""]; // show html5 audio player for these URLs
+let audio_url = ['', '', '', '', '', '']; // show html5 audio player for these URLs
 // example with titles: audio_url = [ ["URL1", "title1" ], ["URL2", "title2"] ];
 
-let aiscatcher_server = "";
+let aiscatcher_server = '';
 let aiscatcher_refresh = 15;
 let aiscatcher_test = true; // unused
 let aisTimeout = 1200;
 
-let droneJson = "";
+let droneJson = '';
 let droneRefresh = 1;
 
 let icaoFilter = null;
@@ -419,35 +418,35 @@ let OutlineMlatColor = null;
 let tableColorsDark;
 let tableColorsLight;
 let tableColors = {
-    unselected: {
-        adsb:      "#d8f4ff",
-        mlat:      "#FDF7DD",
-        uat:       "#C4FFDC",
-        adsr:      "#C4FFDC",
-        adsc:      "#9efa9e",
-        modeS:     "#d8d8ff",
-        tisb:      "#ffd8e6",
-        unknown:   "#dcdcdc",
-        other:   "#dcdcdc",
-        ais:     "#dcdcdc",
-    },
-    selected: {
-        adsb:      "#88DDFF",
-        mlat:      "#F1DD83",
-        uat:       "#66FFA6",
-        adsr:      "#66FFA6",
-        adsc:      "#75f075",
-        modeS:     "#BEBEFF",
-        tisb:      "#FFC1D8",
-        unknown:   "#bcbcbc",
-        other:   "#bcbcbc",
-        ais:   "#bcbcbc",
-    },
-    special: {
-        7500:      "#ff0000",
-        7600:      "#ff0000",
-        7700:      "#ff0000",
-    }
+  unselected: {
+    adsb: '#d8f4ff',
+    mlat: '#FDF7DD',
+    uat: '#C4FFDC',
+    adsr: '#C4FFDC',
+    adsc: '#9efa9e',
+    modeS: '#d8d8ff',
+    tisb: '#ffd8e6',
+    unknown: '#dcdcdc',
+    other: '#dcdcdc',
+    ais: '#dcdcdc',
+  },
+  selected: {
+    adsb: '#88DDFF',
+    mlat: '#F1DD83',
+    uat: '#66FFA6',
+    adsr: '#66FFA6',
+    adsc: '#75f075',
+    modeS: '#BEBEFF',
+    tisb: '#FFC1D8',
+    unknown: '#bcbcbc',
+    other: '#bcbcbc',
+    ais: '#bcbcbc',
+  },
+  special: {
+    7500: '#ff0000',
+    7600: '#ff0000',
+    7700: '#ff0000',
+  },
 };
 
 let disableGeoLocation = false;
@@ -455,19 +454,17 @@ let disableGeoLocation = false;
 // when data is available from both 1090 and 978, give some preference to the 978 data for up to X seconds old 978 data (set this to 15 or 30 for example)
 let prefer978 = 0;
 
-
 let multiOutline = false;
 let inhibitIframe = false;
 
 // Speed-vector projection length in whole minutes (ATC style); persisted to loStore.
 let speedVectorMinutes = 2;
 
-
 // !!! Please set the latitude / longitude in the decoder rather than
 // setting it here !!!
 // (graphs1090 will get the location from the decoder)
-let SiteLat     = null;            // position of the marker
-let SiteLon     = null;
+let SiteLat = null; // position of the marker
+let SiteLon = null;
 
 // Default center of the map if no Site location is set
 let DefaultCenterLat = 52.51637776513412;

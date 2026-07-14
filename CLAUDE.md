@@ -63,7 +63,7 @@ Each app only creates the layers it needs. By example:
 - **dynamic-vs-fixed** — a stateless calculation pipeline (external ports, no repository).
 - **log-viewer** — a read-only analytics app (a store port + background ingest service + a query/read model).
 - **dashboard** — discovery/config/health-probe ports with a gated background monitor.
-- **atc** — a thin proxy (a validated `PointQuery` value object + one external `AirplanesSource` adapter, `cors`/`compression`, and a vendored `Web/public` with no client build — excluded from lint).
+- **atc** — a thin proxy (a validated `PointQuery` value object + one external `AirplanesSource` adapter, `cors`/`compression`, and a `Web/public` with no client build — a tar1090-derived browser app. Its own client code (`js/**`, `index.html`, `style.css`) is Prettier-formatted like every app; only the vendored third-party `libs/` and static assets stay unformatted, and the whole `Web/public` is excluded from ESLint).
 - **ev-crossover** — a static page with no server-side domain at all: just `Web/` (the browser-side `crossover.ts` formula + UI) and a bare composition-root `server.ts` that serves it.
 
 **TypeScript / build model.** Every app extends `tsconfig.base.json` (strict,
@@ -128,6 +128,11 @@ state — `dynamic-vs-fixed`, `recipe-book`), plus app-specific ones (dashboard:
 
 ESLint lints `.ts` sources only. `dist/`, `data/`, compiled client bundles
 (`apps/*/public/*.js` and `apps/*/Web/public/*.js`), and all of `apps/atc/Web/public/**`
-(vendored browser JS) are ignored. Node globals apply to `server.ts`/`test`, the
+(browser JS with no build pipeline) are ignored. Node globals apply to `server.ts`/`test`, the
 DDD layers (`Domain`/`Application`/`Adapters`/`Ports`/`Models`), and `apps/Common/*`;
 browser globals apply to `apps/*/Web/client/**`.
+
+Prettier's scope is wider than ESLint's for atc: while ESLint skips all of
+`apps/atc/Web/public/**`, `.prettierignore` only excludes the vendored `libs/` and
+static-asset dirs (`flags/`, `geojson/`, `images/`) there — atc's own client code
+(`js/**`, `index.html`, `style.css`) is formatted like every other app.

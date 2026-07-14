@@ -3,7 +3,7 @@
 // This file is to configure the configurable settings.
 //
 // --------------------------------------------------------
-"use strict";
+'use strict';
 // -- Title Settings --------------------------------------
 // Show number of aircraft and/or messages per second in the page title
 //PlaneCountInTitle = false;
@@ -77,7 +77,6 @@
 // only with bing key:
 // bing_aerial
 // bing_roads
-
 
 // default these overlays to on for visitors which haven't disabled them in the browser in a previous session
 // defaultOverlays = ['radolan', 'nexrad'];
@@ -421,7 +420,6 @@ tableColors = {
     },
 };
 */
-
 
 // disableGeoLocation = false;
 
