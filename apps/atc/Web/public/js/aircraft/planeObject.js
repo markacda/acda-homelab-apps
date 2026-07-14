@@ -1934,11 +1934,11 @@ function altitudeLines (segment) {
     // ATC mode: render the trail as a line of colored dots (same altitude color as
     // the plane), with no connecting stroke — regardless of estimated/modeS/fresh state.
     // One dot per segment (its own position); updateLines() decimates which segments
-    // draw so the dots land roughly every other update (~6s) instead of every update.
+    // draw so the dots land every few updates (~9s) instead of every update.
     if (atcStyle) {
         lineStyleCache[lineKey] = new ol.style.Style({
             image: new ol.style.Circle({
-                radius: 2 * newWidth,
+                radius: 1.5 * globalScale,
                 fill: new ol.style.Fill({
                     color: color
                 })
@@ -2071,8 +2071,10 @@ PlaneObject.prototype.updateLines = function() {
 
     // create any missing fixed line features
 
-    // ATC mode draws the trail as dots; thin them to every other update (~6s) by
-    // keeping only segments whose timestamp falls in an even RefreshInterval bucket.
+    // ATC mode draws the trail as dots; thin them to one every DOT_EVERY updates
+    // (~9s at the 3s RefreshInterval => ~5 dots over the 45s trail) by keeping only
+    // segments whose timestamp falls in a matching RefreshInterval bucket.
+    const DOT_EVERY = 3;
     const dotStep = (RefreshInterval > 0 ? RefreshInterval : 3000) / 1000;
 
     for (let i = this.track_linesegs.length-1; i >= 0; i--) {
@@ -2080,8 +2082,8 @@ PlaneObject.prototype.updateLines = function() {
         if (seg.feature && (!trackLabels || seg.label))
             break;
 
-        if (atcStyle && !seg.feature && (Math.floor(seg.ts / dotStep) % 2) !== 0) {
-            // skip this dot to space the trail out to ~2x the update interval
+        if (atcStyle && !seg.feature && (Math.floor(seg.ts / dotStep) % DOT_EVERY) !== 0) {
+            // skip this dot to space the trail out to ~DOT_EVERY x the update interval
             seg.feature = true;
             seg.label = true;
             continue;
