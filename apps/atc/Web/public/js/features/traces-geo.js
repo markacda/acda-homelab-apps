@@ -836,7 +836,7 @@ function getTrace(newPlane, hex, options) {
 // Highest-altitude aircraft are fetched first, and no more than TRAIL_FETCH_MAX are
 // kept queued at once, so a dense map prioritises the high-flyers and never bursts a
 // huge number of requests at the upstream API.
-const TRAIL_FETCH_MAX = 50;
+const TRAIL_FETCH_MAX = 100;
 let trailQueue = [];
 let trailChainActive = false;
 function trailAltitude(plane) {
