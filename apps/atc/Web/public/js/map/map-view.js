@@ -72,7 +72,7 @@ function zoomOut() {
 }
 
 // At/above this zoom labels are full size; below it they shrink with the map.
-const LABEL_FULL_ZOOM = 9.5;
+const LABEL_FULL_ZOOM = 10.5;
 function labelZoomScaleFor(zoom) {
     if (zoom >= LABEL_FULL_ZOOM)
         return 1;

@@ -871,6 +871,11 @@ PlaneObject.prototype.setMarkerRgb = function() {
 // Compass positions, ordered so index = round(bearing / 45) % 8.
 const LABEL_DIRS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 
+// zIndex base for labels + leader lines. Icon zIndex is altitude-based (max
+// ~250000), so this keeps every label above every airplane icon while still
+// letting labels layer among themselves by the plane's own zIndex.
+const LABEL_TEXT_Z = 1000000;
+
 // Cached 2D context used only to measure label text extents.
 let _labelMeasureCtx = null;
 function measureLabelBlock(text, font) {
@@ -948,17 +953,14 @@ PlaneObject.prototype.updateIcon = function() {
         labelText = "";
         if (atcStyle) {
             labelText += callsign + '\n';
-            labelText += this.squawk;
-            if (this.squawk == '7700' || this.squawk == '7600' || this.squawk == '7500') {
-                if (this.squawk == '7700') {
-                    labelText += ' EMERGENCY';
-                } else if (this.squawk == '7600') {
-                    labelText += ' NORDO';
-                } else if (this.squawk == '7500') {
-                    labelText += ' HIJACK';
-                }
+            // squawk code omitted from the label; keep only the emergency alerts
+            if (this.squawk == '7700') {
+                labelText += 'EMERGENCY\n';
+            } else if (this.squawk == '7600') {
+                labelText += 'NORDO\n';
+            } else if (this.squawk == '7500') {
+                labelText += 'HIJACK\n';
             }
-            labelText += '\n';
             let atcSpeed = Math.round(convert_speed(this.speed, DisplayUnits)).toString().padStart(3, '0');
             let verticalRateTriangle = "";
             if (this.vert_rate > 245){
@@ -1071,26 +1073,28 @@ PlaneObject.prototype.updateIcon = function() {
             const gap = iconR + 12 * globalScale * lzScale;
             const off = labelBlockOffset(this.labelPos, blk.w, blk.h, gap);
 
-            const textStyle = new ol.style.Text({
-                text: labelText,
-                fill: labelFill,
-                stroke: labelStrokeNarrow,
-                textAlign: 'left',
-                textBaseline: 'top',
-                font: font,
-                offsetX: off[0],
-                offsetY: off[1],
+            // Text lives in its own style at a high zIndex so labels render on
+            // top of all airplane icons, not just their own.
+            const textStyle = new ol.style.Style({
+                zIndex: LABEL_TEXT_Z + this.zIndex,
+                text: new ol.style.Text({
+                    text: labelText,
+                    fill: labelFill,
+                    stroke: labelStrokeNarrow,
+                    textAlign: 'left',
+                    textBaseline: 'top',
+                    font: font,
+                    offsetX: off[0],
+                    offsetY: off[1],
+                }),
             });
-            this.markerStyle = new ol.style.Style(
-                webgl
-                    ? { text: textStyle, zIndex: this.zIndex }
-                    : { image: this.markerIcon, text: textStyle, zIndex: this.zIndex }
-            );
+            this.markerStyle = textStyle;
 
             // Leader line: from just outside the icon to the point on the label
             // block nearest the plane (clamp the plane point onto the block rect,
             // which yields the nearest corner for diagonal placements and the
-            // nearest edge midpoint for cardinal ones).
+            // nearest edge midpoint for cardinal ones). Drawn in the label band
+            // so it sits above other icons.
             const left = off[0], right = off[0] + blk.w;
             const top = off[1], bottom = off[1] + blk.h;
             const nx = Math.max(left, Math.min(right, 0));
@@ -1100,7 +1104,7 @@ PlaneObject.prototype.updateIcon = function() {
             const r0 = iconR + 2 * globalScale;   // start just outside the icon
             const r1 = nd - 3 * globalScale;      // stop just before the label
             const leaderStyle = new ol.style.Style({
-                zIndex: this.zIndex,
+                zIndex: LABEL_TEXT_Z + this.zIndex,
                 renderer: (px, state) => {
                     if (r1 <= r0) return;
                     const ctx = state.context;
@@ -1115,7 +1119,10 @@ PlaneObject.prototype.updateIcon = function() {
                     ctx.restore();
                 },
             });
-            this.marker.setStyle([leaderStyle, this.markerStyle]);
+            const styles = [leaderStyle, textStyle];
+            if (!webgl)
+                styles.unshift(new ol.style.Style({ image: this.markerIcon, zIndex: this.zIndex }));
+            this.marker.setStyle(styles);
         } else {
             this.markerStyle = new ol.style.Style(
                 webgl ? { zIndex: this.zIndex } : { image: this.markerIcon, zIndex: this.zIndex }
