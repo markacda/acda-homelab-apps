@@ -777,8 +777,8 @@ function altBandActive(altitude) {
     altitude = adjust_baro_alt(altitude);
     if (altitude == null) return true;              // unknown alt: leave as-is
     if (altitude === "ground") return showBandGround;
-    if (altitude <= 2000) return showBandTower;
-    if (altitude <= 6000) return showBandApproach;
+    if (altitude <= 1800) return showBandTower;
+    if (altitude <= 6200) return showBandApproach;
     return showBandArea;
 }
 
