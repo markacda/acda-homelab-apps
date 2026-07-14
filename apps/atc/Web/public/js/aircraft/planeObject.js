@@ -2227,7 +2227,9 @@ PlaneObject.prototype.updateLines = function() {
 
     if (!showTrace) {
         this.elastic_feature = new ol.Feature(geom);
-        if (filterTracks && altFiltered(lastseg.altitude)) {
+        if ((filterTracks && altFiltered(lastseg.altitude)) || atcStyle) {
+            // In ATC mode the trail is discrete decimated dots and the plane marker
+            // already shows the current position, so don't draw the live leading dot.
             this.elastic_feature.setStyle(nullStyle);
         } else {
             this.elastic_feature.setStyle(altitudeLines(lastseg));
