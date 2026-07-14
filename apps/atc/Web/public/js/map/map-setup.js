@@ -410,14 +410,19 @@ function ol_map_init() {
         }
 
         if (planeHex && planeHex.indexOf('_vector') < 0) {
-            // Get the plane object
+            // Right-click directly on a plane: toggle its speed vector.
             let plane = g.planes[planeHex];
             if (plane) {
-                // Toggle speed vector
                 plane.showSpeedVector = !plane.showSpeedVector;
-                // Update the marker to show/hide the vector
                 plane.updateMarker();
             }
+        } else if (SelectedPlane && SelectedPlane.position) {
+            // Right-click on empty map with a plane selected: reposition its label
+            // to the compass corner matching the bearing plane -> click point.
+            const clickLonLat = ol.proj.toLonLat(evtCoords);
+            const brg = bearingFromLonLat(SelectedPlane.position, clickLonLat);
+            SelectedPlane.labelPos = LABEL_DIRS[Math.floor(((brg + 22.5) % 360) / 45)];
+            SelectedPlane.updateMarker();
         }
 
         evt.stopPropagation();

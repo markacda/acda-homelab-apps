@@ -142,6 +142,10 @@ PlaneObject.prototype.setNull = function() {
     this.showSpeedVector = false;
     this.speedVectorLat = null;
     this.speedVectorLon = null;
+
+    // Compass position of the label relative to the plane (N/NE/E/SE/S/SW/W/NW).
+    // 'NE' reproduces the original top-right placement.
+    this.labelPos = 'NE';
 };
 
 function planeCloneState(target, source) {
@@ -207,6 +211,8 @@ function planeCloneState(target, source) {
     target.showSpeedVector = source.showSpeedVector;
     target.speedVectorLat = source.speedVectorLat;
     target.speedVectorLon = source.speedVectorLon;
+
+    target.labelPos = source.labelPos;
 };
 
 
@@ -861,6 +867,50 @@ PlaneObject.prototype.setMarkerRgb = function() {
     this.glMarker.set('b', rgb[2]);
 };
 
+// --- Label placement helpers ---------------------------------------------
+// Compass positions and their screen-space unit direction (y is down).
+const LABEL_DIRS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+const LABEL_DIAG = Math.SQRT1_2; // sqrt(2)/2, the diagonal unit component
+const LABEL_DIR_VEC = {
+    N:  [0, -1],             NE: [LABEL_DIAG, -LABEL_DIAG],
+    E:  [1, 0],              SE: [LABEL_DIAG, LABEL_DIAG],
+    S:  [0, 1],              SW: [-LABEL_DIAG, LABEL_DIAG],
+    W:  [-1, 0],             NW: [-LABEL_DIAG, -LABEL_DIAG],
+};
+
+// Cached 2D context used only to measure label text extents.
+let _labelMeasureCtx = null;
+function measureLabelBlock(text, font) {
+    if (!_labelMeasureCtx)
+        _labelMeasureCtx = document.createElement('canvas').getContext('2d');
+    _labelMeasureCtx.font = font;
+    let w = 0;
+    const lines = text.split('\n');
+    for (const line of lines) {
+        const m = _labelMeasureCtx.measureText(line).width;
+        if (m > w) w = m;
+    }
+    // line height is the second number in the "12px/14px" font shorthand
+    const lh = parseFloat(font.split('/')[1]) || 14;
+    return { w: w, h: lines.length * lh };
+}
+
+// Top-left offset of a left-justified block placed at compass position `pos`,
+// `g` px away from the plane. Block is `w`x`h` px.
+function labelBlockOffset(pos, w, h, g) {
+    switch (pos) {
+        case 'N':  return [-w / 2,   -(g + h)];
+        case 'NE': return [g,        -(g + h)];
+        case 'E':  return [g,        -h / 2];
+        case 'SE': return [g,        g];
+        case 'S':  return [-w / 2,   g];
+        case 'SW': return [-(g + w), g];
+        case 'W':  return [-(g + w), -h / 2];
+        case 'NW': return [-(g + w), -(g + h)];
+        default:   return [g,        -(g + h)]; // NE fallback
+    }
+}
+
 PlaneObject.prototype.updateIcon = function() {
 
     let fillColor = hslToRgb(this.getMarkerColor());
@@ -1005,25 +1055,38 @@ PlaneObject.prototype.updateIcon = function() {
     if (!this.markerIcon && !webgl)
         return;
 
-    let styleKey = (webgl ? '' : svgKey) + '!' + labelText + '!' + this.scale;
+    // Shrink labels with the map once zoomed out past LABEL_FULL_ZOOM (Change 4).
+    const lzScale = labelZoomScaleFor(g.zoomLvl);
+
+    let styleKey = (webgl ? '' : svgKey) + '!' + labelText + '!' + this.scale
+        + '!' + this.labelPos + '!' + lzScale;
 
     if (this.styleKey != styleKey || !this.marker.getStyle()) {
         this.styleKey = styleKey;
         let style;
         if (labelText) {
+            // Build the font locally with the zoom scale baked in so the measured
+            // block matches the rendered text exactly (ol Text `scale` would not
+            // affect offsetX/offsetY and desync placement).
+            const fpx = 12 * globalScale * labelScale * lzScale;
+            const lpx = 14 * globalScale * labelScale * lzScale;
+            const font = `${labelStyle} ${fpx}px/${lpx}px ${labelFamily}`;
+
+            const blk = measureLabelBlock(labelText, font);
+            const gap = this.shape.w * 0.5 * 0.74 * this.scale * lzScale;
+            const off = labelBlockOffset(this.labelPos, blk.w, blk.h, gap);
+
             style = {
                 image: this.markerIcon,
                 text: new ol.style.Text({
                     text: labelText,
                     fill: labelFill,
-                    backgroundFill: bgFill,
                     stroke: labelStrokeNarrow,
                     textAlign: 'left',
-                    textBaseline: labels_top ? 'bottom' : 'top',
-                    font: labelFont,
-                    offsetX: (this.shape.w *0.5*0.74*this.scale),
-                    offsetY: labels_top ? (this.shape.w *-0.3*0.74*this.scale) : (this.shape.w *0.5*0.74*this.scale),
-                    padding: [1, 0, -1, 2],
+                    textBaseline: 'top',
+                    font: font,
+                    offsetX: off[0],
+                    offsetY: off[1],
                 }),
                 zIndex: this.zIndex,
             };
@@ -1036,7 +1099,33 @@ PlaneObject.prototype.updateIcon = function() {
         if (webgl)
             delete style.image;
         this.markerStyle = new ol.style.Style(style);
-        this.marker.setStyle(this.markerStyle);
+
+        if (labelText) {
+            // Short thin leader line drawn in pixel space from just outside the
+            // icon toward (but not touching) the label (Change 3).
+            const gap = this.shape.w * 0.5 * 0.74 * this.scale * lzScale;
+            const nearR = gap * 0.45;
+            const farR = gap * 0.98;
+            const dir = LABEL_DIR_VEC[this.labelPos] || LABEL_DIR_VEC.NE;
+            const leaderStyle = new ol.style.Style({
+                renderer: (px, state) => {
+                    const ctx = state.context;
+                    const pr = state.pixelRatio;
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(px[0] + dir[0] * nearR * pr, px[1] + dir[1] * nearR * pr);
+                    ctx.lineTo(px[0] + dir[0] * farR * pr, px[1] + dir[1] * farR * pr);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                    ctx.lineWidth = 1 * pr;
+                    ctx.stroke();
+                    ctx.restore();
+                },
+                zIndex: this.zIndex,
+            });
+            this.marker.setStyle([leaderStyle, this.markerStyle]);
+        } else {
+            this.marker.setStyle(this.markerStyle);
+        }
     }
     if (webgl)
         return;

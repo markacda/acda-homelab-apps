@@ -71,6 +71,16 @@ function zoomOut() {
         toggleFollow(true);
 }
 
+// At/above this zoom labels are full size; below it they shrink with the map.
+const LABEL_FULL_ZOOM = 9.5;
+function labelZoomScaleFor(zoom) {
+    if (zoom >= LABEL_FULL_ZOOM)
+        return 1;
+    // shrink roughly with the map as it zooms out; quantize to limit style churn
+    const s = Math.pow(2, zoom - LABEL_FULL_ZOOM);
+    return Math.max(0.35, Math.round(s * 20) / 20);
+}
+
 function changeZoom(init) {
     if (!OLMap)
         return;
@@ -83,8 +93,14 @@ function changeZoom(init) {
     if (!init && Math.abs(g.zoomLvl-g.zoomLvlCache) < 0.4)
         return;
 
+    const prevZoom = g.zoomLvlCache;
+
     lopaStore['zoomLvl'] = g.zoomLvl;
     g.zoomLvlCache = g.zoomLvl;
+
+    // Rescale labels when moving through (or within) the shrink zone.
+    if (!init && (g.zoomLvl < LABEL_FULL_ZOOM || prevZoom < LABEL_FULL_ZOOM))
+        refreshFeatures();
 
     if (!init && showTrace)
         updateAddressBar();
