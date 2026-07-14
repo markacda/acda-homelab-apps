@@ -832,19 +832,45 @@ function getTrace(newPlane, hex, options) {
 // queue, so later ticks just top it up rather than starting a second (which would
 // clobber the shared getTraceTimeout under throttle); a new chain starts only once the
 // previous one has drained the queue (tracked via the onDrain callback).
+//
+// Highest-altitude aircraft are fetched first, and no more than TRAIL_FETCH_MAX are
+// kept queued at once, so a dense map prioritises the high-flyers and never bursts a
+// huge number of requests at the upstream API.
+const TRAIL_FETCH_MAX = 50;
 let trailQueue = [];
 let trailChainActive = false;
+function trailAltitude(plane) {
+    // ground / unknown sort to the bottom so airborne traffic is fetched first
+    return (typeof plane.altitude === 'number' && isFinite(plane.altitude)) ? plane.altitude : -Infinity;
+}
 function fetchVisibleTrails() {
     if (!atcStyle || showTrace || replay)
         return;
 
+    const capacity = TRAIL_FETCH_MAX - trailQueue.length;
+    if (capacity <= 0)
+        return;
+
+    let eligible = [];
     for (let i = 0; i < g.planesOrdered.length; i++) {
         const plane = g.planesOrdered[i];
-        if (plane.visible && plane.position != null && !plane.recentTraceRequested) {
-            plane.recentTraceRequested = true;
-            trailQueue.push(plane);
-        }
+        if (plane.visible && plane.position != null && !plane.recentTraceRequested)
+            eligible.push(plane);
     }
+    if (!eligible.length)
+        return;
+
+    eligible.sort((a, b) => trailAltitude(b) - trailAltitude(a));
+    if (eligible.length > capacity)
+        eligible.length = capacity;
+
+    // getTrace pops from the end of the queue, so push lowest-first within this batch
+    // to leave the highest-altitude aircraft on top / fetched first.
+    for (let i = eligible.length - 1; i >= 0; i--) {
+        eligible[i].recentTraceRequested = true;
+        trailQueue.push(eligible[i]);
+    }
+
     if (!trailChainActive && trailQueue.length) {
         trailChainActive = true;
         getTrace(null, null, {
