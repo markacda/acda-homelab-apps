@@ -903,7 +903,10 @@ function initMap() {
         title: 'Aircraft positions',
         source: PlaneIconFeatures,
         declutter: false,
-        zIndex: 200,
+        // Above webglLayer (200) so labels/leaders render on top of the WebGL
+        // aircraft icons. In non-webgl mode this layer also holds the icons, and
+        // the per-style zIndex keeps each label above the icons within the layer.
+        zIndex: 250,
         renderBuffer: renderBuffer,
     });
     layers.push(iconLayer);
