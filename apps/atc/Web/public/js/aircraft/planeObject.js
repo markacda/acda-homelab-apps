@@ -142,6 +142,10 @@ PlaneObject.prototype.setNull = function() {
     this.showSpeedVector = false;
     this.speedVectorLat = null;
     this.speedVectorLon = null;
+
+    // Compass position of the label relative to the plane (N/NE/E/SE/S/SW/W/NW).
+    // 'NE' reproduces the original top-right placement.
+    this.labelPos = 'NE';
 };
 
 function planeCloneState(target, source) {
@@ -207,6 +211,8 @@ function planeCloneState(target, source) {
     target.showSpeedVector = source.showSpeedVector;
     target.speedVectorLat = source.speedVectorLat;
     target.speedVectorLon = source.speedVectorLon;
+
+    target.labelPos = source.labelPos;
 };
 
 
@@ -771,8 +777,8 @@ function altBandActive(altitude) {
     altitude = adjust_baro_alt(altitude);
     if (altitude == null) return true;              // unknown alt: leave as-is
     if (altitude === "ground") return showBandGround;
-    if (altitude <= 2000) return showBandTower;
-    if (altitude <= 6000) return showBandApproach;
+    if (altitude <= 1800) return showBandTower;
+    if (altitude <= 6200) return showBandApproach;
     return showBandArea;
 }
 
@@ -861,6 +867,48 @@ PlaneObject.prototype.setMarkerRgb = function() {
     this.glMarker.set('b', rgb[2]);
 };
 
+// --- Label placement helpers ---------------------------------------------
+// Compass positions, ordered so index = round(bearing / 45) % 8.
+const LABEL_DIRS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+
+// zIndex base for labels + leader lines. Icon zIndex is altitude-based (max
+// ~250000), so this keeps every label above every airplane icon while still
+// letting labels layer among themselves by the plane's own zIndex.
+const LABEL_TEXT_Z = 1000000;
+
+// Cached 2D context used only to measure label text extents.
+let _labelMeasureCtx = null;
+function measureLabelBlock(text, font) {
+    if (!_labelMeasureCtx)
+        _labelMeasureCtx = document.createElement('canvas').getContext('2d');
+    _labelMeasureCtx.font = font;
+    let w = 0;
+    const lines = text.split('\n');
+    for (const line of lines) {
+        const m = _labelMeasureCtx.measureText(line).width;
+        if (m > w) w = m;
+    }
+    // line height is the second number in the "12px/14px" font shorthand
+    const lh = parseFloat(font.split('/')[1]) || 14;
+    return { w: w, h: lines.length * lh };
+}
+
+// Top-left offset of a left-justified block placed at compass position `pos`,
+// `g` px away from the plane. Block is `w`x`h` px.
+function labelBlockOffset(pos, w, h, g) {
+    switch (pos) {
+        case 'N':  return [-w / 2,   -(g + h)];
+        case 'NE': return [g,        -(g + h)];
+        case 'E':  return [g,        -h / 2];
+        case 'SE': return [g,        g];
+        case 'S':  return [-w / 2,   g];
+        case 'SW': return [-(g + w), g];
+        case 'W':  return [-(g + w), -h / 2];
+        case 'NW': return [-(g + w), -(g + h)];
+        default:   return [g,        -(g + h)]; // NE fallback
+    }
+}
+
 PlaneObject.prototype.updateIcon = function() {
 
     let fillColor = hslToRgb(this.getMarkerColor());
@@ -905,17 +953,14 @@ PlaneObject.prototype.updateIcon = function() {
         labelText = "";
         if (atcStyle) {
             labelText += callsign + '\n';
-            labelText += this.squawk;
-            if (this.squawk == '7700' || this.squawk == '7600' || this.squawk == '7500') {
-                if (this.squawk == '7700') {
-                    labelText += ' EMERGENCY';
-                } else if (this.squawk == '7600') {
-                    labelText += ' NORDO';
-                } else if (this.squawk == '7500') {
-                    labelText += ' HIJACK';
-                }
+            // squawk code omitted from the label; keep only the emergency alerts
+            if (this.squawk == '7700') {
+                labelText += 'EMERGENCY\n';
+            } else if (this.squawk == '7600') {
+                labelText += 'NORDO\n';
+            } else if (this.squawk == '7500') {
+                labelText += 'HIJACK\n';
             }
-            labelText += '\n';
             let atcSpeed = Math.round(convert_speed(this.speed, DisplayUnits)).toString().padStart(3, '0');
             let verticalRateTriangle = "";
             if (this.vert_rate > 245){
@@ -1005,38 +1050,85 @@ PlaneObject.prototype.updateIcon = function() {
     if (!this.markerIcon && !webgl)
         return;
 
-    let styleKey = (webgl ? '' : svgKey) + '!' + labelText + '!' + this.scale;
+    // Shrink labels with the map once zoomed out past LABEL_FULL_ZOOM (Change 4).
+    const lzScale = labelZoomScaleFor(g.zoomLvl);
+
+    let styleKey = (webgl ? '' : svgKey) + '!' + labelText + '!' + this.scale
+        + '!' + this.labelPos + '!' + lzScale;
 
     if (this.styleKey != styleKey || !this.marker.getStyle()) {
         this.styleKey = styleKey;
-        let style;
         if (labelText) {
-            style = {
-                image: this.markerIcon,
+            // Build the font locally with the zoom scale baked in so the measured
+            // block matches the rendered text exactly (ol Text `scale` would not
+            // affect offsetX/offsetY and desync placement).
+            const fpx = 12 * globalScale * labelScale * lzScale;
+            const lpx = 14 * globalScale * labelScale * lzScale;
+            const font = `${labelStyle} ${fpx}px/${lpx}px ${labelFamily}`;
+
+            const blk = measureLabelBlock(labelText, font);
+            // Place the label just outside the icon so a leader line fits in the
+            // gap. iconR is the icon half-size (icons don't shrink with lzScale).
+            const iconR = this.shape.w * 0.5 * this.scale;
+            const gap = iconR + 12 * globalScale * lzScale;
+            const off = labelBlockOffset(this.labelPos, blk.w, blk.h, gap);
+
+            // Text lives in its own style at a high zIndex so labels render on
+            // top of all airplane icons, not just their own.
+            const textStyle = new ol.style.Style({
+                zIndex: LABEL_TEXT_Z + this.zIndex,
                 text: new ol.style.Text({
                     text: labelText,
                     fill: labelFill,
-                    backgroundFill: bgFill,
                     stroke: labelStrokeNarrow,
                     textAlign: 'left',
-                    textBaseline: labels_top ? 'bottom' : 'top',
-                    font: labelFont,
-                    offsetX: (this.shape.w *0.5*0.74*this.scale),
-                    offsetY: labels_top ? (this.shape.w *-0.3*0.74*this.scale) : (this.shape.w *0.5*0.74*this.scale),
-                    padding: [1, 0, -1, 2],
+                    textBaseline: 'top',
+                    font: font,
+                    offsetX: off[0],
+                    offsetY: off[1],
                 }),
-                zIndex: this.zIndex,
-            };
+            });
+            this.markerStyle = textStyle;
+
+            // Leader line: from just outside the icon to the point on the label
+            // block nearest the plane (clamp the plane point onto the block rect,
+            // which yields the nearest corner for diagonal placements and the
+            // nearest edge midpoint for cardinal ones). Drawn in the label band
+            // so it sits above other icons.
+            const left = off[0], right = off[0] + blk.w;
+            const top = off[1], bottom = off[1] + blk.h;
+            const nx = Math.max(left, Math.min(right, 0));
+            const ny = Math.max(top, Math.min(bottom, 0));
+            const nd = Math.hypot(nx, ny) || 1;
+            const ux = nx / nd, uy = ny / nd;
+            const r0 = iconR + 2 * globalScale;   // start just outside the icon
+            const r1 = nd - 3 * globalScale;      // stop just before the label
+            const leaderStyle = new ol.style.Style({
+                zIndex: LABEL_TEXT_Z + this.zIndex,
+                renderer: (px, state) => {
+                    if (r1 <= r0) return;
+                    const ctx = state.context;
+                    const pr = state.pixelRatio;
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(px[0] + ux * r0 * pr, px[1] + uy * r0 * pr);
+                    ctx.lineTo(px[0] + ux * r1 * pr, px[1] + uy * r1 * pr);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                    ctx.lineWidth = 1 * pr;
+                    ctx.stroke();
+                    ctx.restore();
+                },
+            });
+            const styles = [leaderStyle, textStyle];
+            if (!webgl)
+                styles.unshift(new ol.style.Style({ image: this.markerIcon, zIndex: this.zIndex }));
+            this.marker.setStyle(styles);
         } else {
-            style = {
-                image: this.markerIcon,
-                zIndex: this.zIndex,
-            };
+            this.markerStyle = new ol.style.Style(
+                webgl ? { zIndex: this.zIndex } : { image: this.markerIcon, zIndex: this.zIndex }
+            );
+            this.marker.setStyle(this.markerStyle);
         }
-        if (webgl)
-            delete style.image;
-        this.markerStyle = new ol.style.Style(style);
-        this.marker.setStyle(this.markerStyle);
     }
     if (webgl)
         return;

@@ -461,7 +461,9 @@ select.error, textarea.error, input.error {
     left: calc( 0px * var(--SCALE));
     top: calc( 0px * var(--SCALE));
     height: calc( 38px * var(--SCALE));
-    z-index: 9;
+    /* Below #selected_infoblock (z-index 1) so the plane side sheet hides these
+       buttons when it opens, but above the map so they show otherwise. */
+    z-index: 0;
 }
 
 .svgButton {

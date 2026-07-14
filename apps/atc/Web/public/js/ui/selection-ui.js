@@ -17,6 +17,11 @@ function deselect(plane) {
         refreshSelected();
     }
 
+    // Trim the long (historical) trail loaded on selection back to the recent
+    // window right away, instead of waiting for the next periodic trailReaper.
+    if (!now) now = new Date().getTime() / 1000;
+    plane.reapTrail();
+
     plane.updateTick('redraw');
     updateAddressBar();
 }
