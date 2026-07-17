@@ -1,24 +1,31 @@
 # Aggregates all homelab apps. Each app gets its own port starting at 6000, and
-# an nginx `proxy` service fronts them all on host 80/443, routing by path
-# (e.g. <ip>/atc, <ip>/receptenboek, dashboard at <ip>/). The per-app 600x ports
-# stay published for direct access.
+# an nginx `proxy` service fronts them all: HTTPS on host 443 (self-signed cert,
+# HTTP on 80 redirects to it), routing by path (e.g. <ip>/atc, <ip>/receptenboek,
+# dashboard at <ip>/). The per-app 600x ports stay published for direct access.
 # To add an app: create apps/<name> with a Dockerfile, add a service below on the
 # next free port, and add an nginx `location` block in proxy/nginx.conf.
 services:
   # Reverse proxy: the single public entrypoint on 80/443. See proxy/nginx.conf.
   proxy:
-    image: nginx:alpine
+    build:
+      context: .
+      dockerfile: proxy/Dockerfile
     container_name: proxy
     labels:
       # Don't auto-list the proxy itself as a dashboard tile.
       - 'homelab.enable=false'
     ports:
       - '80:80'
-      # Serve the same plain HTTP on 443 for now; real TLS is a later add.
-      - '443:80'
+      - '443:443'
+    environment:
+      # subjectAltName for the self-signed cert generated on first boot. Add the
+      # Pi's LAN IP/hostname here (e.g. ,IP:192.168.1.50) so the cert names it.
+      - TLS_SAN=DNS:localhost,IP:127.0.0.1
     volumes:
       - ./proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./proxy/proxy_common:/etc/nginx/proxy_common:ro
+      # Persistent self-signed cert (generated on first boot, reused after).
+      - proxy-certs:/etc/nginx/certs
     depends_on:
       - dashboard
       - atc
@@ -209,6 +216,7 @@ services:
       start_period: 10s
 
 volumes:
+  proxy-certs:
   dynamic-vs-fixed-data:
   recipe-book-data:
   atc-logs:
