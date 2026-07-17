@@ -14,6 +14,10 @@ needs — the built-in apps span the range:
   background ingest service, and a query/read model over the in-memory view.
 - **dashboard** — Docker-socket discovery + config + HTTP health-probe ports, with a gated
   background health-monitor holding the status cache.
+- **notification** — a Web Push fan-out app: `SubscriptionStore` + `NotificationStore` ports
+  (file-backed adapters) and a `PushSender` port (`web-push` adapter), a service that records
+  a notification and broadcasts it to every subscription (pruning gone ones), and a small
+  frontend listing the recent feed.
 - **atc** — a thin proxy: a validated `PointQuery` value object + one external
   `AirplanesSource` adapter, with a vendored `Web/public` and no client build.
 - **ev-crossover** — a static page with no server-side domain at all: just `Web/` (the

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#2563eb" />
+    <title>Settings — Homelab</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="back-link" href="/" title="Dashboard" aria-label="Back to dashboard">
+        <span class="arrow">←</span> <span class="label">Dashboard</span>
+      </a>
+      <h1>⚙️ Settings</h1>
+    </header>
+    <main>
+      <section class="card">
+        <h2>Notifications</h2>
+        <p>Status: <span id="notif-status" class="status-badge">…</span></p>
+        <p id="notif-desc" class="desc"></p>
+        <button id="notif-enable" class="settings-enable" hidden>Enable notifications</button>
+        <p id="notif-hint" class="hint" hidden></p>
+      </section>
+    </main>
+    <script type="module" src="/settings.js"></script>
+  </body>
+</html>

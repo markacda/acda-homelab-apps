@@ -12,14 +12,15 @@ Served through the proxy on `https://<pi-host>/` (recommended). The proxy uses a
 trust warning; plain HTTP on port 80 redirects to HTTPS. The direct `600x` ports
 stay plain HTTP.
 
-| Path                 | App                | Direct port | Description                                                                                                                 |
-| -------------------- | ------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `/`                  | `dashboard`        | 6000        | Landing page: tiled dashboard that auto-discovers the other apps via the Docker socket and health-checks them               |
-| `/atc`               | `atc`              | 6001        | Live aircraft-tracking frontend (airplanes.live), TypeScript/Express server + static map UI                                 |
-| `/laden-of-tanken`   | `ev-crossover`     | 6002        | Electricity price (€/kWh) at which charging is cheaper than petrol                                                          |
-| `/dynamisch-of-vast` | `dynamic-vs-fixed` | 6003        | Whether a dynamic (hourly-market) energy contract beats your fixed one, from HomeWizard usage + EnergyZero prices (NL)      |
-| `/logs`              | `log-viewer`       | 6004        | Browse, search, filter and aggregate the structured access logs written by every app (per-app/per-endpoint stats, errors)   |
-| `/receptenboek`      | `recipe-book`      | 6005        | Import Albert Heijn (Allerhande) recipes into a shared library, assemble named recipe books, and export them as LaTeX / PDF |
+| Path                 | App                | Direct port | Description                                                                                                                                  |
+| -------------------- | ------------------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                  | `dashboard`        | 6000        | Landing page: tiled dashboard that auto-discovers the other apps via the Docker socket and health-checks them                                |
+| `/atc`               | `atc`              | 6001        | Live aircraft-tracking frontend (airplanes.live), TypeScript/Express server + static map UI                                                  |
+| `/laden-of-tanken`   | `ev-crossover`     | 6002        | Electricity price (€/kWh) at which charging is cheaper than petrol                                                                           |
+| `/dynamisch-of-vast` | `dynamic-vs-fixed` | 6003        | Whether a dynamic (hourly-market) energy contract beats your fixed one, from HomeWizard usage + EnergyZero prices (NL)                       |
+| `/logs`              | `log-viewer`       | 6004        | Browse, search, filter and aggregate the structured access logs written by every app (per-app/per-endpoint stats, errors)                    |
+| `/receptenboek`      | `recipe-book`      | 6005        | Import Albert Heijn (Allerhande) recipes into a shared library, assemble named recipe books, and export them as LaTeX / PDF                  |
+| `/notificaties`      | `notification`     | 6006        | Web Push fan-out for the homelab (subscriptions + sender) and a feed of recent notifications, e.g. failed-request alerts from the log viewer |
 
 The proxy (`proxy/nginx.conf`) strips the path prefix before forwarding, so each
 app is unaware it's served under a subpath — the only requirement is that app
@@ -58,6 +59,66 @@ docker compose restart proxy        # entrypoint regenerates on boot
 ```
 
 The new cert is again self-signed, so clients must re-accept the trust warning.
+
+## Install as a PWA / enable notifications
+
+The whole homelab is **one installable PWA**. The dashboard (served at the origin
+root `/`) registers a single service worker whose scope covers every app, links
+the web app manifest, and shows the install + notification-permission banners. The
+`notification` app (`/notificaties`) owns Web Push: it stores browser push
+subscriptions, sends notifications, and keeps a feed of recent ones. The
+`log-viewer` calls it when new server-error (`>=500`) requests appear, so you get a
+push that opens the log viewer on tap.
+
+### 1. Generate VAPID keys (once)
+
+Web Push is authenticated with a VAPID keypair. Generate one and put it in a root
+`.env` file (git-ignored; read by `docker-compose.yml`):
+
+```sh
+npx web-push generate-vapid-keys
+```
+
+```ini
+# .env (repo root)
+VAPID_PUBLIC_KEY=<public key>
+VAPID_PRIVATE_KEY=<private key>
+VAPID_SUBJECT=mailto:you@example.com
+# Optional shared secret required on the notification app's internal POST /send:
+# SEND_TOKEN=<random string>
+```
+
+Without keys the apps still boot; push is simply disabled until they're set.
+
+### 2. Trust the self-signed certificate on each device
+
+Service workers, install, and Web Push all require a **secure context**. Because
+the cert is self-signed, each device must **trust** it first — clicking through
+the browser warning is _not_ enough. Export the cert from the proxy:
+
+```sh
+docker exec proxy cat /etc/nginx/certs/fullchain.pem > homelab-cert.pem
+```
+
+- **Android (Chrome):** transfer `homelab-cert.pem` to the phone and install it
+  (Settings → Security → Encryption & credentials → Install a certificate → CA
+  certificate). Open the homelab in Chrome, then menu → **Install app**.
+- **iPhone / iPad (Safari, iOS 16.4+):** AirDrop/email the cert, install the
+  profile (Settings → General → VPN & Device Management), then enable full trust
+  (Settings → General → About → Certificate Trust Settings). Open the homelab in
+  Safari → Share → **Add to Home Screen**. Push works **only** from the installed
+  home-screen app.
+- **Desktop (Chrome / Edge):** trust the cert in your OS certificate store, then
+  use the install icon in the address bar → **Install**.
+
+The same steps are available in-app from the ℹ️ button in the dashboard header.
+
+### 3. Enable notifications
+
+Open the installed app; the dashboard shows a permission banner. **Enable** grants
+permission and registers the push subscription. **Don't ask again** stops the
+banner permanently; the **✕** just dismisses it until the next load. You can always
+check the status and re-request from the dashboard **Settings** (⚙️) page.
 
 ## Local dev
 
