@@ -67,8 +67,8 @@ root `/`) registers a single service worker whose scope covers every app, links
 the web app manifest, and shows the install + notification-permission banners. The
 `notification` app (`/notificaties`) owns Web Push: it stores browser push
 subscriptions, sends notifications, and keeps a feed of recent ones. The
-`log-viewer` calls it when new failed (`>=400`) requests appear, so you get a push
-that opens the log viewer on tap.
+`log-viewer` calls it when new server-error (`>=500`) requests appear, so you get a
+push that opens the log viewer on tap.
 
 ### 1. Generate VAPID keys (once)
 

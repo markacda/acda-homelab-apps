@@ -133,8 +133,8 @@ services:
       - LOG_DIR=/app/logs
       # Every app's log volume is mounted read-only under here, one subdir each.
       - LOGS_ROOT=/logs
-      # When set, new failed (>=400) requests trigger a push via the notification
-      # app (reached by container name on the internal network).
+      # When set, new server-error (>=500) requests trigger a push via the
+      # notification app (reached by container name on the internal network).
       - NOTIFICATION_URL=http://notification:6006
       - SEND_TOKEN=${SEND_TOKEN:-}
     volumes:

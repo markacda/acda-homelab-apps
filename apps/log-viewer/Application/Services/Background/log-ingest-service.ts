@@ -2,8 +2,8 @@ import type { LogStore } from '../../../Ports/LogStore/log-store.ts';
 import type { AccessLogEntry, AppLogEntry } from '../../../Domain/ValueObjects/log-entry.ts';
 import type { FailureNotifier } from '../../../Ports/Notifier/failure-notifier.ts';
 
-/** A failed request is any 4xx/5xx response; 3xx redirects are not alerted on. */
-const FAILURE_STATUS = 400;
+/** Alert only on server errors (5xx); 3xx/4xx are not pushed as notifications. */
+const FAILURE_STATUS = 500;
 
 /**
  * Background service holding the in-memory view of the logs, rebuilt from the
