@@ -1,3 +1,5 @@
+import { initDashboardPwa } from './pwa.ts';
+
 interface AppTile {
   name?: string;
   url?: string | null;
@@ -166,3 +168,5 @@ async function refresh(): Promise<void> {
 
 refresh();
 setInterval(refresh, REFRESH_MS);
+
+initDashboardPwa();

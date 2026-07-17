@@ -1,0 +1,123 @@
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --surface-hover: #eef2f7;
+  --border: #d8dee6;
+  --text: #1a1f27;
+  --text-dim: #626c7a;
+  --accent: #2563eb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.meta {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+/* Back-to-dashboard control: full "← Dashboard" on desktop, arrow-only on mobile. */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.15s ease;
+}
+
+.back-link:hover {
+  color: var(--accent);
+}
+
+.back-link .arrow {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .back-link .label {
+    display: none;
+  }
+}
+
+main {
+  padding: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.item {
+  display: block;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+a.item:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+
+.item-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.item-msg {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+}
+
+.item-time {
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.placeholder {
+  color: var(--text-dim);
+  text-align: center;
+  padding: 3rem 0;
+}

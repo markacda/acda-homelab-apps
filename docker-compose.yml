@@ -33,6 +33,7 @@ services:
       - dynamic-vs-fixed
       - recipe-book
       - log-viewer
+      - notification
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://localhost/nginx-health']
@@ -132,6 +133,10 @@ services:
       - LOG_DIR=/app/logs
       # Every app's log volume is mounted read-only under here, one subdir each.
       - LOGS_ROOT=/logs
+      # When set, new failed (>=400) requests trigger a push via the notification
+      # app (reached by container name on the internal network).
+      - NOTIFICATION_URL=http://notification:6006
+      - SEND_TOKEN=${SEND_TOKEN:-}
     volumes:
       # Read-only mounts of every app's access-log volume (incl. its own), so
       # the viewer can read the full daily-rotated, gzipped 1-month history.
@@ -141,8 +146,11 @@ services:
       - dashboard-logs:/logs/dashboard:ro
       - recipe-book-logs:/logs/recipe-book:ro
       - log-viewer-logs:/logs/log-viewer:ro
+      - notification-logs:/logs/notification:ro
       # Read-write target for this app's own access log.
       - log-viewer-logs:/app/logs
+    depends_on:
+      - notification
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'node', '-e', "fetch('http://localhost:6004/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -175,6 +183,39 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'node', '-e', "fetch('http://localhost:6005/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  notification:
+    build:
+      context: .
+      dockerfile: apps/notification/Dockerfile
+    container_name: notification
+    labels:
+      - 'homelab.name=Notificaties'
+      - 'homelab.icon=🔔'
+    ports:
+      - '6006:6006'
+    environment:
+      - NODE_ENV=production
+      - PORT=6006
+      - DATA_DIR=/app/data
+      - LOG_DIR=/app/logs
+      # Web Push VAPID keys — generate once with `npx web-push generate-vapid-keys`
+      # and put them in a root .env file (gitignored). Push is disabled until set.
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
+      - VAPID_SUBJECT=${VAPID_SUBJECT:-mailto:admin@homelab.local}
+      # Optional shared secret required on POST /send (defence-in-depth).
+      - SEND_TOKEN=${SEND_TOKEN:-}
+    volumes:
+      - notification-data:/app/data
+      - notification-logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:6006/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -219,9 +260,11 @@ volumes:
   proxy-certs:
   dynamic-vs-fixed-data:
   recipe-book-data:
+  notification-data:
   atc-logs:
   ev-crossover-logs:
   dynamic-vs-fixed-logs:
   dashboard-logs:
   recipe-book-logs:
   log-viewer-logs:
+  notification-logs:

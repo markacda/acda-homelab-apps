@@ -65,6 +65,7 @@ Each app only creates the layers it needs. By example:
 - **dashboard** — discovery/config/health-probe ports with a gated background monitor.
 - **atc** — a thin proxy (a validated `PointQuery` value object + one external `AirplanesSource` adapter, `cors`/`compression`, and a `Web/public` with no client build — a tar1090-derived browser app. Its own client code (`js/**`, `index.html`, `style.css`) is Prettier-formatted like every app; only the vendored third-party `libs/` and static assets stay unformatted, and the whole `Web/public` is excluded from ESLint).
 - **ev-crossover** — a static page with no server-side domain at all: just `Web/` (the browser-side `crossover.ts` formula + UI) and a bare composition-root `server.ts` that serves it.
+- **notification** — a Web Push fan-out app: file-backed subscription/notification stores + a `web-push` sender, `POST /send` for other apps to trigger a push (fanned out to all subscriptions, gone ones pruned), and a small `Web/client` feed of recent notifications.
 
 **TypeScript / build model.** Every app extends `tsconfig.base.json` (strict,
 `nodenext`). Key constraints baked into the base config:
@@ -120,9 +121,19 @@ to show it on the dashboard at that path, add an `overrides:` entry in
 `apps/dashboard/config/config.yaml`.
 
 **Env vars.** `PORT`, `LOG_DIR` (persistent log volume), `DATA_DIR` (persistent
-state — `dynamic-vs-fixed`, `recipe-book`), plus app-specific ones (dashboard:
-`HOST_ADDRESS` + read-only Docker socket for container auto-discovery; recipe-book:
-`TECTONIC_CACHE_DIR` for the LaTeX toolchain).
+state — `dynamic-vs-fixed`, `recipe-book`, `notification`), plus app-specific ones
+(dashboard: `HOST_ADDRESS` + read-only Docker socket for container auto-discovery;
+recipe-book: `TECTONIC_CACHE_DIR` for the LaTeX toolchain; notification:
+`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT` for Web Push + optional
+`SEND_TOKEN`; log-viewer: `NOTIFICATION_URL` to push failed-request alerts).
+
+**PWA / push.** The homelab is one installable PWA. The **dashboard** (origin
+root `/`) hosts the manifest + a hand-written `Web/public/sw.js` service worker
+(root scope covers every app — a prefix-mounted app can't) and drives the install +
+notification-permission banners and the ⚙️ settings page. The **notification** app
+owns Web Push (subscriptions, VAPID, sending) and exposes `POST /send` for other
+apps. `sw.js` is a committed source file, so it is negated back in `.gitignore` and
+`.dockerignore` (which otherwise ignore `apps/*/Web/public/*.js`).
 
 ## Lint scope
 

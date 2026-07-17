@@ -48,6 +48,32 @@ h1 {
   font-size: 1.4rem;
 }
 
+/* Back-to-dashboard control: full "← Dashboard" on desktop, arrow-only on mobile. */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.15s ease;
+}
+
+.back-link:hover {
+  color: var(--text);
+}
+
+.back-link .arrow {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .back-link .label {
+    display: none;
+  }
+}
+
 /* top navigation */
 .topnav {
   display: flex;

@@ -49,16 +49,28 @@ body {
   font-size: 0.85rem;
 }
 
-.logs-btn {
+/* Right-aligned group of header action buttons (logs, info, settings). Wrapping
+   them keeps the group right-aligned even when the logs button is hidden. */
+.topbar-actions {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.icon-btn {
   font-size: 1.4rem;
   line-height: 1;
   text-decoration: none;
   cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
   transition: opacity 0.15s ease;
 }
 
-.logs-btn:hover {
+.icon-btn:hover {
   opacity: 0.6;
 }
 
@@ -172,4 +184,244 @@ main {
   color: var(--text-dim);
   text-align: center;
   padding: 3rem 0;
+}
+
+/* --- PWA banners (install + notification permission) --- */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.banner[hidden] {
+  display: none;
+}
+
+.banner-text {
+  flex: 1;
+}
+
+.banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.banner-btn {
+  font: inherit;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.banner-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.banner-btn.primary {
+  background: #fff;
+  color: var(--accent);
+  border-color: #fff;
+  font-weight: 600;
+}
+
+.banner-btn.primary:hover {
+  opacity: 0.85;
+  background: #fff;
+}
+
+.banner-close {
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+/* --- Info modal --- */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal[hidden] {
+  display: none;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(16, 24, 40, 0.5);
+}
+
+.modal-card {
+  position: relative;
+  z-index: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.5rem 1.75rem;
+  max-width: 560px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(16, 24, 40, 0.25);
+}
+
+.modal-card h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+}
+
+.modal-card h3 {
+  margin: 1.1rem 0 0.4rem;
+  font-size: 0.95rem;
+}
+
+.modal-card p {
+  margin: 0.5rem 0;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.modal-card ol {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.modal-card li {
+  margin: 0.25rem 0;
+}
+
+.modal-note {
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+  margin-top: 1rem;
+}
+
+.modal-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.9rem;
+  font-size: 1.2rem;
+  line-height: 1;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+/* --- Back-to-dashboard control (used on the settings page) --- */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.15s ease;
+}
+
+.back-link:hover {
+  color: var(--accent);
+}
+
+.back-link .arrow {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .back-link .label {
+    display: none;
+  }
+}
+
+/* --- Settings card --- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 560px;
+}
+
+.card h2 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--surface-hover);
+  color: var(--text-dim);
+}
+
+.status-badge.accepted {
+  background: rgba(26, 156, 62, 0.15);
+  color: var(--up);
+}
+
+.status-badge.rejected {
+  background: rgba(217, 45, 32, 0.15);
+  color: var(--down);
+}
+
+.status-badge.ignored {
+  background: rgba(152, 162, 179, 0.2);
+  color: var(--text-dim);
+}
+
+.desc {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.hint {
+  color: var(--down);
+  font-size: 0.85rem;
+}
+
+.settings-enable {
+  font: inherit;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-enable:hover {
+  opacity: 0.9;
+}
+
+.settings-enable:disabled {
+  opacity: 0.5;
+  cursor: default;
 }

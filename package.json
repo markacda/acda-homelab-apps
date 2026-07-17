@@ -11,6 +11,7 @@
     "apps/dynamic-vs-fixed",
     "apps/ev-crossover",
     "apps/log-viewer",
+    "apps/notification",
     "apps/recipe-book"
   ],
   "engines": {
