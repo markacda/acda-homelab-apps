@@ -2,12 +2,15 @@
 
 A monorepo of small Node webapps that run in Docker on a Raspberry Pi 5 (ARM64),
 all aggregated by a single `docker-compose.yml`. An nginx `proxy` container fronts
-them on the standard web port and routes by path (dashboard at `/`, each app under
-its own prefix). Every app also stays directly reachable on its own `600x` port.
+them over HTTPS and routes by path (dashboard at `/`, each app under its own
+prefix). Every app also stays directly reachable on its own `600x` port.
 
 ## URL map
 
-Served through the proxy on `http://<pi-host>/` (recommended):
+Served through the proxy on `https://<pi-host>/` (recommended). The proxy uses a
+**self-signed** certificate generated on first boot, so browsers show a one-time
+trust warning; plain HTTP on port 80 redirects to HTTPS. The direct `600x` ports
+stay plain HTTP.
 
 | Path                 | App                | Direct port | Description                                                                                                                 |
 | -------------------- | ------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------- |
@@ -28,8 +31,9 @@ client code uses **relative** URLs (e.g. `fetch('api/…')`, not `/api/…`).
 docker compose up -d --build
 ```
 
-Then open the dashboard at http://<pi-host>/ , or an app directly, e.g.
-http://<pi-host>/laden-of-tanken (or its direct port http://<pi-host>:6002 ).
+Then open the dashboard at https://<pi-host>/ (accept the self-signed-cert
+warning), or an app directly, e.g. https://<pi-host>/laden-of-tanken (or its
+plain-HTTP direct port http://<pi-host>:6002 ).
 
 Stop everything:
 
@@ -119,6 +123,6 @@ In dev, point it at the repo's logs with `LOGS_ROOT=./apps npm run dev -w log-vi
    app works under the reverse proxy's path prefix.
 3. Add a service to the root `docker-compose.yml` on the next free port (6006, 6007…).
 4. Add a `location /<path>/ { proxy_pass http://<service>:<port>/; … }` block (plus the
-   trailing-slash redirect) to `proxy/nginx.conf`, and — if it should appear on the
+   trailing-slash redirect) to the HTTPS server in `proxy/nginx.conf`, and — if it should appear on the
    dashboard — an `overrides:` entry in `apps/dashboard/config/config.yaml` pointing its
    tile at the new path.
