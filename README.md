@@ -41,6 +41,24 @@ Stop everything:
 docker compose down
 ```
 
+### TLS certificate
+
+The proxy generates a self-signed cert on first boot (see
+`proxy/generate-selfsigned-cert.sh`) into the persistent `proxy-certs` volume,
+valid for 10 years. Set `TLS_SAN` on the `proxy` service (e.g.
+`DNS:localhost,IP:127.0.0.1,IP:<pi-ip>`) to name the Pi before that first boot.
+
+Generation is idempotent — it only runs when no cert exists — so to renew an
+expired cert (symptom: browsers report `NET::ERR_CERT_DATE_INVALID`) or to
+regenerate after changing `TLS_SAN`, delete the old cert and restart:
+
+```sh
+docker exec proxy rm -f /etc/nginx/certs/privkey.pem /etc/nginx/certs/fullchain.pem
+docker compose restart proxy        # entrypoint regenerates on boot
+```
+
+The new cert is again self-signed, so clients must re-accept the trust warning.
+
 ## Local dev
 
 The repo is an [npm workspace](https://docs.npmjs.com/cli/using-npm/workspaces),
