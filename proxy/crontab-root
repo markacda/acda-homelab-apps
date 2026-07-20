@@ -1,0 +1,4 @@
+# Rotate the Log Viewer nginx access log daily at midnight (see the policy in
+# /etc/logrotate.d/nginx-logviewer). Read by busybox crond, started by
+# /docker-entrypoint.d/20-start-crond.sh.
+0 0 * * * /usr/sbin/logrotate -s /var/lib/logrotate/logrotate.status /etc/logrotate.d/nginx-logviewer

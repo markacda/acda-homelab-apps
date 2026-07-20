@@ -26,6 +26,9 @@ services:
       # so `docker compose up -d --build` recreates the proxy on any config change.
       # Persistent self-signed cert (generated on first boot, reused after).
       - proxy-certs:/etc/nginx/certs
+      # Structured JSON access log (daily-rotated, gzipped) that log-viewer mounts
+      # read-only under /logs/proxy — the edge view of every request pre-strip.
+      - proxy-logs:/var/log/nginx/lv
     depends_on:
       - dashboard
       - atc
@@ -147,6 +150,8 @@ services:
       - recipe-book-logs:/logs/recipe-book:ro
       - log-viewer-logs:/logs/log-viewer:ro
       - notification-logs:/logs/notification:ro
+      # nginx proxy's JSON access log (edge view: full pre-strip URL + real client IP).
+      - proxy-logs:/logs/proxy:ro
       # Read-write target for this app's own access log.
       - log-viewer-logs:/app/logs
     depends_on:
@@ -261,6 +266,7 @@ services:
 
 volumes:
   proxy-certs:
+  proxy-logs:
   dynamic-vs-fixed-data:
   recipe-book-data:
   notification-data:
