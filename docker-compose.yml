@@ -22,8 +22,8 @@ services:
       # Pi's LAN IP/hostname here (e.g. ,IP:192.168.1.50) so the cert names it.
       - TLS_SAN=DNS:localhost,IP:127.0.0.1
     volumes:
-      - ./proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./proxy/proxy_common:/etc/nginx/proxy_common:ro
+      # nginx.conf and proxy_common are baked into the image (see proxy/Dockerfile),
+      # so `docker compose up -d --build` recreates the proxy on any config change.
       # Persistent self-signed cert (generated on first boot, reused after).
       - proxy-certs:/etc/nginx/certs
     depends_on:
