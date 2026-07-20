@@ -11,8 +11,6 @@ apps/*/public/*.js
 apps/*/public/*.js.map
 apps/*/Web/public/*.js
 apps/*/Web/public/*.js.map
-# ...except the hand-written PWA service worker, which must ship in the image.
-!apps/dashboard/Web/public/sw.js
 
 .git
 .github

@@ -12,8 +12,6 @@ apps/*/public/*.js.map
 # Same, for apps on the DDD layout that serve from Web/public/
 apps/*/Web/public/*.js
 apps/*/Web/public/*.js.map
-# ...but the PWA service worker is hand-written source, not a compiled bundle.
-!apps/dashboard/Web/public/sw.js
 
 # Local price-cache written by dynamic-vs-fixed in dev (DATA_DIR)
 data/

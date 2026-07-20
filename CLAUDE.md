@@ -124,16 +124,14 @@ to show it on the dashboard at that path, add an `overrides:` entry in
 state — `dynamic-vs-fixed`, `recipe-book`, `notification`), plus app-specific ones
 (dashboard: `HOST_ADDRESS` + read-only Docker socket for container auto-discovery;
 recipe-book: `TECTONIC_CACHE_DIR` for the LaTeX toolchain; notification:
-`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT` for Web Push + optional
-`SEND_TOKEN`; log-viewer: `NOTIFICATION_URL` to push failed-request alerts).
+`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT` + optional `SEND_TOKEN`;
+log-viewer: `NOTIFICATION_URL` to post failed-request alerts to the notification app).
 
-**PWA / push.** The homelab is one installable PWA. The **dashboard** (origin
-root `/`) hosts the manifest + a hand-written `Web/public/sw.js` service worker
-(root scope covers every app — a prefix-mounted app can't) and drives the install +
-notification-permission banners and the ⚙️ settings page. The **notification** app
-owns Web Push (subscriptions, VAPID, sending) and exposes `POST /send` for other
-apps. `sw.js` is a committed source file, so it is negated back in `.gitignore` and
-`.dockerignore` (which otherwise ignore `apps/*/Web/public/*.js`).
+**Notifications.** The **notification** app (`/notificaties`) records notifications
+and shows a recent-notifications feed, and exposes `POST /send` for other apps to
+call (e.g. `log-viewer` on new `>=500` requests). Actual Web Push delivery to
+devices is currently stubbed — see the TODO in `Adapters/Push/web-push-sender.ts` —
+so notifications are recorded but not pushed yet.
 
 ## Lint scope
 

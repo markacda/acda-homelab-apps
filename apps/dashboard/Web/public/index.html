@@ -3,82 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#2563eb" />
     <title>Homelab Dashboard</title>
-    <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="stylesheet" href="/styles.css" />
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Homelab" />
   </head>
   <body>
-    <!-- Notification-permission banner. pwa.js shows it while permission is
-         still "default" and the user hasn't chosen "Don't ask again". -->
-    <div id="notif-banner" class="banner" hidden>
-      <span class="banner-text">Enable notifications to get alerts from your homelab.</span>
-      <span class="banner-actions">
-        <button id="notif-enable" class="banner-btn primary">Enable</button>
-        <button id="notif-decline" class="banner-btn">Don't ask again</button>
-        <button id="notif-close" class="banner-close" title="Close" aria-label="Close">✕</button>
-      </span>
-    </div>
-    <!-- Install banner. Shown when the browser fires beforeinstallprompt. -->
-    <div id="install-banner" class="banner" hidden>
-      <span class="banner-text">Install the homelab as an app.</span>
-      <span class="banner-actions">
-        <button id="install-btn" class="banner-btn primary">Install</button>
-        <button id="install-close" class="banner-close" title="Close" aria-label="Close">✕</button>
-      </span>
-    </div>
-
     <header class="topbar">
       <h1 id="title">Homelab Dashboard</h1>
       <span id="meta" class="meta"></span>
-      <div class="topbar-actions">
-        <a id="logs-link" class="icon-btn" hidden title="Logs" aria-label="Logs" target="_self">🪲</a>
-        <button id="info-btn" class="icon-btn" title="Install / notifications help" aria-label="Info">ℹ️</button>
-        <a id="settings-link" class="icon-btn" href="settings.html" title="Settings" aria-label="Settings">⚙️</a>
-      </div>
+      <a id="logs-link" class="logs-btn" hidden title="Logs" aria-label="Logs" target="_self">🪲</a>
     </header>
     <main id="content">
       <p class="placeholder">Loading…</p>
     </main>
-
-    <!-- Info modal: how to trust the self-signed cert and install the PWA. -->
-    <div id="info-modal" class="modal" hidden>
-      <div class="modal-backdrop" data-close></div>
-      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="info-title">
-        <button class="modal-close" data-close title="Close" aria-label="Close">✕</button>
-        <h2 id="info-title">Install &amp; enable notifications</h2>
-        <p>
-          This homelab is served over HTTPS with a <strong>self-signed certificate</strong>. Installing it as an app and receiving notifications
-          requires a "secure context", so the certificate must be <strong>trusted on each device</strong> first — clicking through the browser warning
-          is not enough.
-        </p>
-        <h3>Android (Chrome)</h3>
-        <ol>
-          <li>Open the homelab HTTPS address; accept/import the certificate if prompted.</li>
-          <li>Chrome menu → <em>Install app</em> (or <em>Add to Home screen</em>).</li>
-          <li>Open the installed app, then allow notifications from the banner or Settings ⚙️.</li>
-        </ol>
-        <h3>iPhone / iPad (Safari, iOS 16.4+)</h3>
-        <ol>
-          <li>Install the certificate profile, then enable full trust: Settings → General → About → Certificate Trust Settings.</li>
-          <li>Open the homelab in Safari → Share → <em>Add to Home Screen</em>.</li>
-          <li>Launch it from the Home Screen (push works only from the installed app), then allow notifications.</li>
-        </ol>
-        <h3>Desktop (Chrome / Edge)</h3>
-        <ol>
-          <li>Trust the certificate in your OS certificate store.</li>
-          <li>Use the install icon in the address bar → <em>Install</em>.</li>
-          <li>Allow notifications from the banner or Settings ⚙️.</li>
-        </ol>
-        <p class="modal-note">Don't see the notification prompt? Check its status on the Settings ⚙️ page and re-request it there.</p>
-      </div>
-    </div>
-
     <script type="module" src="/app.js"></script>
   </body>
 </html>
