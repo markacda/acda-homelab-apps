@@ -30,9 +30,7 @@ export class FallbackAirplanesSource implements AirplanesSource {
     } catch (error) {
       const fallback = await this.readFallback(path);
       if (fallback === undefined) throw error;
-      console.error(
-        `[${new Date().toISOString()}] Upstream fetch for "${path}" failed (${error instanceof Error ? error.message : 'unknown error'}); serving cached fallback`
-      );
+      console.error(`Upstream fetch for "${path}" failed (${error instanceof Error ? error.message : 'unknown error'}); serving cached fallback`);
       return fallback;
     }
   }
