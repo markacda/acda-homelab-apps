@@ -45,6 +45,7 @@ overrides:
   dynamic-vs-fixed: { url: /dynamisch-of-vast }
   recipe-book: { url: /receptenboek }
   log-viewer: { url: /logs }
+  notification: { url: /notificaties }
   # sonarr:
   #   name: "Sonarr"
   #   icon: "sonarr"

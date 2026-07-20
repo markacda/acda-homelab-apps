@@ -12,14 +12,15 @@ Served through the proxy on `https://<pi-host>/` (recommended). The proxy uses a
 trust warning; plain HTTP on port 80 redirects to HTTPS. The direct `600x` ports
 stay plain HTTP.
 
-| Path                 | App                | Direct port | Description                                                                                                                 |
-| -------------------- | ------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `/`                  | `dashboard`        | 6000        | Landing page: tiled dashboard that auto-discovers the other apps via the Docker socket and health-checks them               |
-| `/atc`               | `atc`              | 6001        | Live aircraft-tracking frontend (airplanes.live), TypeScript/Express server + static map UI                                 |
-| `/laden-of-tanken`   | `ev-crossover`     | 6002        | Electricity price (€/kWh) at which charging is cheaper than petrol                                                          |
-| `/dynamisch-of-vast` | `dynamic-vs-fixed` | 6003        | Whether a dynamic (hourly-market) energy contract beats your fixed one, from HomeWizard usage + EnergyZero prices (NL)      |
-| `/logs`              | `log-viewer`       | 6004        | Browse, search, filter and aggregate the structured access logs written by every app (per-app/per-endpoint stats, errors)   |
-| `/receptenboek`      | `recipe-book`      | 6005        | Import Albert Heijn (Allerhande) recipes into a shared library, assemble named recipe books, and export them as LaTeX / PDF |
+| Path                 | App                | Direct port | Description                                                                                                                                   |
+| -------------------- | ------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                  | `dashboard`        | 6000        | Landing page: tiled dashboard that auto-discovers the other apps via the Docker socket and health-checks them                                 |
+| `/atc`               | `atc`              | 6001        | Live aircraft-tracking frontend (airplanes.live), TypeScript/Express server + static map UI                                                   |
+| `/laden-of-tanken`   | `ev-crossover`     | 6002        | Electricity price (€/kWh) at which charging is cheaper than petrol                                                                            |
+| `/dynamisch-of-vast` | `dynamic-vs-fixed` | 6003        | Whether a dynamic (hourly-market) energy contract beats your fixed one, from HomeWizard usage + EnergyZero prices (NL)                        |
+| `/logs`              | `log-viewer`       | 6004        | Browse, search, filter and aggregate the structured access logs written by every app (per-app/per-endpoint stats, errors)                     |
+| `/receptenboek`      | `recipe-book`      | 6005        | Import Albert Heijn (Allerhande) recipes into a shared library, assemble named recipe books, and export them as LaTeX / PDF                   |
+| `/notificaties`      | `notification`     | 6006        | Collects notifications from the other apps (via `POST /send`) and shows a feed of recent ones, e.g. failed-request alerts from the log viewer |
 
 The proxy (`proxy/nginx.conf`) strips the path prefix before forwarding, so each
 app is unaware it's served under a subpath — the only requirement is that app
@@ -58,6 +59,12 @@ docker compose restart proxy        # entrypoint regenerates on boot
 ```
 
 The new cert is again self-signed, so clients must re-accept the trust warning.
+
+## Notifications
+
+The `notification` app (`/notificaties`) collects notifications and shows a feed of
+recent ones. Other apps post to its internal `POST /send` endpoint — for example
+the `log-viewer` calls it when new server-error (`>=500`) requests appear.
 
 ## Local dev
 

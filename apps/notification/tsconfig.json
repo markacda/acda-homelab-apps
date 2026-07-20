@@ -1,0 +1,13 @@
+{
+  // Node side: server + the DDD layers + tests. Compiles to dist/ for production.
+  // rootDir is pinned to "../.." (repo root) so that, even though server.ts imports
+  // the shared kit from ../Common (a sibling under apps/), the emit still nests the
+  // build as dist/apps/notification/server.js (see package.json "start").
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "../..",
+    "types": ["node"]
+  },
+  "include": ["server.ts", "Domain/**/*.ts", "Application/**/*.ts", "Adapters/**/*.ts", "Ports/**/*.ts", "Models/**/*.ts", "test/**/*.ts"]
+}

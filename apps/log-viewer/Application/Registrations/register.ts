@@ -1,5 +1,7 @@
 import type { Express } from 'express';
 import { FileLogStore } from '../../Adapters/FileLogStore/file-log-store.ts';
+import { HttpFailureNotifier } from '../../Adapters/Notifier/http-failure-notifier.ts';
+import type { FailureNotifier } from '../../Ports/Notifier/failure-notifier.ts';
 import { LogIngestService } from '../Services/Background/log-ingest-service.ts';
 import { LogQueryService } from '../Services/log-query-service.ts';
 import { RequestLogController } from '../Controllers/request-log-controller.ts';
@@ -19,8 +21,17 @@ export function register(app: Express): LogIngestService {
   const logsRoot = process.env.LOGS_ROOT || '/logs';
   console.log(`log-viewer LOGS_ROOT=${logsRoot}`);
 
+  // Optional: post an alert to the notification app when new failed requests
+  // appear. Enabled only when NOTIFICATION_URL is set (feature off otherwise).
+  const notificationUrl = process.env.NOTIFICATION_URL;
+  let notifier: FailureNotifier | undefined;
+  if (notificationUrl) {
+    notifier = new HttpFailureNotifier(notificationUrl, process.env.SEND_TOKEN || undefined);
+    console.log(`log-viewer failure notifications -> ${notificationUrl}`);
+  }
+
   const store = new FileLogStore(logsRoot);
-  const ingest = new LogIngestService(store, REFRESH_INTERVAL_MS);
+  const ingest = new LogIngestService(store, REFRESH_INTERVAL_MS, notifier);
   const query = new LogQueryService(ingest);
 
   const requestController = new RequestLogController(query);

@@ -65,6 +65,7 @@ Each app only creates the layers it needs. By example:
 - **dashboard** — discovery/config/health-probe ports with a gated background monitor.
 - **atc** — a thin proxy (a validated `PointQuery` value object + one external `AirplanesSource` adapter, `cors`/`compression`, and a `Web/public` with no client build — a tar1090-derived browser app. Its own client code (`js/**`, `index.html`, `style.css`) is Prettier-formatted like every app; only the vendored third-party `libs/` and static assets stay unformatted, and the whole `Web/public` is excluded from ESLint).
 - **ev-crossover** — a static page with no server-side domain at all: just `Web/` (the browser-side `crossover.ts` formula + UI) and a bare composition-root `server.ts` that serves it.
+- **notification** — a notifications app: a file-backed notification store, `POST /send` for other apps to record a notification, and a small `Web/client` feed of recent ones.
 
 **TypeScript / build model.** Every app extends `tsconfig.base.json` (strict,
 `nodenext`). Key constraints baked into the base config:
@@ -120,9 +121,15 @@ to show it on the dashboard at that path, add an `overrides:` entry in
 `apps/dashboard/config/config.yaml`.
 
 **Env vars.** `PORT`, `LOG_DIR` (persistent log volume), `DATA_DIR` (persistent
-state — `dynamic-vs-fixed`, `recipe-book`), plus app-specific ones (dashboard:
-`HOST_ADDRESS` + read-only Docker socket for container auto-discovery; recipe-book:
-`TECTONIC_CACHE_DIR` for the LaTeX toolchain).
+state — `dynamic-vs-fixed`, `recipe-book`, `notification`), plus app-specific ones
+(dashboard: `HOST_ADDRESS` + read-only Docker socket for container auto-discovery;
+recipe-book: `TECTONIC_CACHE_DIR` for the LaTeX toolchain; notification: optional
+`SEND_TOKEN` guarding `POST /send`; log-viewer: `NOTIFICATION_URL` to post
+failed-request alerts to the notification app).
+
+**Notifications.** The **notification** app (`/notificaties`) records notifications
+and shows a recent-notifications feed, and exposes `POST /send` for other apps to
+call (e.g. `log-viewer` on new `>=500` requests).
 
 ## Lint scope
 
