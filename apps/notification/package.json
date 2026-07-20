@@ -1,7 +1,7 @@
 {
   "name": "notification",
   "version": "1.0.0",
-  "description": "Web Push fan-out for the homelab: stores subscriptions, sends notifications, keeps a recent-notifications feed",
+  "description": "Homelab notifications: records notifications via POST /send and serves a recent-notifications feed",
   "private": true,
   "type": "module",
   "main": "dist/apps/notification/server.js",
@@ -18,13 +18,11 @@
   },
   "dependencies": {
     "express": "^5.1.0",
-    "rotating-file-stream": "^3.2.6",
-    "web-push": "^3.6.7"
+    "rotating-file-stream": "^3.2.6"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
     "@types/node": "^24.0.0",
-    "@types/web-push": "^3.6.3",
     "typescript": "^5.9.3"
   }
 }

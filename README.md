@@ -66,8 +66,8 @@ The `notification` app (`/notificaties`) collects notifications and shows a feed
 recent ones. Other apps post to its internal `POST /send` endpoint — for example
 the `log-viewer` calls it when new server-error (`>=500`) requests appear. Actual
 **Web Push delivery to devices is not wired up yet** (a TODO in the notification
-app's `WebPushSender`); for now notifications are only recorded and shown in the
-feed.
+app's `NotificationService`); for now notifications are only recorded and shown in
+the feed.
 
 ## Local dev
 

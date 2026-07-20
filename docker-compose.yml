@@ -203,11 +203,6 @@ services:
       - PORT=6006
       - DATA_DIR=/app/data
       - LOG_DIR=/app/logs
-      # Web Push VAPID keys — generate once with `npx web-push generate-vapid-keys`
-      # and put them in a root .env file (gitignored). Push is disabled until set.
-      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
-      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
-      - VAPID_SUBJECT=${VAPID_SUBJECT:-mailto:admin@homelab.local}
       # Optional shared secret required on POST /send (defence-in-depth).
       - SEND_TOKEN=${SEND_TOKEN:-}
     volumes:
