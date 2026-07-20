@@ -2,7 +2,6 @@ import { join } from 'node:path';
 import express from 'express';
 import type { Express } from 'express';
 import { FileNotificationStore } from '../../Adapters/Notifications/file-notification-store.ts';
-import { FeedChannel } from '../../Adapters/Notifications/feed-channel.ts';
 import { EmailChannel } from '../../Adapters/Email/email-channel.ts';
 import type { NotificationChannel } from '../../Ports/Channels/notification-channel.ts';
 import { NotificationService } from '../Services/notification-service.ts';
@@ -10,17 +9,17 @@ import { NotificationController } from '../Controllers/notification-controller.t
 import { errorMapping } from '../Filters/error-mapping.ts';
 
 /**
- * Composition root: build the file-backed notification store, assemble the
- * delivery channels, inject them into the dispatcher service, and mount the
- * controller (POST /send + GET /api/notifications).
+ * Composition root: build the file-backed notification store (the always-on
+ * feed), assemble the optional delivery channels, inject them into the service,
+ * and mount the controller (POST /send + GET /api/notifications).
  */
 export function register(app: Express): void {
   const dataDir = process.env.DATA_DIR || join(process.cwd(), 'data');
   const notificationStore = new FileNotificationStore(join(dataDir, 'notifications.json'));
 
-  // The in-app feed is the one fully-implemented channel; it backs GET /api/notifications.
-  const feedChannel = new FeedChannel(notificationStore);
-  const channels: NotificationChannel[] = [feedChannel];
+  // Delivery channels (the feed is not a channel — it is always written). Each is
+  // registered only when configured; POST /send targets them by name.
+  const channels: NotificationChannel[] = [];
 
   // Email channel (skeleton) — registered only when SMTP is configured. Once
   // EmailChannel.deliver() is implemented, `channels:["email"]` starts working.

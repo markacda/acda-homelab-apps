@@ -65,7 +65,7 @@ Each app only creates the layers it needs. By example:
 - **dashboard** — discovery/config/health-probe ports with a gated background monitor.
 - **atc** — a thin proxy (a validated `PointQuery` value object + one external `AirplanesSource` adapter, `cors`/`compression`, and a `Web/public` with no client build — a tar1090-derived browser app. Its own client code (`js/**`, `index.html`, `style.css`) is Prettier-formatted like every app; only the vendored third-party `libs/` and static assets stay unformatted, and the whole `Web/public` is excluded from ESLint).
 - **ev-crossover** — a static page with no server-side domain at all: just `Web/` (the browser-side `crossover.ts` formula + UI) and a bare composition-root `server.ts` that serves it.
-- **notification** — a multi-channel notification dispatcher: a `NotificationChannel` port with one adapter per delivery mechanism, `POST /send` (with a **required** `channels` list) fanning a notification out over the requested channels, a file-backed feed store behind the `feed` channel, and a small `Web/client` feed of recent ones. Only `feed` is fully implemented; `email` is a wired skeleton (env-gated on `SMTP_HOST`, `deliver()` stubbed); push/websocket/webhook are documented drop-in candidates.
+- **notification** — a notifications app with pluggable delivery: `POST /send` records every notification in a file-backed feed (shown in a small `Web/client` feed of recent ones) and then delivers it over any channels named in an **optional** `channels` list. The feed is not a channel — it is always written; channels are extra delivery mechanisms (a `NotificationChannel` port, one adapter each). `email` is a wired skeleton (env-gated on `SMTP_HOST`, `deliver()` stubbed); push/websocket/webhook are documented drop-in candidates. An unknown channel name is a 400.
 
 **TypeScript / build model.** Every app extends `tsconfig.base.json` (strict,
 `nodenext`). Key constraints baked into the base config:
@@ -129,13 +129,14 @@ recipe-book: `TECTONIC_CACHE_DIR` for the LaTeX toolchain; notification: optiona
 skeleton; log-viewer: `NOTIFICATION_URL` to post failed-request alerts to the
 notification app).
 
-**Notifications.** The **notification** app (`/notificaties`) dispatches a
-notification over one or more delivery channels and shows a recent-notifications
-feed. Other apps call `POST /send` (e.g. `log-viewer` on new `>=500` requests) with
-a **required** `channels` array naming the target channel(s); an unknown or empty
-channel list is a `400`. Today the only fully-implemented channel is `feed` (the
-recent-feed store); `email` is a wired-but-stubbed skeleton showing how to add a
-real one.
+**Notifications.** The **notification** app (`/notificaties`) records every
+notification in a persistent feed (shown in the recent-notifications UI) and can
+additionally deliver it over pluggable channels. Other apps call `POST /send`
+(e.g. `log-viewer` on new `>=500` requests); an **optional** `channels` array
+names extra delivery channels to fan out to (an unknown name is a `400`, and one
+channel failing never fails the request or the feed). The feed is always written
+and is not itself a channel. `email` is a wired-but-stubbed skeleton showing how to
+add a real channel.
 
 ## Lint scope
 

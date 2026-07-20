@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { createNotification } from '../Domain/ValueObjects/notification.ts';
 import { ValidationError } from '../Domain/Exceptions/validation-error.ts';
 import { NotificationService } from '../Application/Services/notification-service.ts';
-import { FeedChannel } from '../Adapters/Notifications/feed-channel.ts';
 import { EmailChannel } from '../Adapters/Email/email-channel.ts';
 import type { NotificationStore } from '../Ports/Notifications/notification-store.ts';
 import type { NotificationChannel } from '../Ports/Channels/notification-channel.ts';
@@ -40,63 +39,48 @@ class ThrowingChannel implements NotificationChannel {
   }
 }
 
-/** A service whose only channel is the feed (the common case). */
-function feedService(store = new FakeNotificationStore()) {
-  return { store, service: new NotificationService(store, [new FeedChannel(store)]) };
-}
-
 test('createNotification requires title and message', () => {
-  assert.throws(() => createNotification({ title: '', message: 'x', channels: ['feed'] }, 'id', 'now'), ValidationError);
-  assert.throws(() => createNotification({ title: 'x', message: '  ', channels: ['feed'] }, 'id', 'now'), ValidationError);
-});
-
-test('createNotification requires at least one channel', () => {
-  assert.throws(() => createNotification({ title: 'x', message: 'y', channels: [] }, 'id', 'now'), ValidationError);
-  assert.throws(() => createNotification({ title: 'x', message: 'y', channels: ['  '] }, 'id', 'now'), ValidationError);
+  assert.throws(() => createNotification({ title: '', message: 'x' }, 'id', 'now'), ValidationError);
+  assert.throws(() => createNotification({ title: 'x', message: '  ' }, 'id', 'now'), ValidationError);
 });
 
 test('createNotification stamps id/createdAt, trims content, and normalizes channels', () => {
-  const n = createNotification({ title: '  Hi  ', message: '  there  ', url: '/logs/', channels: [' feed ', ''] }, 'id-1', '2026-07-17T00:00:00Z');
+  const n = createNotification({ title: '  Hi  ', message: '  there  ', url: '/logs/', channels: [' email ', ''] }, 'id-1', '2026-07-17T00:00:00Z');
   assert.equal(n.id, 'id-1');
   assert.equal(n.createdAt, '2026-07-17T00:00:00Z');
   assert.equal(n.title, 'Hi');
   assert.equal(n.message, 'there');
   assert.equal(n.url, '/logs/');
-  assert.deepEqual(n.channels, ['feed']);
+  assert.deepEqual(n.channels, ['email']);
 });
 
-test('send delivers to the feed channel and records the stamped notification', async () => {
-  const { store, service } = feedService();
+test('channels is optional — a feed-only notification carries none', () => {
+  const n = createNotification({ title: 'T', message: 'M' }, 'id', 'now');
+  assert.equal(n.channels, undefined);
+});
 
-  const result = await service.send({ title: 'T', message: 'M', url: '/logs/', channels: ['feed'] });
+test('send always records to the feed, even with no channels', async () => {
+  const store = new FakeNotificationStore();
+  const service = new NotificationService(store, []);
+
+  const result = await service.send({ title: 'T', message: 'M', url: '/logs/' });
 
   assert.equal(store.added.length, 1);
   assert.equal(store.added[0].id, result.id);
   assert.equal(result.title, 'T');
-  assert.equal(result.message, 'M');
   assert.equal(result.url, '/logs/');
 });
 
-test('send rejects a missing/empty channels list', async () => {
-  const { service } = feedService();
-  await assert.rejects(() => service.send({ title: 'T', message: 'M', channels: [] }), ValidationError);
-});
-
-test('send rejects an unknown channel and delivers nothing', async () => {
-  const { store, service } = feedService();
-  await assert.rejects(() => service.send({ title: 'T', message: 'M', channels: ['email'] }), ValidationError);
-  assert.equal(store.added.length, 0);
-});
-
-test('a failing channel does not fail send or block the others', async () => {
+test('send delivers to the requested channels and still records to the feed', async () => {
   const store = new FakeNotificationStore();
-  const feed = new FeedChannel(store);
-  const service = new NotificationService(store, [feed, new ThrowingChannel('flaky')]);
+  const email = new FakeChannel('email');
+  const service = new NotificationService(store, [email]);
 
-  const result = await service.send({ title: 'T', message: 'M', channels: ['feed', 'flaky'] });
+  await service.send({ title: 'T', message: 'M', channels: ['email'] });
 
-  assert.ok(result.id);
-  assert.equal(store.added.length, 1); // feed still delivered
+  assert.equal(store.added.length, 1); // feed always written
+  assert.equal(email.delivered.length, 1);
+  assert.equal(email.delivered[0].id, store.added[0].id);
 });
 
 test('send fans out to every requested channel', async () => {
@@ -111,10 +95,28 @@ test('send fans out to every requested channel', async () => {
   assert.equal(b.delivered.length, 1);
 });
 
+test('send rejects an unknown channel and records nothing', async () => {
+  const store = new FakeNotificationStore();
+  const service = new NotificationService(store, []);
+  await assert.rejects(() => service.send({ title: 'T', message: 'M', channels: ['email'] }), ValidationError);
+  assert.equal(store.added.length, 0); // validation happens before the feed write
+});
+
+test('a failing channel does not fail send or block the feed', async () => {
+  const store = new FakeNotificationStore();
+  const service = new NotificationService(store, [new ThrowingChannel('flaky')]);
+
+  const result = await service.send({ title: 'T', message: 'M', channels: ['flaky'] });
+
+  assert.ok(result.id);
+  assert.equal(store.added.length, 1); // feed still written
+});
+
 test('recent returns the most recent notifications up to the limit', async () => {
-  const { service } = feedService();
-  await service.send({ title: 'A', message: '1', channels: ['feed'] });
-  await service.send({ title: 'B', message: '2', channels: ['feed'] });
+  const store = new FakeNotificationStore();
+  const service = new NotificationService(store, []);
+  await service.send({ title: 'A', message: '1' });
+  await service.send({ title: 'B', message: '2' });
 
   const recent = await service.recent(1);
   assert.equal(recent.length, 1);
@@ -123,5 +125,5 @@ test('recent returns the most recent notifications up to the limit', async () =>
 
 test('the email channel skeleton is not implemented yet', async () => {
   const email = new EmailChannel({ host: 'localhost', port: 587, from: 'x@localhost', to: [] });
-  await assert.rejects(() => email.deliver({ id: 'i', createdAt: 'now', title: 'T', message: 'M', channels: ['email'] }), /not implemented/);
+  await assert.rejects(() => email.deliver({ id: 'i', createdAt: 'now', title: 'T', message: 'M' }), /not implemented/);
 });

@@ -7,13 +7,14 @@ import { ValidationError } from '../../Domain/Exceptions/validation-error.ts';
 
 /**
  * Records notifications and serves the recent-notifications feed. Other apps call
- * `POST /send` to deliver one (e.g. log-viewer on new server errors), naming the
- * channel(s) to use.
+ * `POST /send` to record one (e.g. log-viewer on new server errors) and may name
+ * extra delivery channels to send it through.
  *
- * Acts as the dispatcher: `send` stamps the notification and fans it out over the
- * requested channels. One channel failing is logged but never fails the request
- * or blocks the others (Promise.allSettled). The feed channel is what backs
- * `recent()`, so `recent()` reads the store directly.
+ * Every notification is written to the feed store (which backs `recent()` /
+ * GET /api/notifications). Any requested channels (email, push, …) are then
+ * delivered on top: one channel failing is logged but never fails the request or
+ * blocks the others or the feed (Promise.allSettled). An unknown channel name is
+ * a ValidationError (400) raised before anything is stored.
  */
 export class NotificationService {
   private readonly store: NotificationStore;
@@ -24,15 +25,20 @@ export class NotificationService {
     this.channels = new Map(channels.map((c) => [c.name, c]));
   }
 
-  /** Stamp, dispatch to the requested channels, and return the stamped record. */
+  /** Stamp, record in the feed, deliver to any requested channels, return the record. */
   async send(input: NewNotification): Promise<Notification> {
     const notification = createNotification(input, randomUUID(), new Date().toISOString());
 
-    const targets = notification.channels.map((name) => {
+    // Resolve requested delivery channels up front so an unknown name is a 400
+    // before we persist anything.
+    const targets = (notification.channels ?? []).map((name) => {
       const channel = this.channels.get(name);
       if (!channel) throw new ValidationError(`unknown channel "${name}"`);
       return channel;
     });
+
+    // The feed is always written, regardless of delivery channels.
+    await this.store.add(notification);
 
     const results = await Promise.allSettled(targets.map((c) => c.deliver(notification)));
     results.forEach((result, i) => {

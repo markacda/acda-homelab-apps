@@ -3,9 +3,10 @@ import type { NewNotification } from '../../Domain/ValueObjects/notification.ts'
 
 /**
  * Parse the JSON body of `POST /send` into caller-supplied notification content.
- * `title`/`message`/`channels` are required (validated downstream in
- * createNotification); `url`/`icon`/`receiver` are optional trimmed strings.
- * `channels` accepts a JSON array (or newline-separated string) of channel names.
+ * `title`/`message` are required (validated downstream in createNotification);
+ * `url`/`icon`/`receiver` are optional trimmed strings. `channels` is optional
+ * (every notification is recorded in the feed regardless) and accepts a JSON
+ * array (or newline-separated string) of extra delivery-channel names.
  */
 export function toNewNotification(body: unknown): NewNotification {
   const obj = (body ?? {}) as Record<string, unknown>;

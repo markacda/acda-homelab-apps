@@ -24,7 +24,7 @@ export class HttpFailureNotifier implements FailureNotifier {
     const res = await fetch(this.sendUrl, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ title, message, url: '/logs/', channels: ['feed'] }),
+      body: JSON.stringify({ title, message, url: '/logs/' }),
     });
     if (!res.ok) throw new Error(`notify HTTP ${res.status}`);
   }
