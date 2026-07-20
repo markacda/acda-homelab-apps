@@ -62,9 +62,17 @@ The new cert is again self-signed, so clients must re-accept the trust warning.
 
 ## Notifications
 
-The `notification` app (`/notificaties`) collects notifications and shows a feed of
-recent ones. Other apps post to its internal `POST /send` endpoint — for example
-the `log-viewer` calls it when new server-error (`>=500`) requests appear.
+The `notification` app (`/notificaties`) records every notification in a
+persistent feed and shows the recent ones. Other apps post to its internal
+`POST /send` endpoint — for example the `log-viewer` calls it when new
+server-error (`>=500`) requests appear.
+
+Beyond the always-written feed, a notification can be **delivered** over pluggable
+channels: include an optional `channels` array in the `POST /send` body naming the
+mechanisms to fan out to (an unknown name is rejected with a `400`). Channels are
+pluggable (Ports/Adapters); `email` is a wired skeleton, enabled by setting
+`SMTP_HOST` but with sending not yet implemented. Push, websocket and webhook are
+documented drop-in candidates.
 
 ## Local dev
 
