@@ -33,6 +33,7 @@ docker compose up -d --build
 ```
 
 #### For running on Raspberry Pi
+
 ```sh
 cd ~/Code/acda-homelab-apps/ && git pull && docker compose up -d --build
 ```
@@ -64,6 +65,43 @@ docker compose restart proxy        # entrypoint regenerates on boot
 ```
 
 The new cert is again self-signed, so clients must re-accept the trust warning.
+
+## Docker maintenance & disk cleanup
+
+The Pi has limited storage, and repeated `docker compose up --build` leaves behind
+dangling images and a growing build cache. Inspect what's using space, then prune.
+
+Inspect:
+
+```sh
+docker compose ps                 # this stack's containers (add -a to include stopped)
+docker ps -a                      # all containers, running and stopped
+docker images                     # all images, with sizes
+docker system df                  # disk used by images, containers, volumes, build cache
+docker system df -v               # verbose per-item breakdown (which image/volume is big)
+```
+
+Clean up (reclaim space):
+
+```sh
+docker image prune               # remove dangling (untagged) images
+docker image prune -a            # remove all images not used by a container
+docker builder prune             # clear the build cache (biggest win after many rebuilds)
+docker container prune           # remove stopped containers
+docker system prune              # dangling images + stopped containers + unused networks + build cache
+docker system prune -a --volumes # aggressive: also removes unused images and unused volumes
+```
+
+> ⚠️ `--volumes` deletes volumes not attached to a running container, which for this
+> stack includes the persistent app data and logs (`DATA_DIR`, `LOG_DIR`) and the
+> `proxy-certs` cert if the stack is down. Bring the stack back up (or omit
+> `--volumes`) to keep that data. A plain `docker system prune` is the safe default.
+
+Rebuild fresh after pruning:
+
+```sh
+docker compose up -d --build
+```
 
 ## Notifications
 
