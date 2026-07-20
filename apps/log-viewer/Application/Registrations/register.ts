@@ -21,8 +21,8 @@ export function register(app: Express): LogIngestService {
   const logsRoot = process.env.LOGS_ROOT || '/logs';
   console.log(`log-viewer LOGS_ROOT=${logsRoot}`);
 
-  // Optional: push a notification when new failed requests appear. Enabled only
-  // when NOTIFICATION_URL points at the notification app (feature off otherwise).
+  // Optional: post an alert to the notification app when new failed requests
+  // appear. Enabled only when NOTIFICATION_URL is set (feature off otherwise).
   const notificationUrl = process.env.NOTIFICATION_URL;
   let notifier: FailureNotifier | undefined;
   if (notificationUrl) {

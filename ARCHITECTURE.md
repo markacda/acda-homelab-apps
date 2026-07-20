@@ -16,7 +16,7 @@ needs — the built-in apps span the range:
   background health-monitor holding the status cache.
 - **notification** — a notifications app: a `NotificationStore` port (file-backed adapter), a
   service that records a notification received via `POST /send`, and a small frontend listing
-  the recent feed. Web Push delivery to devices is not implemented yet (a TODO in the service).
+  the recent feed.
 - **atc** — a thin proxy: a validated `PointQuery` value object + one external
   `AirplanesSource` adapter, with a vendored `Web/public` and no client build.
 - **ev-crossover** — a static page with no server-side domain at all: just `Web/` (the

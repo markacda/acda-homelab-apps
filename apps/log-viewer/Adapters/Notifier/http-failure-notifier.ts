@@ -2,8 +2,8 @@ import type { FailureNotifier, FailureSummary } from '../../Ports/Notifier/failu
 
 /**
  * Posts failed-request alerts to the notification app's internal `/send`
- * endpoint (reached by container name over the docker network). Tapping the
- * resulting push opens the log viewer in the PWA (url "/logs/").
+ * endpoint (reached by container name over the docker network). The alert links
+ * back to the log viewer (url "/logs/").
  */
 export class HttpFailureNotifier implements FailureNotifier {
   private readonly sendUrl: string;
