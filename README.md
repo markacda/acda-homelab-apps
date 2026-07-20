@@ -32,6 +32,11 @@ client code uses **relative** URLs (e.g. `fetch('api/…')`, not `/api/…`).
 docker compose up -d --build
 ```
 
+#### For running on Raspberry Pi
+```sh
+cd ~/Code/acda-homelab-apps/ && git pull && docker compose up -d --build
+```
+
 Then open the dashboard at https://<pi-host>/ (accept the self-signed-cert
 warning), or an app directly, e.g. https://<pi-host>/laden-of-tanken (or its
 plain-HTTP direct port http://<pi-host>:6002 ).
