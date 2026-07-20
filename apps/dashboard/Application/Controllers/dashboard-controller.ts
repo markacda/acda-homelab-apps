@@ -39,6 +39,7 @@ export class DashboardController {
             name: a.name,
             url: a.url || null,
             port: a.port || null,
+            protocol: a.protocol || null,
             icon: a.icon || null,
             group: a.group || null,
             status,

@@ -2,6 +2,7 @@ interface AppTile {
   name?: string;
   url?: string | null;
   port?: number | null;
+  protocol?: string | null;
   icon?: string | null;
   group?: string | null;
   status?: string | null;
@@ -27,10 +28,15 @@ const logsLinkEl = document.getElementById('logs-link') as HTMLAnchorElement;
 
 /** Build the click-through URL. Prefer an explicit url; otherwise use the
  * browser's current hostname + the published port so links work from any
- * client on the network. */
+ * client on the network. A tile may pin the scheme via `protocol` (e.g. "http"
+ * for services that don't speak TLS, like Home Assistant on :8123); otherwise
+ * the browser's current protocol is used. */
 function resolveHref(app: AppTile): string {
   if (app.url) return app.url;
-  if (app.port) return `${location.protocol}//${location.hostname}:${app.port}`;
+  if (app.port) {
+    const scheme = app.protocol ? `${app.protocol}:` : location.protocol;
+    return `${scheme}//${location.hostname}:${app.port}`;
+  }
   return '#';
 }
 
@@ -71,6 +77,16 @@ function fallbackIcon(): HTMLDivElement {
   return emojiIcon(FALLBACK_EMOJI);
 }
 
+/** Sub-line under the tile name: the click-through target, plus the app's direct
+ * published port so you know where to go if the (proxy) URL is misbehaving. The
+ * port is only appended when it isn't already visible in the href. */
+function subLabel(app: AppTile, href: string): string {
+  if (href === '#') return 'no url';
+  const target = href.replace(/^https?:\/\//, '');
+  if (app.port && !target.includes(`:${app.port}`)) return `${target} · :${app.port}`;
+  return target;
+}
+
 function tileEl(app: AppTile): HTMLAnchorElement {
   const href = resolveHref(app);
   const a = document.createElement('a');
@@ -88,7 +104,7 @@ function tileEl(app: AppTile): HTMLAnchorElement {
   name.textContent = app.name || 'Unnamed';
   const sub = document.createElement('div');
   sub.className = 'tile-sub';
-  sub.textContent = href === '#' ? 'no url' : href.replace(/^https?:\/\//, '');
+  sub.textContent = subLabel(app, href);
   body.append(name, sub);
   a.appendChild(body);
 

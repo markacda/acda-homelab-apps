@@ -6,6 +6,10 @@ export interface AppEntry {
   name?: string;
   url?: string | null;
   port?: number | null;
+  // Scheme to use when the click-through URL is built from the port ("http" or
+  // "https"). Defaults to the browser's current protocol. Set "http" for
+  // services that don't speak TLS (e.g. Home Assistant on :8123).
+  protocol?: string | null;
   icon?: string | null;
   group?: string | null;
   hidden?: boolean;
