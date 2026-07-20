@@ -29,6 +29,10 @@ apps:
   # published port and it isn't auto-discovered — declare it manually here.
   - name: 'Home Assistant'
     port: 8123
+    # Home Assistant serves plain HTTP on :8123 (no TLS), so pin the scheme to
+    # http — otherwise the tile would inherit the dashboard's https and fail with
+    # ERR_SSL_PROTOCOL_ERROR.
+    protocol: http
     icon: 'home-assistant'
   # - name: "Router"
   #   url: "http://192.168.1.1"

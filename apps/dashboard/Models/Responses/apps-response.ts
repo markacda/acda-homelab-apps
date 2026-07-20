@@ -5,6 +5,7 @@ export interface AppTile extends HealthStatus {
   name?: string;
   url: string | null;
   port: number | null;
+  protocol: string | null;
   icon: string | null;
   group: string | null;
 }
