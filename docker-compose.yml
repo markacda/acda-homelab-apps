@@ -205,6 +205,14 @@ services:
       - LOG_DIR=/app/logs
       # Optional shared secret required on POST /send (defence-in-depth).
       - SEND_TOKEN=${SEND_TOKEN:-}
+      # Email delivery channel (SKELETON — deliver() not implemented yet). Set
+      # SMTP_HOST to register the "email" channel; the rest tune the transport.
+      # - SMTP_HOST=smtp.example.com
+      # - SMTP_PORT=587
+      # - SMTP_USER=
+      # - SMTP_PASS=
+      # - SMTP_FROM=homelab@example.com
+      # - SMTP_TO=you@example.com
     volumes:
       - notification-data:/app/data
       - notification-logs:/app/logs
