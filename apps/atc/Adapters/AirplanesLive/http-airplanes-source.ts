@@ -23,7 +23,6 @@ export class HttpAirplanesSource implements AirplanesSource {
     // globe_history still come from globe.airplanes.live.
     const base = path.startsWith('db/') ? 'https://static.airplanes.live/' : 'https://globe.airplanes.live/';
     const url = `${base}${path}`;
-    console.log(`[${new Date().toISOString()}] Fetching ${url}`);
     return this.call(url, userAgent);
   }
 
@@ -50,7 +49,7 @@ export class HttpAirplanesSource implements AirplanesSource {
 
       if (response.status === 429) {
         const rateLimitSeconds = Number(response.headers.get('Retry-After'));
-        console.log(`[${new Date().toISOString()}] Backing off for ${rateLimitSeconds} seconds due to rate limit on ${apiUrl}`);
+        console.log(`Backing off for ${rateLimitSeconds} seconds due to rate limit on ${apiUrl}`);
         const resetDate = new Date();
         resetDate.setSeconds(resetDate.getSeconds() + rateLimitSeconds);
         this.rateLimitResetsOn[apiUrl] = resetDate;

@@ -29,7 +29,7 @@ export function statusClassName(status: number): string {
 
 export function fmtTs(ts: string): string {
   const d = new Date(ts);
-  return isNaN(d.getTime()) ? ts : d.toLocaleString();
+  return isNaN(d.getTime()) ? ts : d.toISOString();
 }
 
 export function fmtMs(ms: number): string {
