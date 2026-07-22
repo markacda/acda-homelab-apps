@@ -19,6 +19,9 @@ export default [
       'apps/atc/Web/public/**',
       // Cached upstream JSON snapshots served on proxy failure — data, not code.
       'apps/atc/proxy-fallback/**',
+      // Agent tooling (run-<app> skills + the ui-driver harness), not product
+      // code — Prettier ignores it too (.prettierignore).
+      '.claude/**',
     ],
   },
   js.configs.recommended,

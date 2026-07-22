@@ -18,3 +18,10 @@ data/
 
 # Local access logs written by each app in dev (LOG_DIR)
 logs/
+
+# Screenshots and scratch files of the ui-driver agent harness (.claude/ui-helper/ui-driver.mjs)
+.ui-shots/
+.claude/ui-helper/tmp-files/
+
+# Per-user Claude Code settings
+.claude/settings.local.json
