@@ -493,12 +493,6 @@ function toggleDistanceMode() {
   buttonActive('#D', distanceMode);
 }
 
-function toggleSiteCircles() {
-  SiteCircles = !SiteCircles;
-  if (siteCircleLayer) siteCircleLayer.setVisible(SiteCircles);
-  buttonActive('#C', SiteCircles);
-}
-
 function startDistanceMeasurement(plane) {
   clearDistanceMeasurement();
 
