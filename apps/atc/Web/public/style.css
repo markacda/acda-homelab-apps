@@ -235,7 +235,7 @@ select {
 }
 
 .ol-attribution {
-  font-size: var(--FS1);
+  display: none;
 }
 
 .warning {
