@@ -200,7 +200,7 @@ function earlyInitPage() {
     SiteCirclesDistances = new Array(5, 10, 20);
     SiteCirclesLineDash = [5, 5];
     SiteCirclesColors = ['#2b3436', '#2b3436', '#2b3436'];
-    MapType_tar1090 = 'carto_light_all';
+    MapType_tar1090 = 'carto_dark_all';
     lineWidth = 4;
   }
 
