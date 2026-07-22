@@ -1039,10 +1039,6 @@ function earlyInitPage() {
 
   if (aggregator) {
     jQuery('#aggregator_header').show();
-    jQuery('#credits').show();
-    if (!onMobile) {
-      jQuery('#creditsSelected').show();
-    }
     jQuery('#selected_infoblock').addClass('aggregator-selected-bg');
 
     // activate to prevent iframe use

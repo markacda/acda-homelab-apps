@@ -133,32 +133,6 @@ select {
   background-image: url('images/hide_sidebar.png');
 }
 
-#credits {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.8;
-  position: absolute;
-  bottom: calc(10px * var(--SCALE));
-  left: calc(50% - 60px * var(--SCALE));
-}
-.credits-text {
-  font-size: var(--FS2);
-}
-.credits-image {
-  display: block;
-  width: calc(24px * var(--SCALE));
-  height: calc(24px * var(--SCALE));
-  background-size: calc(24px * var(--SCALE)) calc(24px * var(--SCALE));
-  background-repeat: no-repeat;
-  background-position: 0;
-  background-color: transparent;
-  border: none;
-  background-image: url('images/aggregator-logo.png');
-  z-index: 99;
-  opacity: 0.7;
-  margin: 4px;
-}
 .withOverflowingBackground::before {
   z-index: -1;
   background-image: url(https://www.exratione.com/assets/color_background.png);
@@ -235,7 +209,7 @@ select {
 }
 
 .ol-attribution {
-  font-size: var(--FS1);
+  display: none;
 }
 
 .warning {
