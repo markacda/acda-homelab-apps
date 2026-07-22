@@ -3,7 +3,6 @@ package-lock.json
 data
 dist
 .claude
-.agents
 
 # Compiled client output (generated from client/*.ts)
 apps/*/public/*.js
