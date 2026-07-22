@@ -270,12 +270,8 @@ function adjustInfoBlock() {
     if (mapIsVisible && document.getElementById('map_canvas').clientWidth < parseFloat(jQuery('#selected_infoblock').css('width')) * 3) {
       jQuery('#selected_infoblock').css('height', '290px');
       jQuery('#selected_typedesc').parent().parent().hide();
-      jQuery('#credits').css('bottom', '295px');
-      jQuery('#credits').css('left', '5px');
     } else {
       jQuery('#selected_infoblock').css('height', '100%');
-      jQuery('#credits').css('bottom', '');
-      jQuery('#credits').css('left', '');
     }
 
     jQuery('#selected_infoblock').show();
@@ -285,8 +281,6 @@ function adjustInfoBlock() {
 
     jQuery('.ol-scale-line').css('left', '8px');
     jQuery('#replayBar').css('left', '0px');
-    jQuery('#credits').css('bottom', '');
-    jQuery('#credits').css('left', '');
 
     jQuery('#selected_infoblock').hide();
   }
