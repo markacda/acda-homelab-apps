@@ -831,7 +831,15 @@ function fetchVisibleTrails() {
   }
   if (!eligible.length) return;
 
-  eligible.sort((a, b) => trailAltitude(b) - trailAltitude(a));
+  // Planes in an enabled altitude band (G/T/A/C toggles) are fetched first, each
+  // group sorted by altitude descending; muted-band planes follow (only reached if
+  // the enabled-band planes don't fill TRAIL_FETCH_MAX).
+  eligible.sort((a, b) => {
+    const bandA = altBandActive(a.altitude) ? 1 : 0;
+    const bandB = altBandActive(b.altitude) ? 1 : 0;
+    if (bandA !== bandB) return bandB - bandA;
+    return trailAltitude(b) - trailAltitude(a);
+  });
   if (eligible.length > capacity) eligible.length = capacity;
 
   // getTrace pops from the end of the queue, so push lowest-first within this batch
