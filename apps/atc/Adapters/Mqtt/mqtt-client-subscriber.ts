@@ -5,20 +5,20 @@ import type { BrokerConfig } from './broker-config.ts';
 
 /**
  * MqttSubscriber over the `mqtt` client. Connects to the broker, subscribes to
- * the configured topics, logs every received message via console.* (which
- * server-kit mirrors into the structured app.log), and forwards it to the
- * optional handler for application-level processing. Relies on mqtt.js's
+ * the configured topics, and routes each message by topic: a topic with a
+ * registered handler is dispatched to it silently; an unknown topic is logged
+ * via console.* (mirrored into the structured app.log). Relies on mqtt.js's
  * built-in reconnect for transient broker outages. Transport only — it holds no
- * domain behaviour beyond the subscription itself.
+ * domain behaviour beyond the subscription and routing.
  */
 export class MqttClientSubscriber implements MqttSubscriber {
   private config: BrokerConfig;
-  private onMessage?: MqttMessageHandler;
+  private handlers: Map<string, MqttMessageHandler>;
   private client?: MqttClient;
 
-  constructor(config: BrokerConfig, onMessage?: MqttMessageHandler) {
+  constructor(config: BrokerConfig, handlers?: Map<string, MqttMessageHandler>) {
     this.config = config;
-    this.onMessage = onMessage;
+    this.handlers = handlers ?? new Map();
   }
 
   async start(): Promise<void> {
@@ -42,8 +42,13 @@ export class MqttClientSubscriber implements MqttSubscriber {
 
     client.on('message', (topic, payload) => {
       const text = payload.toString();
+      const handler = this.handlers.get(topic);
+      if (handler) {
+        handler(topic, text);
+        return;
+      }
+      // Unknown topic: no handler registered, so just log it.
       console.log(`[atc-mqtt] ${topic} ${text}`);
-      this.onMessage?.(topic, text);
     });
 
     client.on('reconnect', () => console.log(`[atc-mqtt] reconnecting to ${this.config.url}`));
