@@ -118,6 +118,8 @@ function toggleAtcStyle() {
 
   if (atcStyle) fetchVisibleTrails(); // pull short recent trails for planes already on screen
 
+  if (typeof updateIlsVisibility === 'function') updateIlsVisibility(); // ILS beams follow ATC mode
+
   buttonActive('#A', atcStyle);
 }
 
