@@ -819,6 +819,18 @@ function initMap() {
   });
   layers.push(distanceMeasurementLayer);
 
+  ilsBeamLayer = new ol.layer.Vector({
+    name: 'ilsBeams',
+    type: 'overlay',
+    title: 'ILS approach',
+    source: ilsBeamFeatures,
+    visible: atcStyle && ilsBeamsEnabled,
+    zIndex: 120,
+    renderOrder: null,
+    renderBuffer: renderBuffer,
+  });
+  layers.push(ilsBeamLayer);
+
   actualOutline.enabled = multiOutline || (receiverJson && receiverJson.outlineJson);
 
   if (actualOutline.enabled) {
@@ -894,6 +906,9 @@ function initMap() {
 
   ol_map_init();
 
+  // Start the ILS approach-beam poller (draws beams for active landing runways).
+  refreshRunways();
+
   // handle the layer settings pane checkboxes
   //OLMap.once('postrender', function(e) {
   //toggleLayer('#nexrad_checkbox', 'nexrad');
@@ -921,6 +936,17 @@ function initMap() {
         refreshFeatures();
         remakeTrails();
       }
+    },
+  });
+
+  new Toggle({
+    key: 'ilsBeams',
+    display: 'ILS approach',
+    container: '#settingsLeft',
+    init: ilsBeamsEnabled,
+    setState: function (state) {
+      ilsBeamsEnabled = state;
+      updateIlsVisibility();
     },
   });
 
