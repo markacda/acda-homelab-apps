@@ -8,9 +8,19 @@ import { HttpAirplanesSource } from '../../Adapters/AirplanesLive/http-airplanes
 import { FallbackAirplanesSource } from '../../Adapters/AirplanesLive/fallback-airplanes-source.ts';
 import { MqttClientSubscriber } from '../../Adapters/Mqtt/mqtt-client-subscriber.ts';
 import { BrokerConfig } from '../../Adapters/Mqtt/broker-config.ts';
-import type { MqttSubscriber } from '../../Ports/Mqtt/mqtt-subscriber.ts';
+import type { MqttSubscriber, MqttMessageHandler } from '../../Ports/Mqtt/mqtt-subscriber.ts';
 import { AirplanesController } from '../Controllers/airplanes-controller.ts';
+import { RunwayController } from '../Controllers/runway-controller.ts';
+import { RunwayConfigService } from '../Services/runway-config-service.ts';
 import { errorMapping } from '../Filters/error-mapping.ts';
+
+// Subscribe to every topic by default; known topics are dispatched to their
+// handler and unknown ones are logged. Override with MQTT_TOPIC (comma-separated).
+const DEFAULT_TOPIC = '#';
+
+// EHAM (Schiphol) active-runway configuration published by Home Assistant — the
+// one topic we parse (into RunwayConfiguration) rather than just log.
+const RUNWAY_TOPIC = 'homeassistant/sensor/eham/runway';
 
 // atc proxies api.airplanes.live for the browser, so it needs permissive CORS
 // and response compression — the two extras beyond the shared bootstrap.
@@ -48,20 +58,30 @@ export function register(app: Express): Registrations {
   const controller = new AirplanesController(source);
   app.use('/api', controller.router);
 
+  // Latest EHAM runway configuration: an in-memory store fed by MQTT and served
+  // at GET /api/runways (503 until the first message arrives). The controller is
+  // always mounted; MQTT feeds it only when configured.
+  const runwayService = new RunwayConfigService();
+  app.use('/api', new RunwayController(runwayService).router);
+
   app.use(errorMapping());
 
-  return { mqtt: buildMqttSubscriber() };
+  // Route known topics to their handler (silently); the subscriber logs the rest.
+  const handlers = new Map<string, MqttMessageHandler>([[RUNWAY_TOPIC, (topic, payload) => runwayService.handleMessage(topic, payload)]]);
+
+  return { mqtt: buildMqttSubscriber(handlers) };
 }
 
 // Build the MQTT subscription from the environment, or undefined when MQTT_URL
 // is unset (so the app runs fine locally/in tests without a broker). Topics are
-// a comma-separated MQTT_TOPIC (default "#" — every message); auth is anonymous
-// unless MQTT_USERNAME/MQTT_PASSWORD are provided.
-function buildMqttSubscriber(): MqttSubscriber | undefined {
+// a comma-separated MQTT_TOPIC (default "#" — every topic); auth is anonymous
+// unless MQTT_USERNAME/MQTT_PASSWORD are provided. Messages on a topic in
+// `handlers` are dispatched to it; all others are logged by the subscriber.
+function buildMqttSubscriber(handlers: Map<string, MqttMessageHandler>): MqttSubscriber | undefined {
   const url = process.env.MQTT_URL;
   if (!url) return undefined;
 
-  const topics = (process.env.MQTT_TOPIC ?? '#').split(',');
+  const topics = (process.env.MQTT_TOPIC ?? DEFAULT_TOPIC).split(',');
   const config = BrokerConfig.create(url, topics, process.env.MQTT_USERNAME, process.env.MQTT_PASSWORD);
-  return new MqttClientSubscriber(config);
+  return new MqttClientSubscriber(config, handlers);
 }

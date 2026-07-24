@@ -1,3 +1,6 @@
+/** Called for every received message (topic + decoded payload string). */
+export type MqttMessageHandler = (topic: string, payload: string) => void;
+
 /**
  * Port for a long-lived MQTT subscription. Implemented in the Adapters layer.
  * `start` connects to the broker and subscribes; `stop` disconnects cleanly and

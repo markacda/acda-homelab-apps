@@ -60,9 +60,10 @@ services:
       - NODE_ENV=production
       - PORT=6001
       - LOG_DIR=/app/logs
-      # MQTT: connect to the host broker and log every message on MQTT_TOPIC.
-      # Unset MQTT_URL to disable. Anonymous auth; set MQTT_USERNAME/MQTT_PASSWORD
-      # if the broker requires credentials.
+      # MQTT: connect to the host broker and subscribe to MQTT_TOPIC (default "#",
+      # all topics). Known topics are parsed (the EHAM runway config, exposed at
+      # /api/runways); unknown topics are logged. Unset MQTT_URL to disable.
+      # Anonymous auth; set MQTT_USERNAME/MQTT_PASSWORD if required.
       - MQTT_URL=mqtt://host.docker.internal:1883
       - 'MQTT_TOPIC=#'
       # - MQTT_USERNAME=
