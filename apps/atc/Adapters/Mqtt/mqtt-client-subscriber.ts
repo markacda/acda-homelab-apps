@@ -1,7 +1,7 @@
 import { connect } from 'mqtt';
 import type { MqttClient } from 'mqtt';
 import type { MqttSubscriber } from '../../Ports/Mqtt/mqtt-subscriber.ts';
-import type { BrokerConfig } from '../../Domain/ValueObjects/broker-config.ts';
+import type { BrokerConfig } from './broker-config.ts';
 
 /**
  * MqttSubscriber over the `mqtt` client. Connects to the broker, subscribes to

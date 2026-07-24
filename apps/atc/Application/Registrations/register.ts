@@ -7,7 +7,7 @@ import compression from 'compression';
 import { HttpAirplanesSource } from '../../Adapters/AirplanesLive/http-airplanes-source.ts';
 import { FallbackAirplanesSource } from '../../Adapters/AirplanesLive/fallback-airplanes-source.ts';
 import { MqttClientSubscriber } from '../../Adapters/Mqtt/mqtt-client-subscriber.ts';
-import { BrokerConfig } from '../../Domain/ValueObjects/broker-config.ts';
+import { BrokerConfig } from '../../Adapters/Mqtt/broker-config.ts';
 import type { MqttSubscriber } from '../../Ports/Mqtt/mqtt-subscriber.ts';
 import { AirplanesController } from '../Controllers/airplanes-controller.ts';
 import { errorMapping } from '../Filters/error-mapping.ts';
