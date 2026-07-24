@@ -60,11 +60,11 @@ services:
       - NODE_ENV=production
       - PORT=6001
       - LOG_DIR=/app/logs
-      # MQTT: connect to the host broker and log every message on MQTT_TOPIC.
-      # Unset MQTT_URL to disable. Anonymous auth; set MQTT_USERNAME/MQTT_PASSWORD
-      # if the broker requires credentials.
+      # MQTT: connect to the host broker, log + parse messages on MQTT_TOPIC, and
+      # expose the latest EHAM runway config at /api/runways. Unset MQTT_URL to
+      # disable. Anonymous auth; set MQTT_USERNAME/MQTT_PASSWORD if required.
       - MQTT_URL=mqtt://host.docker.internal:1883
-      - 'MQTT_TOPIC=#'
+      - MQTT_TOPIC=homeassistant/sensor/eham/runway
       # - MQTT_USERNAME=
       # - MQTT_PASSWORD=
     volumes:
