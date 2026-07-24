@@ -67,6 +67,10 @@ export interface StartOptions {
   // Called once the server is listening; receives the http.Server (e.g. to start
   // a background poll loop).
   onListen?: (server: Server) => void;
+  // Called during graceful shutdown, before the HTTP server closes and log
+  // streams flush (e.g. to disconnect a long-lived MQTT/DB client). Awaited; the
+  // shutdown timeout still guards against it hanging.
+  onShutdown?: () => Promise<void> | void;
 }
 
 // How long to wait for in-flight connections to drain before forcing exit.
@@ -78,7 +82,7 @@ const SHUTDOWN_TIMEOUT_MS = 10_000;
  * shutdown. Returns the http.Server.
  */
 export function startServer(app: Express, opts: StartOptions): Server {
-  const { name, port, staticDir, onListen } = opts;
+  const { name, port, staticDir, onListen, onShutdown } = opts;
 
   app.get('/healthz', healthHandler());
 
@@ -93,12 +97,12 @@ export function startServer(app: Express, opts: StartOptions): Server {
     onListen?.(server);
   });
 
-  installGracefulShutdown(server, name);
+  installGracefulShutdown(server, name, onShutdown);
   return server;
 }
 
 /** Close the server on SIGTERM/SIGINT, forcing exit if it doesn't drain in time. */
-function installGracefulShutdown(server: Server, name: string): void {
+function installGracefulShutdown(server: Server, name: string, onShutdown?: () => Promise<void> | void): void {
   let shuttingDown = false;
   const signals = ['SIGTERM', 'SIGINT'] as const;
   for (const signal of signals) {
@@ -111,15 +115,23 @@ function installGracefulShutdown(server: Server, name: string): void {
         process.exit(1);
       }, SHUTDOWN_TIMEOUT_MS);
       timer.unref(); // don't keep the process alive just for the timer
-      server.close((err) => {
-        if (err) console.error(`${name} error during shutdown: ${err.message}`);
-        // Flush buffered log writes before exiting so the tail isn't lost. The
-        // timeout above still stands guard in case the flush itself hangs.
-        void closeLogStreams().finally(() => {
-          clearTimeout(timer);
-          process.exit(err ? 1 : 0);
+      // Run the app's own cleanup (e.g. disconnect an MQTT/DB client) first, then
+      // close the HTTP server; the timeout above guards both. A cleanup failure
+      // is logged but never blocks the rest of shutdown.
+      void Promise.resolve()
+        .then(() => onShutdown?.())
+        .catch((err) => console.error(`${name} error during onShutdown: ${(err as Error).message}`))
+        .finally(() => {
+          server.close((err) => {
+            if (err) console.error(`${name} error during shutdown: ${err.message}`);
+            // Flush buffered log writes before exiting so the tail isn't lost. The
+            // timeout above still stands guard in case the flush itself hangs.
+            void closeLogStreams().finally(() => {
+              clearTimeout(timer);
+              process.exit(err ? 1 : 0);
+            });
+          });
         });
-      });
     });
   }
 }

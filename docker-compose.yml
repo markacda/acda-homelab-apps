@@ -53,10 +53,20 @@ services:
     ports:
       # Host 6001 avoids Home Assistant's used ports (80/443 proxy, 8123, 1883, 4357)
       - '6001:6001'
+    extra_hosts:
+      # Reach the MQTT broker published on the host (Home Assistant's mosquitto).
+      - 'host.docker.internal:host-gateway'
     environment:
       - NODE_ENV=production
       - PORT=6001
       - LOG_DIR=/app/logs
+      # MQTT: connect to the host broker and log every message on MQTT_TOPIC.
+      # Unset MQTT_URL to disable. Anonymous auth; set MQTT_USERNAME/MQTT_PASSWORD
+      # if the broker requires credentials.
+      - MQTT_URL=mqtt://host.docker.internal:1883
+      - 'MQTT_TOPIC=#'
+      # - MQTT_USERNAME=
+      # - MQTT_PASSWORD=
     volumes:
       - atc-logs:/app/logs
     restart: unless-stopped

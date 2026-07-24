@@ -20,6 +20,7 @@
     "compression": "^1.8.1",
     "cors": "^2.8.6",
     "express": "^5.1.0",
+    "mqtt": "^5.10.1",
     "rotating-file-stream": "^3.2.6"
   },
   "devDependencies": {
