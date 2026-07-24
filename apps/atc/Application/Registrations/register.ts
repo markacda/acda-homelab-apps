@@ -6,6 +6,9 @@ import type { CorsOptions } from 'cors';
 import compression from 'compression';
 import { HttpAirplanesSource } from '../../Adapters/AirplanesLive/http-airplanes-source.ts';
 import { FallbackAirplanesSource } from '../../Adapters/AirplanesLive/fallback-airplanes-source.ts';
+import { MqttClientSubscriber } from '../../Adapters/Mqtt/mqtt-client-subscriber.ts';
+import { BrokerConfig } from '../../Domain/ValueObjects/broker-config.ts';
+import type { MqttSubscriber } from '../../Ports/Mqtt/mqtt-subscriber.ts';
 import { AirplanesController } from '../Controllers/airplanes-controller.ts';
 import { errorMapping } from '../Filters/error-mapping.ts';
 
@@ -16,12 +19,20 @@ const corsOptions: CorsOptions = {
   credentials: true,
 };
 
+// What register() hands back to the composition root so it can drive long-lived
+// background work over the server lifecycle (start on listen, stop on shutdown).
+export interface Registrations {
+  // The MQTT subscription, present only when MQTT_URL is configured.
+  mqtt?: MqttSubscriber;
+}
+
 /**
  * Composition root: mount CORS/compression, the vendored static frontend, the
  * proxy routes, and the error filter. (server.ts passes staticDir: null so
- * startServer doesn't double-serve.)
+ * startServer doesn't double-serve.) Also wires the optional MQTT subscription
+ * and returns it so server.ts can start/stop it on the server lifecycle.
  */
-export function register(app: Express): void {
+export function register(app: Express): Registrations {
   app.use(cors(corsOptions));
   app.use(compression());
 
@@ -38,4 +49,19 @@ export function register(app: Express): void {
   app.use('/api', controller.router);
 
   app.use(errorMapping());
+
+  return { mqtt: buildMqttSubscriber() };
+}
+
+// Build the MQTT subscription from the environment, or undefined when MQTT_URL
+// is unset (so the app runs fine locally/in tests without a broker). Topics are
+// a comma-separated MQTT_TOPIC (default "#" — every message); auth is anonymous
+// unless MQTT_USERNAME/MQTT_PASSWORD are provided.
+function buildMqttSubscriber(): MqttSubscriber | undefined {
+  const url = process.env.MQTT_URL;
+  if (!url) return undefined;
+
+  const topics = (process.env.MQTT_TOPIC ?? '#').split(',');
+  const config = BrokerConfig.create(url, topics, process.env.MQTT_USERNAME, process.env.MQTT_PASSWORD);
+  return new MqttClientSubscriber(config);
 }

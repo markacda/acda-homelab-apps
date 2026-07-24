@@ -5,10 +5,17 @@ import { register } from './Application/Registrations/register.ts';
 // layers via register() (which also mounts CORS/compression + the vendored
 // static frontend), then start listening. See ARCHITECTURE.md.
 const app = createApp('atc');
-register(app);
+const { mqtt } = register(app);
 startServer(app, {
   name: 'atc',
   port: Number(process.env.PORT) || 6001,
   // atc mounts its own cached static in register(), so disable startServer's default.
   staticDir: null,
+  // Connect to the MQTT broker once listening; disconnect on graceful shutdown.
+  onListen: () => {
+    if (mqtt) void mqtt.start();
+  },
+  onShutdown: async () => {
+    if (mqtt) await mqtt.stop();
+  },
 });
