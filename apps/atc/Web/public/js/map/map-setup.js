@@ -831,6 +831,27 @@ function initMap() {
   });
   layers.push(ilsBeamLayer);
 
+  // Schiphol navigation beacons: one overlay layer per category (IAF / STAR /
+  // VOR / SID), zIndex 110-113 so they sit below the ILS beams (120). Shown
+  // only in ATC mode; visibility is (re)applied by the per-category toggles.
+  let beaconZIndex = 110;
+  for (const key in SCHIPHOL_BEACONS) {
+    const cat = SCHIPHOL_BEACONS[key];
+    const beaconLayer = new ol.layer.Vector({
+      name: cat.layerName,
+      type: 'overlay',
+      title: cat.title,
+      source: beaconSources[key],
+      visible: atcStyle && beaconEnabled[key],
+      zIndex: beaconZIndex++,
+      renderOrder: null,
+      renderBuffer: renderBuffer,
+    });
+    beaconLayers[key] = beaconLayer;
+    layers.push(beaconLayer);
+  }
+  drawBeacons();
+
   actualOutline.enabled = multiOutline || (receiverJson && receiverJson.outlineJson);
 
   if (actualOutline.enabled) {
@@ -949,6 +970,22 @@ function initMap() {
       updateIlsVisibility();
     },
   });
+
+  // One settings-pane checkbox per Schiphol beacon category (also appears in the
+  // on-map layer switcher). setState mirrors the ILS toggle.
+  for (const key in SCHIPHOL_BEACONS) {
+    const cat = SCHIPHOL_BEACONS[key];
+    new Toggle({
+      key: cat.toggleKey,
+      display: cat.title,
+      container: '#settingsLeft',
+      init: beaconEnabled[key],
+      setState: function (state) {
+        beaconEnabled[key] = state;
+        updateBeaconVisibility();
+      },
+    });
+  }
 
   tableColorsLight = tableColors;
   tableColorsDark = JSON.parse(JSON.stringify(tableColors));
