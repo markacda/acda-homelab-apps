@@ -6,7 +6,9 @@
 // this off keeps the outlines but hides their names. Toggled from the settings
 // pane (map-setup.js); the created layers are tracked here so the toggle can
 // re-render them (their style closure reads nlAirspaceNamesEnabled at draw time).
-let nlAirspaceNamesEnabled = true;
+// Off by default: the airspace outlines show without their (often overlapping)
+// labels until the user opts in from the settings pane.
+let nlAirspaceNamesEnabled = false;
 let nlAirspaceLayers = [];
 
 // Force the NL airspace layers to re-run their style function after
