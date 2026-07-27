@@ -946,6 +946,13 @@ function createBaseLayers() {
     )
   );
 
+  // LVNL EHAA airspaces (AIRAC AMDT 07-2026), CC-BY-4.0 — https://geoportaal.lvnl.nl
+  // Source: Airspaces_data FeatureServer (services-eu1.arcgis.com/OtUwzhpKSdeXgRIB).
+  // Radar-green outline, no fill; refresh per AIRAC cycle by re-fetching the same layers.
+  europe.push(createGeoJsonLayer('NL TMA', 'nl_tma', 'geojson/nl_airspace/TMA.geojson', 'rgba(0, 230, 118, 0)', 'rgba(0, 230, 118, 0.9)'));
+  europe.push(createGeoJsonLayer('NL CTA', 'nl_cta', 'geojson/nl_airspace/CTA.geojson', 'rgba(0, 230, 118, 0)', 'rgba(0, 230, 118, 0.9)'));
+  europe.push(createGeoJsonLayer('NL CTR', 'nl_ctr', 'geojson/nl_airspace/CTR.geojson', 'rgba(0, 230, 118, 0)', 'rgba(0, 230, 118, 0.9)'));
+
   // Taken from https://github.com/olithissen/AwacsOrbitsDE
   europe.push(
     createGeoJsonLayer(
