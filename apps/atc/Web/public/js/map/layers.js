@@ -1,6 +1,20 @@
 // -*- mode: javascript; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 'use strict';
 
+// NL TMA/CTA/CTR airspace overlays: whether the airspace name labels are drawn.
+// Independent of each layer's visibility (toggled in the layer switcher); turning
+// this off keeps the outlines but hides their names. Toggled from the settings
+// pane (map-setup.js); the created layers are tracked here so the toggle can
+// re-render them (their style closure reads nlAirspaceNamesEnabled at draw time).
+let nlAirspaceNamesEnabled = true;
+let nlAirspaceLayers = [];
+
+// Force the NL airspace layers to re-run their style function after
+// nlAirspaceNamesEnabled changes, so the name labels appear/disappear.
+function updateNlAirspaceNames() {
+  for (const layer of nlAirspaceLayers) layer.changed();
+}
+
 // Base layers configuration
 //			"url" : "https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 //			"url" : "http://{a-c}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
@@ -881,6 +895,8 @@ function createBaseLayers() {
     world.push(rainviewerRadar);
   }
 
+  // showLabel: draw the feature name labels. Pass a boolean for a fixed choice,
+  // or a getter function for a runtime toggle (re-evaluated on each re-render).
   let createGeoJsonLayer = function (title, name, url, fill, stroke, showLabel = true) {
     return new ol.layer.Vector({
       type: 'overlay',
@@ -906,7 +922,7 @@ function createBaseLayers() {
             width: 1,
           }),
           text: new ol.style.Text({
-            text: showLabel ? feature.get('name') : '',
+            text: (typeof showLabel === 'function' ? showLabel() : showLabel) ? feature.get('name') : '',
             overflow: OLMap.getView().getZoom() > 5,
             scale: 1.25,
             fill: new ol.style.Fill({
@@ -950,9 +966,15 @@ function createBaseLayers() {
   // Source: Airspaces_data FeatureServer (services-eu1.arcgis.com/OtUwzhpKSdeXgRIB).
   // Outline in the same radar-green (#00e676) and 1px width as the ILS beams, no fill;
   // refresh per AIRAC cycle by re-fetching the same layers.
-  europe.push(createGeoJsonLayer('NL TMA', 'nl_tma', 'geojson/nl_airspace/TMA.geojson', 'rgba(0, 230, 118, 0)', '#00e676'));
-  europe.push(createGeoJsonLayer('NL CTA', 'nl_cta', 'geojson/nl_airspace/CTA.geojson', 'rgba(0, 230, 118, 0)', '#00e676'));
-  europe.push(createGeoJsonLayer('NL CTR', 'nl_ctr', 'geojson/nl_airspace/CTR.geojson', 'rgba(0, 230, 118, 0)', '#00e676'));
+  // Labels follow the runtime nlAirspaceNamesEnabled toggle (settings pane), so
+  // pass a getter instead of a static flag and track the layers for re-render.
+  const nlAirspaceLabel = () => nlAirspaceNamesEnabled;
+  nlAirspaceLayers = [
+    createGeoJsonLayer('NL TMA', 'nl_tma', 'geojson/nl_airspace/TMA.geojson', 'rgba(0, 230, 118, 0)', '#00e676', nlAirspaceLabel),
+    createGeoJsonLayer('NL CTA', 'nl_cta', 'geojson/nl_airspace/CTA.geojson', 'rgba(0, 230, 118, 0)', '#00e676', nlAirspaceLabel),
+    createGeoJsonLayer('NL CTR', 'nl_ctr', 'geojson/nl_airspace/CTR.geojson', 'rgba(0, 230, 118, 0)', '#00e676', nlAirspaceLabel),
+  ];
+  for (const layer of nlAirspaceLayers) europe.push(layer);
 
   // Taken from https://github.com/olithissen/AwacsOrbitsDE
   europe.push(
