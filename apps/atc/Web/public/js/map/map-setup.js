@@ -987,6 +987,30 @@ function initMap() {
     });
   }
 
+  // Companion "names" toggles: show/hide the labels drawn beside the beacon
+  // glyphs and the NL airspace outlines, without hiding the features themselves.
+  new Toggle({
+    key: 'beaconNames',
+    display: 'Beacon names',
+    container: '#settingsLeft',
+    init: beaconNamesEnabled,
+    setState: function (state) {
+      beaconNamesEnabled = state;
+      updateBeaconNames();
+    },
+  });
+
+  new Toggle({
+    key: 'nlAirspaceNames',
+    display: 'Airspace names',
+    container: '#settingsLeft',
+    init: nlAirspaceNamesEnabled,
+    setState: function (state) {
+      nlAirspaceNamesEnabled = state;
+      updateNlAirspaceNames();
+    },
+  });
+
   tableColorsLight = tableColors;
   tableColorsDark = JSON.parse(JSON.stringify(tableColors));
   let darkVals = Object.values(tableColorsDark);

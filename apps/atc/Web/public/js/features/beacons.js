@@ -103,6 +103,11 @@ for (const key in SCHIPHOL_BEACONS) {
   beaconEnabled[key] = SCHIPHOL_BEACONS[key].enabledByDefault;
 }
 
+// Whether the beacon name labels are drawn beside the glyphs. Independent of the
+// per-category visibility toggles: turning this off keeps the markers but hides
+// their names. Toggled from the settings pane (map-setup.js).
+let beaconNamesEnabled = true;
+
 // Build the marker style for one beacon: a small glyph plus an always-on,
 // black-outlined name label to its right (cf. the distance-measurement label in
 // map-setup.js). The vendored OpenLayers build only ships ol.style.Circle (no
@@ -124,7 +129,7 @@ function makeBeaconStyle(name, cat) {
   return new ol.style.Style({
     image: image,
     text: new ol.style.Text({
-      text: name,
+      text: beaconNamesEnabled ? name : '',
       font: 'bold 11px "Helvetica Neue", Helvetica, Arial, sans-serif',
       textAlign: 'left',
       offsetX: 8,
@@ -150,6 +155,12 @@ function drawBeacons() {
       src.addFeature(feature);
     }
   }
+}
+
+// Re-style every beacon feature so the name labels appear/disappear after the
+// beaconNamesEnabled flag changes. The glyphs themselves are unaffected.
+function updateBeaconNames() {
+  drawBeacons();
 }
 
 // Beacons are shown only in ATC mode, and only for categories toggled on.
