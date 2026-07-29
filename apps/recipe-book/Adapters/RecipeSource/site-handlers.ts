@@ -1,9 +1,9 @@
 // Per-site URL normalizers. The recipe parser itself is generic (any page with
 // schema.org Recipe JSON-LD works), so the only site-specific knowledge we need
-// is how to turn a shared/short link into the canonical recipe page URL. Each
-// handler claims the URLs it recognises and rewrites them; a default pass-through
-// handler leaves everything else untouched, so a brand-new recipe site works out
-// of the box as long as it embeds JSON-LD.
+// is how to turn a shared/short link into the canonical recipe page URL.
+// Handlers claim the URLs they recognise and rewrite them; if none match, the
+// URL is returned unchanged (after trimming), so a brand-new recipe site works
+// out of the box as long as it embeds JSON-LD.
 
 export interface SiteHandler {
   /** Whether this handler recognises the given URL. */
