@@ -5,6 +5,7 @@ import { JsonBookRepository } from '../../Adapters/JsonFileStore/json-book-repos
 import { JsonCategoryRepository } from '../../Adapters/JsonFileStore/json-category-repository.ts';
 import { FileImageStore } from '../../Adapters/JsonFileStore/file-image-store.ts';
 import { IMAGES_DIR } from '../../Adapters/JsonFileStore/paths.ts';
+import { runMigrations } from '../../Adapters/JsonFileStore/migrations/run-migrations.ts';
 import { AllerhandeRecipeSource } from '../../Adapters/Allerhande/allerhande-recipe-source.ts';
 import { TectonicPdfRenderer } from '../../Adapters/Tectonic/tectonic-pdf-renderer.ts';
 import { RecipeService } from '../Services/recipe-service.ts';
@@ -25,6 +26,10 @@ import { errorMapping } from '../Filters/error-mapping.ts';
  * shared error handlers last).
  */
 export function register(app: Express): void {
+  // Upgrade any on-disk data to the current schema before the repositories serve
+  // reads (EF-migrations style; a no-op on an already-current data volume).
+  runMigrations();
+
   // Adapters (infrastructure implementations of the domain/ports interfaces).
   const recipeRepository = new JsonRecipeRepository();
   const bookRepository = new JsonBookRepository();

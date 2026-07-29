@@ -5,6 +5,7 @@ import type { CategoryData } from '../../Domain/Aggregates/category.ts';
 import type { CategoryRepository } from '../../Domain/Ports/Repositories/category-repository.ts';
 import { CATEGORIES_DIR } from './paths.ts';
 import { ensureDir, readJson, writeJson, listIds } from './json-file.ts';
+import { CURRENT_VERSIONS } from './migrations/migrations.ts';
 
 /** CategoryRepository backed by one JSON file per category under CATEGORIES_DIR. */
 export class JsonCategoryRepository implements CategoryRepository {
@@ -21,7 +22,10 @@ export class JsonCategoryRepository implements CategoryRepository {
 
   async save(category: Category): Promise<void> {
     await ensureDir(CATEGORIES_DIR);
-    await writeJson(join(CATEGORIES_DIR, `${category.id}.json`), category.toJSON());
+    await writeJson(join(CATEGORIES_DIR, `${category.id}.json`), {
+      schemaVersion: CURRENT_VERSIONS.categories,
+      ...category.toJSON(),
+    });
   }
 
   async delete(id: string): Promise<void> {
