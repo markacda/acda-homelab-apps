@@ -5,6 +5,7 @@ import type { RecipeData } from '../../Domain/Aggregates/recipe.ts';
 import type { RecipeRepository } from '../../Domain/Ports/Repositories/recipe-repository.ts';
 import { RECIPES_DIR } from './paths.ts';
 import { ensureDir, readJson, writeJson, listIds } from './json-file.ts';
+import { CURRENT_VERSIONS } from './migrations/migrations.ts';
 
 /** RecipeRepository backed by one JSON file per recipe under RECIPES_DIR. */
 export class JsonRecipeRepository implements RecipeRepository {
@@ -21,7 +22,10 @@ export class JsonRecipeRepository implements RecipeRepository {
 
   async save(recipe: Recipe): Promise<void> {
     await ensureDir(RECIPES_DIR);
-    await writeJson(join(RECIPES_DIR, `${recipe.id}.json`), recipe.toJSON());
+    await writeJson(join(RECIPES_DIR, `${recipe.id}.json`), {
+      ...recipe.toJSON(),
+      schemaVersion: CURRENT_VERSIONS.recipes,
+    });
   }
 
   async delete(id: string): Promise<void> {

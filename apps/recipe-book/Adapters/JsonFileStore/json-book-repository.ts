@@ -5,6 +5,7 @@ import type { BookData } from '../../Domain/Aggregates/book.ts';
 import type { BookRepository } from '../../Domain/Ports/Repositories/book-repository.ts';
 import { BOOKS_DIR } from './paths.ts';
 import { ensureDir, readJson, writeJson, listIds } from './json-file.ts';
+import { CURRENT_VERSIONS } from './migrations/migrations.ts';
 
 /** BookRepository backed by one JSON file per book under BOOKS_DIR. */
 export class JsonBookRepository implements BookRepository {
@@ -21,7 +22,10 @@ export class JsonBookRepository implements BookRepository {
 
   async save(book: Book): Promise<void> {
     await ensureDir(BOOKS_DIR);
-    await writeJson(join(BOOKS_DIR, `${book.id}.json`), book.toJSON());
+    await writeJson(join(BOOKS_DIR, `${book.id}.json`), {
+      ...book.toJSON(),
+      schemaVersion: CURRENT_VERSIONS.books,
+    });
   }
 
   async delete(id: string): Promise<void> {
