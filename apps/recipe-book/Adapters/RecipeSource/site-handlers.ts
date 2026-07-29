@@ -20,8 +20,9 @@ export interface SiteHandler {
 const AH_SHORT_LINK = /^(https?:\/\/(?:www\.)?ah\.nl)\/r\/(\d+)\/?$/i;
 
 export function normalizeAllerhandeUrl(url: string): string {
-  const match = AH_SHORT_LINK.exec(url.trim());
-  return match ? `${match[1]}/allerhande/recept/r-${match[2]}` : url;
+  const trimmed = url.trim();
+  const match = AH_SHORT_LINK.exec(trimmed);
+  return match ? `${match[1]}/allerhande/recept/r-${match[2]}` : trimmed;
 }
 
 const allerhandeHandler: SiteHandler = {
