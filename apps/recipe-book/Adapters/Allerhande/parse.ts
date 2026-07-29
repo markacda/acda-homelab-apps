@@ -155,11 +155,16 @@ function normalizeYield(recipeYield: unknown): string | undefined {
   return undefined;
 }
 
+/** Uppercase the first character, leaving the rest untouched ("hoofdgerecht" -> "Hoofdgerecht"). */
+function capitalizeFirst(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
 function normalizeCategory(category: unknown): string | undefined {
-  if (typeof category === 'string') return category.trim() || undefined;
+  if (typeof category === 'string') return capitalizeFirst(category.trim()) || undefined;
   if (Array.isArray(category)) {
     const first = category.find((v) => typeof v === 'string');
-    return typeof first === 'string' ? first : undefined;
+    return typeof first === 'string' ? capitalizeFirst(first.trim()) || undefined : undefined;
   }
   return undefined;
 }

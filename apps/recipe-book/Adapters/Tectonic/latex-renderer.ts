@@ -73,6 +73,18 @@ export function renderRecipe(recipe: RecipeData, templates: Templates, paths: Re
         ].join('\n')
       : '';
 
+  // An itemize/enumerate with no \item is a LaTeX error, so emit these list
+  // environments only when there is content (mirrors notesBlock above).
+  const ingredientsBlock =
+    recipe.ingredients.length > 0
+      ? ['\\begin{itemize}', '    \\setlength\\itemsep{0em}', itemize(recipe.ingredients), '\\end{itemize}'].join('\n')
+      : '';
+
+  const stepsBlock =
+    recipe.steps.length > 0
+      ? ['\\uppercase{\\textbf{Bereiden}}', '\\vspace{0.25cm}', '\\begin{enumerate}', itemize(recipe.steps), '\\end{enumerate}'].join('\n')
+      : '';
+
   const extraImages =
     extraFiles.length > 0 ? '\\newpage\n' + extraFiles.map((f) => `${includegraphics(paths.imagesDir, f)}\n\\hspace{1cm}\\newline`).join('\n') : '';
 
@@ -84,14 +96,14 @@ export function renderRecipe(recipe: RecipeData, templates: Templates, paths: Re
     category: recipe.category ? escapeLatex(recipe.category) : '',
     title: escapeLatex(recipe.title),
     servings: withUnit(recipe.servings, 'personen'),
-    ingredients: itemize(recipe.ingredients),
+    ingredientsBlock,
     notesBlock,
     extraImages,
     prepTime: withUnit(recipe.prepTime, 'min'),
     cookTime: withUnit(recipe.cookTime, 'min'),
     totalTime: withUnit(recipe.totalTime, 'min'),
     titleImage: titleFile ? includegraphics(paths.imagesDir, titleFile) : '',
-    steps: itemize(recipe.steps),
+    stepsBlock,
   });
 }
 

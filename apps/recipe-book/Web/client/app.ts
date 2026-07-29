@@ -87,6 +87,7 @@ let categories: Category[] = [];
 let activeCategoryId: string | null = null;
 let editingId: string | null = null; // null => creating a new recipe
 let editingImages: string[] = []; // gallery of the recipe currently in the editor
+let pickerRecipeId: string | null = null; // recipe awaiting a book choice in the picker
 
 // ---- library --------------------------------------------------------------
 
@@ -286,6 +287,17 @@ function openEditor(recipe: Recipe | null): void {
   $('edImageHint').classList.toggle('hidden', existing);
   $<HTMLInputElement>('edImageUrl').placeholder = existing ? 'Add image URL…' : 'Title image URL…';
   renderGallery();
+
+  // Provenance: show the original import URL (read-only) at the bottom, if any.
+  const source = $('edSource');
+  if (recipe?.sourceUrl) {
+    source.innerHTML = `Source: <a href="${esc(recipe.sourceUrl)}" target="_blank" rel="noopener">${esc(recipe.sourceUrl)}</a>`;
+    source.classList.remove('hidden');
+  } else {
+    source.textContent = '';
+    source.classList.add('hidden');
+  }
+
   $('editorOverlay').classList.remove('hidden');
 }
 
@@ -445,7 +457,8 @@ async function importRecipe(): Promise<void> {
   } catch (err) {
     setStatus($('addStatus'), err instanceof Error ? err.message : 'Import failed.', 'error');
   } finally {
-    btn.disabled = false;
+    // Re-enable only if there's still a URL to import (the field is cleared on success).
+    btn.disabled = !input.value.trim();
   }
 }
 
@@ -479,16 +492,44 @@ async function deleteBook(): Promise<void> {
   await loadBooks();
 }
 
-async function addToBook(recipeId: string): Promise<void> {
-  if (!activeBook) {
-    setStatus($('addStatus'), 'Create or select a book first.', 'error');
+/** Open the "add to book" picker for a recipe, listing every book to choose from. */
+function openBookPicker(recipeId: string): void {
+  if (!books.length) {
+    setStatus($('addStatus'), 'Create a book first.', 'error');
     return;
   }
-  if (activeBook.recipeIds.includes(recipeId)) {
-    setStatus($('genStatus'), 'That recipe is already in this book.', 'info');
-    return;
+  pickerRecipeId = recipeId;
+  $('bookPickerList').innerHTML = books
+    .map((b) => {
+      const has = b.recipeIds.includes(recipeId);
+      return `<button type="button" class="book-choice" data-book-id="${b.id}" ${has ? 'disabled' : ''}>
+        ${esc(b.name)}${has ? ' ✓' : ''}
+      </button>`;
+    })
+    .join('');
+  $('bookPickerOverlay').classList.remove('hidden');
+}
+
+function closeBookPicker(): void {
+  $('bookPickerOverlay').classList.add('hidden');
+  pickerRecipeId = null;
+}
+
+/** Append the picked recipe to a book (whole-list PATCH), then refresh state. */
+async function addRecipeToBook(bookId: string, recipeId: string): Promise<void> {
+  const book = books.find((b) => b.id === bookId);
+  if (!book || book.recipeIds.includes(recipeId)) return;
+  try {
+    await api(`api/books/${bookId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ recipeIds: [...book.recipeIds, recipeId] }),
+    });
+    closeBookPicker();
+    setStatus($('addStatus'), `Added to “${book.name}”.`, 'ok');
+    await loadBooks();
+  } catch (err) {
+    setStatus($('addStatus'), err instanceof Error ? err.message : 'Failed to add to book.', 'error');
   }
-  await saveBookOrder([...activeBook.recipeIds, recipeId]);
 }
 
 async function movePage(recipeId: string, dir: -1 | 1): Promise<void> {
@@ -531,6 +572,9 @@ async function generate(format: 'tex' | 'pdf'): Promise<void> {
 // ---- event wiring ---------------------------------------------------------
 
 $('importBtn').addEventListener('click', () => void importRecipe());
+$('importUrl').addEventListener('input', (e) => {
+  $<HTMLButtonElement>('importBtn').disabled = !(e.target as HTMLInputElement).value.trim();
+});
 $('importUrl').addEventListener('keydown', (e) => {
   if ((e as KeyboardEvent).key === 'Enter') void importRecipe();
 });
@@ -542,7 +586,7 @@ $('library').addEventListener('click', (e) => {
   const id = target.closest<HTMLElement>('.recipe-card')?.dataset.id;
   if (!act || !id) return;
   const recipe = recipes.find((r) => r.id === id);
-  if (act === 'add') void addToBook(id);
+  if (act === 'add') openBookPicker(id);
   else if (act === 'edit' && recipe) openEditor(recipe);
   else if (act === 'delete') {
     if (confirm('Delete this recipe from the library?')) {
@@ -586,8 +630,18 @@ $('edSaveBtn').addEventListener('click', () => void saveEditor());
 $('edCancelBtn').addEventListener('click', closeEditor);
 $('edAddImageUrlBtn').addEventListener('click', () => void addImageFromUrl());
 $('edUploadBtn').addEventListener('click', () => void uploadImage());
-$('editorOverlay').addEventListener('click', (e) => {
-  if (e.target === $('editorOverlay')) closeEditor();
+// Intentionally no click-outside-to-close on the editor: tapping the backdrop
+// blurs the focused field (dismissing the mobile keyboard) but keeps the modal open.
+
+// Book picker: pick a book to add the pending recipe to; close via button or backdrop.
+$('bookPickerList').addEventListener('click', (e) => {
+  const bookId = (e.target as HTMLElement).closest<HTMLElement>('.book-choice')?.dataset.bookId;
+  if (!bookId || !pickerRecipeId) return;
+  void addRecipeToBook(bookId, pickerRecipeId);
+});
+$('bookPickerCloseBtn').addEventListener('click', closeBookPicker);
+$('bookPickerOverlay').addEventListener('click', (e) => {
+  if (e.target === $('bookPickerOverlay')) closeBookPicker();
 });
 
 // Gallery: reorder / remove act on the local list, then persist via PATCH.
