@@ -533,6 +533,7 @@ function buildAiPrompt(url: string): string {
 
 function showAiFallback(url: string): void {
   $<HTMLTextAreaElement>('aiPrompt').value = buildAiPrompt(url);
+  $<HTMLTextAreaElement>('aiJsonInput').value = '';
   $('aiFallback').classList.remove('hidden');
 }
 
