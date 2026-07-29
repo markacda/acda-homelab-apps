@@ -23,7 +23,7 @@
           <h2>Add a recipe</h2>
           <div class="row">
             <input id="importUrl" type="url" placeholder="Paste an Albert Heijn recipe URL…" />
-            <button id="importBtn" type="button">Import</button>
+            <button id="importBtn" type="button" disabled>Import</button>
           </div>
           <div class="row">
             <button id="newRecipeBtn" type="button" class="secondary">+ Add manually</button>
@@ -120,9 +120,23 @@
           <p id="edImageStatus" class="status"></p>
         </div>
 
+        <p id="edSource" class="meta source-url hidden"></p>
+
         <div class="row editor-actions">
           <button id="edSaveBtn" type="button">Save</button>
           <button id="edCancelBtn" type="button" class="secondary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Book picker overlay: choose which book to add a recipe to -->
+    <div id="bookPickerOverlay" class="overlay hidden">
+      <div class="editor panel">
+        <h2>Add to book</h2>
+        <p class="meta">Choose the book to add this recipe to.</p>
+        <div id="bookPickerList" class="book-picker"></div>
+        <div class="row editor-actions">
+          <button id="bookPickerCloseBtn" type="button" class="secondary">Close</button>
         </div>
       </div>
     </div>

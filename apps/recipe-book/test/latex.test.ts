@@ -10,11 +10,11 @@ const TEMPLATES: Templates = {
   recipe:
     'cat=[{{category}}] \\subsection{{{title}}}\n' +
     'servings={{servings}}\n' +
-    '\\begin{itemize}\n{{ingredients}}\n\\end{itemize}\n' +
+    '{{ingredientsBlock}}\n' +
     '{{notesBlock}}\n{{extraImages}}\n' +
     'times={{prepTime}}|{{cookTime}}|{{totalTime}}\n' +
     'title-image={{titleImage}}\n' +
-    '\\begin{enumerate}\n{{steps}}\n\\end{enumerate}',
+    '{{stepsBlock}}',
 };
 
 const PATHS: RenderPaths = { fontDir: '/app/templates/font/', imagesDir: '/data/images' };
@@ -105,6 +105,23 @@ test('renderRecipe: notes block only present when notes exist', () => {
 
   const without = renderRecipe(recipe({ notes: [] }), TEMPLATES, PATHS);
   assert.doesNotMatch(without, /Notities/);
+});
+
+test('renderRecipe: empty steps emit no enumerate (guards the missing-\\item LaTeX error)', () => {
+  const out = renderRecipe(recipe({ steps: [] }), TEMPLATES, PATHS);
+  assert.doesNotMatch(out, /\\begin\{enumerate\}/);
+  assert.doesNotMatch(out, /Bereiden/);
+  // A non-empty steps list still renders the enumerate.
+  const withSteps = renderRecipe(recipe({ steps: ['stir'] }), TEMPLATES, PATHS);
+  assert.match(withSteps, /\\begin\{enumerate\}[\s\S]*\\item stir[\s\S]*\\end\{enumerate\}/);
+});
+
+test('renderRecipe: empty ingredients emit no itemize (guards the missing-\\item LaTeX error)', () => {
+  const out = renderRecipe(recipe({ ingredients: [] }), TEMPLATES, PATHS);
+  assert.doesNotMatch(out, /\\begin\{itemize\}/);
+  // A non-empty ingredients list still renders the itemize.
+  const withIngredients = renderRecipe(recipe({ ingredients: ['salt'] }), TEMPLATES, PATHS);
+  assert.match(withIngredients, /\\begin\{itemize\}[\s\S]*\\item salt[\s\S]*\\end\{itemize\}/);
 });
 
 test('renderBook injects fontDir/title and groups recipes by category into sections', () => {

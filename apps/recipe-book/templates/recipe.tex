@@ -7,13 +7,13 @@
 %% is already LaTeX-escaped; list/section tokens are pre-built blocks:
 %%   category    - uppercase category label text (or empty)
 %%   title       - recipe title
-%%   servings    - servings with its "personen" unit already appended (or empty)
-%%   ingredients - \item lines for the itemize
-%%   notesBlock  - the whole Notities section, or empty
-%%   extraImages - \includegraphics lines for the extra photos, or empty
+%%   servings         - servings with its "personen" unit already appended (or empty)
+%%   ingredientsBlock - the whole Ingrediënten itemize, or empty when there are none
+%%   notesBlock       - the whole Notities section, or empty
+%%   extraImages      - \includegraphics lines for the extra photos, or empty
 %%   prepTime / cookTime / totalTime - time-table cells, "min" unit already appended
-%%   titleImage  - \includegraphics for the title image, or empty
-%%   steps       - \item lines for the enumerate
+%%   titleImage       - \includegraphics for the title image, or empty
+%%   stepsBlock       - the whole Bereiden enumerate section, or empty when there are none
 %% =====================================================================
 \newpage
 
@@ -34,10 +34,7 @@
 
 \vspace{0.5cm}
 
-\begin{itemize}
-    \setlength\itemsep{0em}
-{{ingredients}}
-\end{itemize}
+{{ingredientsBlock}}
 
 {{notesBlock}}
 
@@ -60,10 +57,6 @@
 
 \vspace{0.5cm}
 
-\uppercase{\textbf{Bereiden}}
-\vspace{0.25cm}
-\begin{enumerate}
-{{steps}}
-\end{enumerate}
+{{stepsBlock}}
 
 \end{paracol}

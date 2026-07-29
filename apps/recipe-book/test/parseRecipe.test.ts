@@ -71,6 +71,17 @@ test('parseRecipe extracts a Recipe from a @graph', () => {
   assert.deepEqual(parsed.steps, ['Kook de pappardelle beetgaar.', 'Bak de biefstuk kort aan.']);
 });
 
+test('parseRecipe capitalizes the recipe category', () => {
+  const parsed = parseRecipe(pageWith({ ...AH_RECIPE, recipeCategory: 'hoofdgerecht' }));
+  assert.ok(parsed);
+  assert.equal(parsed.category, 'Hoofdgerecht');
+
+  // Array form is trimmed and capitalized too.
+  const fromArray = parseRecipe(pageWith({ ...AH_RECIPE, recipeCategory: ['  bijgerecht'] }));
+  assert.ok(fromArray);
+  assert.equal(fromArray.category, 'Bijgerecht');
+});
+
 test('parseRecipe handles a top-level Recipe (no @graph) and string image', () => {
   const html = `<script type="application/ld+json">${JSON.stringify({
     '@context': 'https://schema.org',
