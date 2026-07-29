@@ -772,11 +772,18 @@ $('bookPages').addEventListener('click', (e) => {
 });
 
 $('bookPages').addEventListener('dragstart', (e) => {
+  // Only allow dragging when the user starts from the handle (prevents accidental drags
+  // from buttons/text inside the list item).
+  if (!(e.target as HTMLElement).closest('.drag-handle')) {
+    e.preventDefault();
+    return;
+  }
+
   const li = (e.target as HTMLElement).closest<HTMLElement>('li[data-id]');
   const id = li?.dataset.id;
   if (!id) return;
   dragPageId = id;
-  li!.classList.add('dragging');
+  li.classList.add('dragging');
   const dt = (e as DragEvent).dataTransfer;
   if (dt) {
     dt.effectAllowed = 'move';
