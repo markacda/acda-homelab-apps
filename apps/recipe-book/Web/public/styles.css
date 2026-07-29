@@ -198,6 +198,26 @@ button.icon {
   color: var(--info);
 }
 
+/* AI-prompt fallback (shown only when a URL import fails) */
+.ai-fallback {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ai-fallback textarea {
+  width: 100%;
+}
+
+.ai-fallback .ai-prompt {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
 /* library cards */
 .cards-grid {
   display: grid;

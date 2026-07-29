@@ -480,6 +480,7 @@ async function importRecipe(): Promise<void> {
       body: JSON.stringify({ url }),
     });
     input.value = '';
+    hideAiFallback(); // a URL that imported cleanly needs no AI fallback
     setStatus($('addStatus'), `Imported “${recipe.title}”.`, 'ok');
     // Fade out the success confirmation after a few seconds.
     importStatusTimer = setTimeout(() => {
@@ -489,9 +490,99 @@ async function importRecipe(): Promise<void> {
     await loadRecipes();
   } catch (err) {
     setStatus($('addStatus'), err instanceof Error ? err.message : 'Import failed.', 'error');
+    // The URL could not be parsed (fetch error, no recipe data, or no
+    // ingredients/steps): offer the AI-prompt fallback for this URL.
+    showAiFallback(url);
   } finally {
     // Re-enable only if there's still a URL to import (the field is cleared on success).
     btn.disabled = !input.value.trim();
+  }
+}
+
+// ---- AI-prompt fallback (for URLs we can't parse) -------------------------
+
+/**
+ * Build a copy-paste prompt that asks a generative AI to return the recipe on
+ * `url` as JSON in the exact shape POST /api/recipes accepts, so the user can
+ * paste that JSON back into the "Import from JSON" box below.
+ */
+function buildAiPrompt(url: string): string {
+  return [
+    'Extract the recipe from the following web page and return it as JSON.',
+    '',
+    `Page URL: ${url}`,
+    '',
+    'Return ONLY a single JSON object — no markdown, no code fences, no commentary — with these keys:',
+    '{',
+    '  "title": string,          // the recipe name (required)',
+    '  "ingredients": string[],  // one entry per ingredient, e.g. "250 g bloem"',
+    '  "steps": string[],        // one entry per preparation step, in order',
+    '  "servings": string,       // number of persons, digits only, e.g. "4" (optional)',
+    '  "prepTime": string,       // preparation time in minutes, digits only (optional)',
+    '  "cookTime": string,       // cooking time in minutes, digits only (optional)',
+    '  "totalTime": string,      // total time in minutes, digits only (optional)',
+    '  "category": string,       // course, e.g. "Hoofdgerecht" (optional)',
+    `  "sourceUrl": ${JSON.stringify(url)},`,
+    '  "imageUrl": string        // absolute URL of the main recipe photo (optional)',
+    '}',
+    '',
+    'Rules: servings and the prepTime/cookTime/totalTime fields must be bare numbers as strings (no units).',
+    'Omit any optional key you cannot determine. Do not invent ingredients or steps.',
+  ].join('\n');
+}
+
+function showAiFallback(url: string): void {
+  $<HTMLTextAreaElement>('aiPrompt').value = buildAiPrompt(url);
+  $<HTMLTextAreaElement>('aiJsonInput').value = '';
+  $('aiFallback').classList.remove('hidden');
+}
+
+function hideAiFallback(): void {
+  $('aiFallback').classList.add('hidden');
+  $<HTMLTextAreaElement>('aiJsonInput').value = '';
+}
+
+async function copyAiPrompt(): Promise<void> {
+  const prompt = $<HTMLTextAreaElement>('aiPrompt');
+  try {
+    await navigator.clipboard.writeText(prompt.value);
+    setStatus($('addStatus'), 'Prompt copied — paste it into your AI assistant.', 'ok');
+  } catch {
+    // Clipboard API unavailable (e.g. non-secure context): select it so the user can copy manually.
+    prompt.focus();
+    prompt.select();
+    setStatus($('addStatus'), 'Copy the selected prompt (Ctrl/Cmd+C).', 'info');
+  }
+}
+
+/** Create a recipe from AI-generated JSON pasted into the fallback textarea. */
+async function importFromJson(): Promise<void> {
+  const textarea = $<HTMLTextAreaElement>('aiJsonInput');
+  const raw = textarea.value.trim();
+  if (!raw) return;
+  let payload: unknown;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    setStatus($('addStatus'), 'That is not valid JSON. Paste the JSON your AI assistant returned.', 'error');
+    return;
+  }
+  const btn = $<HTMLButtonElement>('aiImportBtn');
+  btn.disabled = true;
+  setStatus($('addStatus'), 'Creating recipe from JSON…', 'info');
+  try {
+    const recipe = await api<Recipe>('api/recipes', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    hideAiFallback();
+    $<HTMLInputElement>('importUrl').value = '';
+    setStatus($('addStatus'), `Imported “${recipe.title}”.`, 'ok');
+    await loadRecipes();
+  } catch (err) {
+    setStatus($('addStatus'), err instanceof Error ? err.message : 'Import failed.', 'error');
+  } finally {
+    btn.disabled = false;
   }
 }
 
@@ -612,6 +703,8 @@ $('importUrl').addEventListener('keydown', (e) => {
   if ((e as KeyboardEvent).key === 'Enter') void importRecipe();
 });
 $('newRecipeBtn').addEventListener('click', () => openEditor(null));
+$('aiCopyBtn').addEventListener('click', () => void copyAiPrompt());
+$('aiImportBtn').addEventListener('click', () => void importFromJson());
 
 $('librarySearch').addEventListener('input', (e) => {
   librarySearch = (e.target as HTMLInputElement).value;

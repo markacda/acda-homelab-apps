@@ -28,6 +28,12 @@ export class RecipeImportService {
     if (!parsed) {
       throw new DomainError('Could not find recipe data on that page. You can add the recipe manually instead.', 422);
     }
+    // A title alone is not a usable recipe: if the page yielded neither
+    // ingredients nor steps, treat it as unparseable so the client can offer the
+    // AI-prompt fallback (paste the recipe as JSON) instead of storing an empty shell.
+    if (parsed.ingredients.length === 0 && parsed.steps.length === 0) {
+      throw new DomainError('That page has no ingredients or steps we can read. Generate the recipe with AI instead.', 422);
+    }
     return this.recipes.create({
       title: parsed.title,
       sourceUrl: url,
