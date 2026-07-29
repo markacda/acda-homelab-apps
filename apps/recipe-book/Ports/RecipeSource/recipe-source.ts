@@ -1,6 +1,6 @@
-// Port for the external recipe provider (Albert Heijn / Allerhande). Kept out of
-// Domain because it models an outside system, not a domain rule; the Adapters
-// layer implements it (fetch the page + extract its schema.org JSON-LD).
+// Port for an external recipe provider (any recipe website). Kept out of Domain
+// because it models an outside system, not a domain rule; the Adapters layer
+// implements it (fetch the page + extract its schema.org JSON-LD).
 
 /** A recipe extracted from an external page, before it becomes a Recipe aggregate. */
 export interface ParsedRecipe {

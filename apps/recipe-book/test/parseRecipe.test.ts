@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseRecipe, extractJsonLdBlocks, stripHtml, parseIsoDuration } from '../Adapters/Allerhande/parse.ts';
-import { normalizeAllerhandeUrl } from '../Adapters/Allerhande/allerhande-recipe-source.ts';
+import { parseRecipe, extractJsonLdBlocks, stripHtml, parseIsoDuration } from '../Adapters/RecipeSource/parse.ts';
+import { normalizeAllerhandeUrl, normalizeSourceUrl } from '../Adapters/RecipeSource/site-handlers.ts';
 
 // An Allerhande-shaped page: a JSON-LD @graph with a Recipe node, HowToStep
 // instructions, an image array, and some HTML inside the fields.
@@ -45,6 +45,17 @@ test('normalizeAllerhandeUrl rewrites the short recipe URL to canonical', () => 
   const canonical = 'https://www.ah.nl/allerhande/recept/r-480288';
   assert.equal(normalizeAllerhandeUrl(canonical), canonical);
   assert.equal(normalizeAllerhandeUrl('https://example.com/r/480288'), 'https://example.com/r/480288');
+});
+
+test('normalizeSourceUrl applies the AH handler and passes other sites through', () => {
+  // A matching handler (Allerhande short link) rewrites the URL...
+  assert.equal(normalizeSourceUrl('https://www.ah.nl/r/480288'), 'https://www.ah.nl/allerhande/recept/r-480288');
+  // ...surrounding whitespace is trimmed first.
+  assert.equal(normalizeSourceUrl('  https://ah.nl/r/12/  '), 'https://ah.nl/allerhande/recept/r-12');
+  // A non-AH recipe site is claimed by the default pass-through (returned as-is, trimmed).
+  const laura = 'https://www.laurasbakery.nl/recept/appeltaart/';
+  assert.equal(normalizeSourceUrl(laura), laura);
+  assert.equal(normalizeSourceUrl(' https://www.leukerecepten.nl/recepten/pasta-pesto/ '), 'https://www.leukerecepten.nl/recepten/pasta-pesto/');
 });
 
 test('extractJsonLdBlocks pulls every ld+json script', () => {

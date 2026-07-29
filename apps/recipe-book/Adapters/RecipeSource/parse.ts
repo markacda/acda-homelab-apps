@@ -1,4 +1,4 @@
-import type { ParsedRecipe } from '../../Ports/Allerhande/recipe-source.ts';
+import type { ParsedRecipe } from '../../Ports/RecipeSource/recipe-source.ts';
 
 // Pure extraction of a schema.org Recipe from a page's JSON-LD. Allerhande (and
 // most recipe sites) embed a <script type="application/ld+json"> block with the
