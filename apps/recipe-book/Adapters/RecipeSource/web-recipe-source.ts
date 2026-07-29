@@ -8,9 +8,11 @@ import { parseRecipe } from './parse.ts';
  * structured recipe data (schema.org) the page embeds. The URL is first run
  * through the per-site handler registry (e.g. Allerhande short links), then
  * fetched with browser-like headers (many sites sit behind a CDN that challenges
- * obvious bots). Verified against Allerhande/AH plus common recipe blogs
- * (Leukerecepten, Kookmutsjes, Laura's Bakery, Miljuschka, Verse Oogst, Proef
- * Japan, …), which all embed the same structured data.
+ * obvious bots).
+ *
+ * Expected to work with Allerhande/AH plus common recipe blogs (Leukerecepten,
+ * Kookmutsjes, Laura's Bakery, Miljuschka, Verse Oogst, Proef Japan, …) as long
+ * as they embed schema.org Recipe JSON-LD.
  */
 export class WebRecipeSource implements RecipeSource {
   async fetch(url: string): Promise<ParsedRecipe | null> {
