@@ -34,6 +34,22 @@
             <button id="newRecipeBtn" type="button" class="secondary">+ Add manually</button>
           </div>
           <p id="addStatus" class="status"></p>
+
+          <!-- Shown only after an import attempt fails: copy the prompt into a
+               generative AI, then paste the JSON it returns to create the recipe. -->
+          <div id="aiFallback" class="ai-fallback hidden">
+            <p class="meta">
+              Couldn’t read that URL. Copy this prompt into a generative AI (ChatGPT, Claude, …), then paste the JSON it returns below.
+            </p>
+            <textarea id="aiPrompt" class="ai-prompt" rows="7" readonly></textarea>
+            <div class="row">
+              <button id="aiCopyBtn" type="button" class="secondary">Copy prompt</button>
+            </div>
+            <textarea id="aiJsonInput" class="ai-json" rows="7" placeholder="Paste the recipe JSON here…"></textarea>
+            <div class="row">
+              <button id="aiImportBtn" type="button">Import from JSON</button>
+            </div>
+          </div>
         </section>
 
         <section class="panel">
