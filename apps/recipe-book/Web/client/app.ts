@@ -802,7 +802,8 @@ $('bookPages').addEventListener('dragover', (e) => {
 });
 
 $('bookPages').addEventListener('dragleave', (e) => {
-  (e.target as HTMLElement).closest<HTMLElement>('li[data-id]')?.classList.remove('drag-over');
+  // `dragleave` bubbles from children; only clear when leaving the list itself.
+  if (e.target === e.currentTarget) clearDropTargets();
 });
 
 $('bookPages').addEventListener('drop', (e) => {
