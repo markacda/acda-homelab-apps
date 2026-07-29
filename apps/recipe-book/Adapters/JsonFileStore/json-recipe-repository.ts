@@ -23,8 +23,8 @@ export class JsonRecipeRepository implements RecipeRepository {
   async save(recipe: Recipe): Promise<void> {
     await ensureDir(RECIPES_DIR);
     await writeJson(join(RECIPES_DIR, `${recipe.id}.json`), {
-      schemaVersion: CURRENT_VERSIONS.recipes,
       ...recipe.toJSON(),
+      schemaVersion: CURRENT_VERSIONS.recipes,
     });
   }
 

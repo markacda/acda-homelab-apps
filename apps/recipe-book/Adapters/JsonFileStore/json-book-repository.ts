@@ -23,8 +23,8 @@ export class JsonBookRepository implements BookRepository {
   async save(book: Book): Promise<void> {
     await ensureDir(BOOKS_DIR);
     await writeJson(join(BOOKS_DIR, `${book.id}.json`), {
-      schemaVersion: CURRENT_VERSIONS.books,
       ...book.toJSON(),
+      schemaVersion: CURRENT_VERSIONS.books,
     });
   }
 

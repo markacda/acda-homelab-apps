@@ -102,6 +102,45 @@ test('throws loudly on an unparseable file instead of silently skipping it', () 
   }
 });
 
+test('throws when schemaVersion is present but not a positive integer', () => {
+  for (const bad of ['1', 0, 1.5, -1, null]) {
+    const { dir } = withFile({ schemaVersion: bad, id: 'r1' });
+    try {
+      const set: EntityMigrationSet = { name: 'recipes', dir, currentVersion: 1, migrations: [] };
+      assert.throws(() => migrateEntitySet(set), /invalid schemaVersion/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+});
+
+test('throws on a migration step that does not advance the version (no infinite loop)', () => {
+  const { dir } = withFile({ schemaVersion: 1, id: 'r1' });
+  try {
+    const migrations: Migration[] = [{ from: 1, to: 1, migrate: (r) => r }];
+    const set: EntityMigrationSet = { name: 'recipes', dir, currentVersion: 2, migrations };
+    assert.throws(() => migrateEntitySet(set), /does not advance/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('is atomic: a bad file aborts the run before any good file is rewritten', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'recipe-migrations-'));
+  const good = join(dir, 'good.json');
+  try {
+    writeFileSync(good, JSON.stringify({ id: 'a', title: 'ok' }), 'utf8'); // legacy, would be stamped
+    writeFileSync(join(dir, 'bad.json'), '{ broken', 'utf8');
+    const set: EntityMigrationSet = { name: 'recipes', dir, currentVersion: 1, migrations: [] };
+    assert.throws(() => migrateEntitySet(set), /Cannot migrate/);
+    // The good file must be left untouched (no schemaVersion stamped).
+    const after = readBack(good);
+    assert.equal(after.schemaVersion, undefined);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('runMigrations tolerates a missing data directory', () => {
   const missing = join(tmpdir(), 'recipe-migrations-does-not-exist-xyz');
   const set: EntityMigrationSet = { name: 'recipes', dir: missing, currentVersion: 1, migrations: [] };

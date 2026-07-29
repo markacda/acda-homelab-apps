@@ -23,8 +23,8 @@ export class JsonCategoryRepository implements CategoryRepository {
   async save(category: Category): Promise<void> {
     await ensureDir(CATEGORIES_DIR);
     await writeJson(join(CATEGORIES_DIR, `${category.id}.json`), {
-      schemaVersion: CURRENT_VERSIONS.categories,
       ...category.toJSON(),
+      schemaVersion: CURRENT_VERSIONS.categories,
     });
   }
 
