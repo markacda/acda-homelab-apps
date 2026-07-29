@@ -1,0 +1,35 @@
+import type { RecipeSource, ParsedRecipe } from '../../Ports/RecipeSource/recipe-source.ts';
+import { BROWSER_UA } from '../browser-user-agent.ts';
+import { normalizeSourceUrl } from './site-handlers.ts';
+import { parseRecipe } from './parse.ts';
+
+/**
+ * Reads a recipe from any recipe website: it fetches the page and extracts the
+ * structured recipe data (schema.org) the page embeds. The URL is first run
+ * through the per-site handler registry (e.g. Allerhande short links), then
+ * fetched with browser-like headers (many sites sit behind a CDN that challenges
+ * obvious bots). Verified against Allerhande/AH plus common recipe blogs
+ * (Leukerecepten, Kookmutsjes, Laura's Bakery, Miljuschka, Verse Oogst, Proef
+ * Japan, …), which all embed the same structured data.
+ */
+export class WebRecipeSource implements RecipeSource {
+  async fetch(url: string): Promise<ParsedRecipe | null> {
+    const html = await this.fetchHtml(normalizeSourceUrl(url));
+    return parseRecipe(html);
+  }
+
+  private async fetchHtml(url: string): Promise<string> {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': BROWSER_UA,
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'nl-NL,nl;q=0.9,en;q=0.8',
+      },
+      redirect: 'follow',
+    });
+    if (!res.ok) {
+      throw new Error(`Could not fetch recipe page (HTTP ${res.status}).`);
+    }
+    return res.text();
+  }
+}

@@ -1,5 +1,5 @@
 import type { Recipe } from '../../Domain/Aggregates/recipe.ts';
-import type { RecipeSource } from '../../Ports/Allerhande/recipe-source.ts';
+import type { RecipeSource } from '../../Ports/RecipeSource/recipe-source.ts';
 import { RecipeService } from './recipe-service.ts';
 import { DomainError } from '../../Domain/Exceptions/domain-error.ts';
 

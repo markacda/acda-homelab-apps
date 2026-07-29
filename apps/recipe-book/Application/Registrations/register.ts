@@ -6,7 +6,7 @@ import { JsonCategoryRepository } from '../../Adapters/JsonFileStore/json-catego
 import { FileImageStore } from '../../Adapters/JsonFileStore/file-image-store.ts';
 import { IMAGES_DIR } from '../../Adapters/JsonFileStore/paths.ts';
 import { runMigrations } from '../../Adapters/JsonFileStore/migrations/run-migrations.ts';
-import { AllerhandeRecipeSource } from '../../Adapters/Allerhande/allerhande-recipe-source.ts';
+import { WebRecipeSource } from '../../Adapters/RecipeSource/web-recipe-source.ts';
 import { TectonicPdfRenderer } from '../../Adapters/Tectonic/tectonic-pdf-renderer.ts';
 import { RecipeService } from '../Services/recipe-service.ts';
 import { BookService } from '../Services/book-service.ts';
@@ -35,7 +35,7 @@ export function register(app: Express): void {
   const bookRepository = new JsonBookRepository();
   const categoryRepository = new JsonCategoryRepository();
   const imageStore = new FileImageStore();
-  const recipeSource = new AllerhandeRecipeSource();
+  const recipeSource = new WebRecipeSource();
   const documentGenerator = new TectonicPdfRenderer();
 
   // Application services.

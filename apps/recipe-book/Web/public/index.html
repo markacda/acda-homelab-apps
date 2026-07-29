@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Recipe Book — Allerhande to PDF</title>
+    <title>Recipe Book — recipes to PDF</title>
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍲</text></svg>"
@@ -13,7 +13,7 @@
   <body>
     <header class="topbar">
       <h1>🍲 Recipe Book</h1>
-      <span class="meta">Import Allerhande recipes, build books, export LaTeX / PDF</span>
+      <span class="meta">Import recipes from the web, build books, export LaTeX / PDF</span>
     </header>
 
     <div class="layout">
@@ -22,7 +22,12 @@
         <section class="panel">
           <h2>Add a recipe</h2>
           <div class="row">
-            <input id="importUrl" type="url" placeholder="Paste an Albert Heijn recipe URL…" />
+            <input
+              id="importUrl"
+              type="url"
+              placeholder="Paste a recipe URL (Allerhande, Leukerecepten, Kookmutsjes, Laura's Bakery…)"
+              title="Works with Albert Heijn/Allerhande and many recipe sites that embed structured recipe data (schema.org JSON-LD)."
+            />
             <button id="importBtn" type="button" disabled>Import</button>
           </div>
           <div class="row">
