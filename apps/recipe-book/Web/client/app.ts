@@ -80,6 +80,7 @@ function imgSrc(recipe: Recipe): string | null {
 // ---- state ----------------------------------------------------------------
 
 let recipes: Recipe[] = [];
+let librarySearch = ''; // current library filter query (lower-cased when matched)
 let books: Book[] = [];
 let activeBookId: string | null = null;
 let activeBook: BookDetail | null = null;
@@ -96,6 +97,33 @@ async function loadRecipes(): Promise<void> {
   renderLibrary();
 }
 
+// Fields a search matches against, in the priority order used to rank results:
+// a title hit outranks a category hit, which outranks ingredients, then steps,
+// then notes. Lower index = higher priority.
+const SEARCH_FIELDS: ((r: Recipe) => string)[] = [
+  (r) => r.title,
+  (r) => r.category ?? '',
+  (r) => r.ingredients.join('\n'),
+  (r) => r.steps.join('\n'),
+  (r) => r.notes.join('\n'),
+];
+
+/** Best (lowest) field index whose text contains `q`, or -1 if none match. */
+function searchRank(recipe: Recipe, q: string): number {
+  return SEARCH_FIELDS.findIndex((field) => field(recipe).toLowerCase().includes(q));
+}
+
+/** Recipes matching the current search, ordered by which field matched first. */
+function filteredRecipes(): Recipe[] {
+  const q = librarySearch.trim().toLowerCase();
+  if (!q) return recipes;
+  return recipes
+    .map((r) => ({ r, rank: searchRank(r, q) }))
+    .filter((m) => m.rank >= 0)
+    .sort((a, b) => a.rank - b.rank)
+    .map((m) => m.r);
+}
+
 function renderLibrary(): void {
   $('libCount').textContent = recipes.length ? `(${recipes.length})` : '';
   const grid = $('library');
@@ -103,7 +131,12 @@ function renderLibrary(): void {
     grid.innerHTML = `<p class="meta">No recipes yet. Import one or add it manually.</p>`;
     return;
   }
-  grid.innerHTML = recipes
+  const shown = filteredRecipes();
+  if (!shown.length) {
+    grid.innerHTML = `<p class="meta">No recipes match “${esc(librarySearch.trim())}”.</p>`;
+    return;
+  }
+  grid.innerHTML = shown
     .map((r) => {
       const src = imgSrc(r);
       const img = src ? `<img src="${esc(src)}" alt="${esc(r.title)}" />` : `<div class="no-img">🍽️</div>`;
@@ -549,7 +582,7 @@ async function removePage(recipeId: string): Promise<void> {
 
 async function generate(format: 'tex' | 'pdf'): Promise<void> {
   if (!activeBookId) return;
-  const btns = [$<HTMLButtonElement>('genTexBtn'), $<HTMLButtonElement>('genPdfBtn')];
+  const btns = [$<HTMLButtonElement>('genPdfBtn')];
   btns.forEach((b) => (b.disabled = true));
   setStatus($('genStatus'), format === 'pdf' ? 'Compiling PDF (first run downloads LaTeX packages)…' : 'Generating .tex…', 'info');
   try {
@@ -579,6 +612,11 @@ $('importUrl').addEventListener('keydown', (e) => {
   if ((e as KeyboardEvent).key === 'Enter') void importRecipe();
 });
 $('newRecipeBtn').addEventListener('click', () => openEditor(null));
+
+$('librarySearch').addEventListener('input', (e) => {
+  librarySearch = (e.target as HTMLInputElement).value;
+  renderLibrary();
+});
 
 $('library').addEventListener('click', (e) => {
   const target = e.target as HTMLElement;
@@ -623,7 +661,6 @@ $('newCategoryBtn').addEventListener('click', () => void newCategory());
 $('renameCategoryBtn').addEventListener('click', () => void renameCategory());
 $('deleteCategoryBtn').addEventListener('click', () => void deleteCategory());
 
-$('genTexBtn').addEventListener('click', () => void generate('tex'));
 $('genPdfBtn').addEventListener('click', () => void generate('pdf'));
 
 $('edSaveBtn').addEventListener('click', () => void saveEditor());
