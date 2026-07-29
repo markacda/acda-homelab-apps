@@ -118,6 +118,7 @@ textarea {
 }
 
 .row input[type='url'],
+.row input[type='search'],
 .row select {
   flex: 1;
 }
