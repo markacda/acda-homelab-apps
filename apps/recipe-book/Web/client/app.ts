@@ -197,7 +197,8 @@ function renderBookView(): void {
   } else {
     list.innerHTML = activeBook.recipes
       .map(
-        (r, i) => `<li data-id="${r.id}">
+        (r, i) => `<li data-id="${r.id}" draggable="true">
+          <span class="drag-handle" aria-hidden="true" title="Drag to reorder">⠿</span>
           <span class="num">${i + 1}.</span>
           <span class="page-name">${esc(r.title)}</span>
           ${r.category ? `<span class="page-cat">${esc(r.category)}</span>` : ''}
@@ -671,6 +672,37 @@ async function removePage(recipeId: string): Promise<void> {
   await saveBookOrder(activeBook.recipeIds.filter((id) => id !== recipeId));
 }
 
+// ---- drag-and-drop reordering of book pages -------------------------------
+// The ↑/↓ buttons stay as an accessible fallback; this adds native HTML5 drag
+// of a whole page (grab the ⠿ handle) and persists via the same saveBookOrder.
+let dragPageId: string | null = null;
+
+function clearDropTargets(): void {
+  $('bookPages')
+    .querySelectorAll('.drag-over')
+    .forEach((el) => el.classList.remove('drag-over'));
+}
+
+function endPageDrag(): void {
+  dragPageId = null;
+  $('bookPages')
+    .querySelectorAll('.dragging, .drag-over')
+    .forEach((el) => el.classList.remove('dragging', 'drag-over'));
+}
+
+/** Move `draggedId` to `targetId`'s position (insert before it) and persist. */
+async function reorderPageByDrag(draggedId: string, targetId: string): Promise<void> {
+  if (!activeBook) return;
+  const ids = [...activeBook.recipeIds];
+  const from = ids.indexOf(draggedId);
+  if (from < 0) return;
+  ids.splice(from, 1);
+  const to = ids.indexOf(targetId);
+  if (to < 0) return;
+  ids.splice(to, 0, draggedId);
+  await saveBookOrder(ids);
+}
+
 async function generate(format: 'tex' | 'pdf'): Promise<void> {
   if (!activeBookId) return;
   const btns = [$<HTMLButtonElement>('genPdfBtn')];
@@ -738,6 +770,44 @@ $('bookPages').addEventListener('click', (e) => {
   else if (act === 'down') void movePage(id, 1);
   else if (act === 'remove') void removePage(id);
 });
+
+$('bookPages').addEventListener('dragstart', (e) => {
+  const li = (e.target as HTMLElement).closest<HTMLElement>('li[data-id]');
+  const id = li?.dataset.id;
+  if (!id) return;
+  dragPageId = id;
+  li!.classList.add('dragging');
+  const dt = (e as DragEvent).dataTransfer;
+  if (dt) {
+    dt.effectAllowed = 'move';
+    dt.setData('text/plain', id); // required for a valid drag in Firefox
+  }
+});
+
+$('bookPages').addEventListener('dragover', (e) => {
+  if (!dragPageId) return;
+  e.preventDefault(); // allow the drop
+  const dt = (e as DragEvent).dataTransfer;
+  if (dt) dt.dropEffect = 'move';
+  const li = (e.target as HTMLElement).closest<HTMLElement>('li[data-id]');
+  clearDropTargets();
+  if (li && li.dataset.id !== dragPageId) li.classList.add('drag-over');
+});
+
+$('bookPages').addEventListener('dragleave', (e) => {
+  (e.target as HTMLElement).closest<HTMLElement>('li[data-id]')?.classList.remove('drag-over');
+});
+
+$('bookPages').addEventListener('drop', (e) => {
+  if (!dragPageId) return;
+  e.preventDefault();
+  const dropped = dragPageId;
+  const targetId = (e.target as HTMLElement).closest<HTMLElement>('li[data-id]')?.dataset.id;
+  endPageDrag();
+  if (targetId && targetId !== dropped) void reorderPageByDrag(dropped, targetId);
+});
+
+$('bookPages').addEventListener('dragend', () => endPageDrag());
 
 $<HTMLSelectElement>('bookSelect').addEventListener('change', (e) => {
   activeBookId = (e.target as HTMLSelectElement).value;
