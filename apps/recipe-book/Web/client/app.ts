@@ -526,7 +526,7 @@ function buildAiPrompt(url: string): string {
     '  "imageUrl": string        // absolute URL of the main recipe photo (optional)',
     '}',
     '',
-    'Rules: servings and the *Time fields must be bare numbers as strings (no units).',
+    'Rules: servings and the prepTime/cookTime/totalTime fields must be bare numbers as strings (no units).',
     'Omit any optional key you cannot determine. Do not invent ingredients or steps.',
   ].join('\n');
 }
