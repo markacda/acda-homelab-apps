@@ -48,7 +48,7 @@ export class MqttClientSubscriber implements MqttSubscriber {
         return;
       }
       // Unknown topic: no handler registered, so just log it.
-      console.log(`[atc-mqtt] ${topic} ${text}`);
+      console.debug(`[atc-mqtt] ${topic} ${text}`);
     });
 
     client.on('reconnect', () => console.log(`[atc-mqtt] reconnecting to ${this.config.url}`));
