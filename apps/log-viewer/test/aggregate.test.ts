@@ -99,6 +99,20 @@ test('computeStats: overTime is split into ok/4xx/5xx bands and sorted ascending
   assert.deepEqual([...buckets].sort(), buckets);
 });
 
+test('computeStats: overTime fills gaps with empty daily buckets', () => {
+  // 3-day span (> 2 days) -> daily buckets; the two interior days have no entries.
+  const gapped = [entry({ status: 200, ts: '2026-07-06T10:00:00Z' }), entry({ status: 404, ts: '2026-07-09T10:00:00Z' })];
+  const s = computeStats(gapped);
+  assert.deepEqual(
+    s.overTime.map((b) => b.bucket),
+    ['2026-07-06', '2026-07-07', '2026-07-08', '2026-07-09']
+  );
+  const at = (bucket: string) => s.overTime.find((b) => b.bucket === bucket)!;
+  assert.deepEqual({ ok: at('2026-07-07').ok, c4xx: at('2026-07-07').c4xx, c5xx: at('2026-07-07').c5xx }, { ok: 0, c4xx: 0, c5xx: 0 });
+  assert.equal(at('2026-07-06').ok, 1);
+  assert.equal(at('2026-07-09').c4xx, 1);
+});
+
 test('computeStats: perApp and perEndpoint aggregation', () => {
   const s = computeStats(sample);
   const atc = s.perApp.find((a) => a.app === 'atc')!;
@@ -195,6 +209,20 @@ test('computeLogStats: overTime is stacked by band and sorted ascending', () => 
   assert.deepEqual(totals, { error: 1, warn: 1, info: 2 });
   const buckets = s.overTime.map((b) => b.bucket);
   assert.deepEqual([...buckets].sort(), buckets);
+});
+
+test('computeLogStats: overTime fills gaps with empty daily buckets', () => {
+  // 3-day span (> 2 days) -> daily buckets; the two interior days have no entries.
+  const gapped = [logEntry({ level: 'error', ts: '2026-07-06T10:00:00Z' }), logEntry({ level: 'warn', ts: '2026-07-09T10:00:00Z' })];
+  const s = computeLogStats(gapped);
+  assert.deepEqual(
+    s.overTime.map((b) => b.bucket),
+    ['2026-07-06', '2026-07-07', '2026-07-08', '2026-07-09']
+  );
+  const at = (bucket: string) => s.overTime.find((b) => b.bucket === bucket)!;
+  assert.deepEqual({ error: at('2026-07-07').error, warn: at('2026-07-07').warn, info: at('2026-07-07').info }, { error: 0, warn: 0, info: 0 });
+  assert.equal(at('2026-07-06').error, 1);
+  assert.equal(at('2026-07-09').warn, 1);
 });
 
 test('computeLogStats: levelDistribution covers all present levels', () => {
