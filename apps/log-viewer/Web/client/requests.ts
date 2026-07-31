@@ -3,6 +3,7 @@
 
 import { el, card, table, pill, checkboxDropdown, statusClassName, fmtTs, fmtMs } from './dom.ts';
 import { openSheet, type SheetRow } from './sheet.ts';
+import { stackedBarChart } from './chart.ts';
 
 interface Entry {
   ts: string;
@@ -58,7 +59,7 @@ interface Stats {
   statusDistribution: { status: number; count: number }[];
   topIps: { ip: string; count: number }[];
   topUserAgents: { ua: string; count: number }[];
-  overTime: { bucket: string; count: number }[];
+  overTime: { bucket: string; ok: number; c4xx: number; c5xx: number }[];
 }
 interface Meta {
   apps: string[];
@@ -93,6 +94,7 @@ export function mountRequests(root: HTMLElement): () => void {
   // ---- build the view markup ---------------------------------------------
   const cardsEl = el('section', { class: 'cards' });
 
+  const chartEl = el('div', { class: 'chart-wrap' });
   const perAppEl = el('div', { class: 'table-wrap' });
   const perEndpointEl = el('div', { class: 'table-wrap' });
   const slowestEl = el('div', { class: 'table-wrap' });
@@ -100,6 +102,7 @@ export function mountRequests(root: HTMLElement): () => void {
   const panels = el(
     'section',
     { class: 'panels' },
+    panel('Requests over time (by status)', chartEl, 'panel-wide'),
     panel('Requests per app', perAppEl),
     panel('Top endpoints', perEndpointEl),
     panel('Slowest endpoints', slowestEl),
@@ -241,6 +244,13 @@ export function mountRequests(root: HTMLElement): () => void {
     );
   }
   function renderStatTables(s: Stats): void {
+    chartEl.replaceChildren(
+      stackedBarChart(s.overTime, [
+        { key: 'ok', label: '2xx/3xx', varName: '--info' },
+        { key: 'c4xx', label: '4xx', varName: '--warn' },
+        { key: 'c5xx', label: '5xx', varName: '--bad' },
+      ])
+    );
     perAppEl.replaceChildren(
       table(
         ['App', 'Requests', 'Avg ms', 'Errors'],
@@ -457,8 +467,8 @@ function prettyBody(body: string): string {
   }
 }
 
-function panel(title: string, body: HTMLElement): HTMLElement {
-  return el('div', { class: 'panel' }, el('h2', {}, title), body);
+function panel(title: string, body: HTMLElement, cls = ''): HTMLElement {
+  return el('div', { class: `panel ${cls}`.trim() }, el('h2', {}, title), body);
 }
 
 function sortableTh(label: string, field: string): HTMLElement {
