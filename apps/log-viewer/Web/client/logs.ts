@@ -37,6 +37,9 @@ interface LogMeta {
 const PAGE = 100;
 const AUTO_MS = 7_000;
 const ALL_LEVELS = ['log', 'info', 'warn', 'error', 'debug'];
+// `debug` (console.debug) is noisy, so it's hidden by default: the level filter
+// starts with every level except debug checked.
+const DEFAULT_LEVELS = ALL_LEVELS.filter((l) => l !== 'debug');
 // Rendered when a filter has every option deselected (see selectionEmpty).
 const EMPTY_STATS: LogStats = {
   overall: { count: 0, errorCount: 0, warnCount: 0, infoCount: 0 },
@@ -118,6 +121,7 @@ export function mountLogs(root: HTMLElement): () => void {
   const appDropdown = checkboxDropdown(appDropdownEl, 'All apps', () => refresh());
   const levelDropdown = checkboxDropdown(levelDropdownEl, 'All levels', () => refresh());
   levelDropdown.setOptions(ALL_LEVELS);
+  levelDropdown.setSelected(DEFAULT_LEVELS);
 
   // Deselecting every option in any filter means "match nothing" — short-circuit
   // to an empty view rather than falling back to the server's "empty = all".
@@ -155,7 +159,7 @@ export function mountLogs(root: HTMLElement): () => void {
       card('Total logs', s.overall.count.toLocaleString()),
       card('Errors', String(s.overall.errorCount), s.overall.errorCount ? 'bad' : ''),
       card('Warnings', String(s.overall.warnCount), s.overall.warnCount ? 'warn' : ''),
-      card('Info / debug', String(s.overall.infoCount))
+      card('Info', String(s.overall.infoCount))
     );
   }
   function renderPanels(s: LogStats): void {

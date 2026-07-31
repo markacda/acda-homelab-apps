@@ -183,7 +183,7 @@ test('computeLogStats: overall banded counts', () => {
   assert.equal(s.overall.count, 4);
   assert.equal(s.overall.errorCount, 1);
   assert.equal(s.overall.warnCount, 1);
-  assert.equal(s.overall.infoCount, 2); // info + debug
+  assert.equal(s.overall.infoCount, 1); // info only (debug excluded)
 });
 
 test('computeLogStats: perApp with error/warn breakdown', () => {

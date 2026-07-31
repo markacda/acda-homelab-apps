@@ -50,7 +50,7 @@ export interface LogStats {
     count: number;
     errorCount: number; // level === "error"
     warnCount: number; // level === "warn"
-    infoCount: number; // log / info / debug
+    infoCount: number; // log / info (debug excluded)
   };
   perApp: LogAppStat[];
   levelDistribution: { level: LogLevel; count: number }[];
