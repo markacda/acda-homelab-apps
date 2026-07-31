@@ -30,8 +30,13 @@ export function createApp(name: string): Express {
  */
 export function healthHandler(healthCheck?: () => Promise<void> | void): RequestHandler {
   return (_req, res) => {
+    // Fast path: no probe, respond synchronously.
+    if (!healthCheck) {
+      res.json({ status: 'ok' });
+      return;
+    }
     void Promise.resolve()
-      .then(() => healthCheck?.())
+      .then(() => healthCheck())
       .then(() => res.json({ status: 'ok' }))
       .catch((err) => {
         console.error('healthcheck failed', err);

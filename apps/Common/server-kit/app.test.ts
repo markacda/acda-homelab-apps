@@ -28,6 +28,32 @@ test("healthHandler responds 200 { status: 'ok' }", () => {
   assert.deepEqual(res.body, { status: 'ok' });
 });
 
+test('healthHandler runs a passing healthCheck then responds 200', async () => {
+  const res = fakeRes();
+  let ran = false;
+  const check = async () => {
+    ran = true;
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  healthHandler(check)({} as any, res as any, (() => {}) as any);
+  await new Promise((r) => setImmediate(r));
+  assert.equal(ran, true);
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(res.body, { status: 'ok' });
+});
+
+test('healthHandler responds 503 { status: unhealthy } when the healthCheck throws', async () => {
+  const res = fakeRes();
+  const check = async () => {
+    throw new Error('db down');
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  healthHandler(check)({} as any, res as any, (() => {}) as any);
+  await new Promise((r) => setImmediate(r));
+  assert.equal(res.statusCode, 503);
+  assert.deepEqual(res.body, { status: 'unhealthy' });
+});
+
 test('errorHandler responds 500 { error } for an unhandled error', () => {
   const res = fakeRes();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
