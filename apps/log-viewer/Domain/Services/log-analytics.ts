@@ -62,6 +62,26 @@ function bucketKeyFor(entries: { ts: string }[]): (ts: string) => string {
   return spanMs <= twoDays ? (ts) => ts.slice(0, 13) : (ts) => ts.slice(0, 10);
 }
 
+/** Expand a sparse bucket map into a dense ascending series: one entry per day
+ * (or hour) across the full range, filling gaps with an empty value so the chart
+ * renders an evenly-spaced empty slot for periods with no entries. Bucket keys are
+ * UTC-derived slices of the ISO timestamp, so UTC ms stepping round-trips exactly. */
+function densifyBuckets<T>(byBucket: Map<string, T>, empty: () => T): [string, T][] {
+  const keys = [...byBucket.keys()].sort();
+  if (keys.length === 0) return [];
+  const hourly = keys[0].length === 13; // "YYYY-MM-DDTHH" vs "YYYY-MM-DD"
+  const stepMs = hourly ? 3_600_000 : 86_400_000;
+  const toTime = (k: string): number => Date.parse(hourly ? `${k}:00:00Z` : k);
+  const toKey = (t: number): string => new Date(t).toISOString().slice(0, hourly ? 13 : 10);
+  const out: [string, T][] = [];
+  const end = toTime(keys[keys.length - 1]);
+  for (let t = toTime(keys[0]); t <= end; t += stepMs) {
+    const k = toKey(t);
+    out.push([k, byBucket.get(k) ?? empty()]);
+  }
+  return out;
+}
+
 function topBy<T>(items: T[], key: (t: T) => number, n: number): T[] {
   return [...items].sort((a, b) => key(b) - key(a)).slice(0, n);
 }
@@ -154,9 +174,7 @@ export function computeStats(entries: AccessLogEntry[], topN = 10): Stats {
       (x) => x.count,
       topN
     ),
-    overTime: [...byBucket.entries()]
-      .map(([bucket, b]) => ({ bucket, ...b }))
-      .sort((a, b) => (a.bucket < b.bucket ? -1 : a.bucket > b.bucket ? 1 : 0)),
+    overTime: densifyBuckets(byBucket, () => ({ ok: 0, c4xx: 0, c5xx: 0 })).map(([bucket, b]) => ({ bucket, ...b })),
   };
 }
 
@@ -217,8 +235,6 @@ export function computeLogStats(logs: AppLogEntry[]): LogStats {
     overall: { count: logs.length, errorCount, warnCount, infoCount },
     perApp: [...byApp.values()].sort((a, b) => b.count - a.count),
     levelDistribution: [...byLevel.entries()].map(([level, count]) => ({ level, count })).sort((a, b) => b.count - a.count),
-    overTime: [...byBucket.entries()]
-      .map(([bucket, b]) => ({ bucket, ...b }))
-      .sort((a, b) => (a.bucket < b.bucket ? -1 : a.bucket > b.bucket ? 1 : 0)),
+    overTime: densifyBuckets(byBucket, () => ({ error: 0, warn: 0, info: 0 })).map(([bucket, b]) => ({ bucket, ...b })),
   };
 }
