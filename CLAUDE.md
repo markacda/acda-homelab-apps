@@ -87,7 +87,7 @@ Each app only creates the layers it needs. By example:
   and the shared code as `dist/apps/Common/...`. Without the pin, tsc would infer
   `apps/` as the root and flatten the output.
 
-**Shared packages.** Three libraries under `apps/Common/*`, all imported by relative
+**Shared packages.** Four libraries under `apps/Common/*`, all imported by relative
 `.ts` path (not by workspace name) and compiled into each app's `dist/` — so each
 app's Dockerfile stages the packages it uses in the builder (`COPY apps/Common/<x>/...`),
 and lists their runtime deps in its own `package.json`:
@@ -104,6 +104,26 @@ and lists their runtime deps in its own `package.json`:
 - **`@homelab/http-utils`** — dependency-free query/body helpers (`firstStr`,
   `optStr`, `csvList`, `toStringArray`, `clampInt`) in `index.ts`; the multer-backed
   `memoryUpload` in `upload.ts` (kept separate so non-upload apps don't pull multer).
+- **`@homelab/db`** — the shared PostgreSQL kit: `createPool`/`closePool` (a `pg.Pool`
+  factory whose connection string comes from `DATABASE_URL_FILE` → `DATABASE_URL` →
+  discrete `PG*`), `runMigrations(pool, {schema, dir})` (an idempotent, fail-loud
+  SQL-file migration runner recording applied files in `<schema>.schema_migrations`),
+  and `pingDb` (a `SELECT 1` for `startServer`'s `healthCheck`). Used by the
+  data-owning apps; `startServer`'s `onShutdown` closes the pool.
+
+**Database.** A single `db` service (`postgres:17-alpine`) backs the data-owning apps
+(**notification**, **recipe-book**); the stateless apps and dynamic-vs-fixed's
+regenerable price cache stay off it. It's internal-only (no published port, reachable
+as host `db`), with one database `homelab` and a **schema + login role per app**
+(`notification`, `recipe_book`), each role's `search_path` defaulting to its schema.
+Credentials **self-provision** on first boot: `db/entrypoint.sh` generates the
+superuser password and `db/init/10-roles.sh` generates a per-app password + writes
+`/secrets/<role>.url` to the shared `db-secrets` volume, which apps read via
+`DATABASE_URL_FILE` — so there's no `.env` and no manual secret. Treat the `pg-data`
+and `db-secrets` volumes as a matched pair. Migrations live per app under
+`Adapters/Postgres/migrations/*.sql` (shipped into `dist/` by the Dockerfile, since
+tsc doesn't emit `.sql`) and run at startup. recipe-book keeps its data volume for
+image bytes + generated PDFs. See `docs/database-migration.md`.
 
 **Conventions for a new app.** Copy `apps/recipe-book` for the full layered DDD
 layout, or `apps/ev-crossover` for a trivial static page (see `ARCHITECTURE.md`;
@@ -121,8 +141,10 @@ to show it on the dashboard at that path, add an `overrides:` entry in
 `apps/dashboard/config/config.yaml`.
 
 **Env vars.** `PORT`, `LOG_DIR` (persistent log volume), `DATA_DIR` (persistent
-state — `dynamic-vs-fixed`, `recipe-book`, `notification`), plus app-specific ones
-(dashboard: `HOST_ADDRESS` + read-only Docker socket for container auto-discovery;
+state — `dynamic-vs-fixed` price cache; `recipe-book` images/PDFs; `notification`
+legacy import source), `DATABASE_URL_FILE` (path to the self-provisioned connection
+string on the `db-secrets` volume — `recipe-book`, `notification`), plus app-specific
+ones (dashboard: `HOST_ADDRESS` + read-only Docker socket for container auto-discovery;
 recipe-book: `TECTONIC_CACHE_DIR` for the LaTeX toolchain; notification: optional
 `SEND_TOKEN` guarding `POST /send`, plus optional `SMTP_HOST`/`SMTP_PORT`/
 `SMTP_USER`/`SMTP_PASS`/`SMTP_FROM`/`SMTP_TO` that register the email channel

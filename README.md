@@ -26,6 +26,11 @@ The proxy (`proxy/nginx.conf`) strips the path prefix before forwarding, so each
 app is unaware it's served under a subpath — the only requirement is that app
 client code uses **relative** URLs (e.g. `fetch('api/…')`, not `/api/…`).
 
+There is also an internal-only **`db`** service (`postgres:17-alpine`, no public
+port) that backs the data-owning apps (`recipe-book`, `notification`). It
+self-provisions per-app roles/credentials on first boot — nothing to configure.
+See [`docs/database-migration.md`](docs/database-migration.md).
+
 ## Run all apps
 
 ```sh

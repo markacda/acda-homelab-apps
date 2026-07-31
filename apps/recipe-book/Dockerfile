@@ -27,6 +27,12 @@ COPY apps/Common/http-utils/package.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm install --prefer-offline --no-audit --no-fund
 COPY apps/Common/http-utils/ ./
+# Shared db kit (pg pool + SQL migration runner), imported by register.ts.
+WORKDIR /repo/apps/Common/db
+COPY apps/Common/db/package.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --prefer-offline --no-audit --no-fund
+COPY apps/Common/db/ ./
 WORKDIR /repo/apps/recipe-book
 # Manifest first for dependency-layer caching.
 COPY apps/recipe-book/package.json ./
@@ -49,6 +55,9 @@ COPY apps/recipe-book/package.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm install --prefer-offline --no-audit --no-fund --omit=dev
 COPY --from=builder /repo/apps/recipe-book/dist ./dist
+# SQL migration files aren't emitted by tsc — ship them beside the compiled code
+# at the path register.ts resolves (dist/apps/recipe-book/Adapters/Postgres/migrations).
+COPY --from=builder /repo/apps/recipe-book/Adapters/Postgres/migrations ./dist/apps/recipe-book/Adapters/Postgres/migrations
 # Client assets are served from Web/public (see server.ts staticDir).
 COPY --from=builder /repo/apps/recipe-book/Web/public ./Web/public
 # Runtime-read templates (the LaTeX layout) live outside dist/; copy them in.
