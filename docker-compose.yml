@@ -215,9 +215,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=6005
-      # DATA_DIR stays: image blobs, generated PDFs and the Tectonic cache remain
-      # on the volume. Structured recipe/book/category data lives in Postgres, and
-      # DATA_DIR also feeds the one-time JSON->DB import on first boot.
+      # DATA_DIR holds image blobs, generated PDFs and the Tectonic cache; the
+      # structured recipe/book/category data lives in Postgres.
       - DATA_DIR=/app/data
       - LOG_DIR=/app/logs
       # Connection string read from the shared secrets volume (self-provisioned).
@@ -253,9 +252,6 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=6006
-      # DATA_DIR retained only for the one-time JSON->DB import on first boot
-      # (removable once cut over — see docs/database-migration.md).
-      - DATA_DIR=/app/data
       - LOG_DIR=/app/logs
       # Connection string read from the shared secrets volume (self-provisioned).
       - DATABASE_URL_FILE=/secrets/notification.url
@@ -270,7 +266,6 @@ services:
       # - SMTP_FROM=homelab@example.com
       # - SMTP_TO=you@example.com
     volumes:
-      - notification-data:/app/data
       - notification-logs:/app/logs
       - db-secrets:/secrets:ro
     depends_on:
@@ -328,7 +323,6 @@ volumes:
   db-secrets:
   dynamic-vs-fixed-data:
   recipe-book-data:
-  notification-data:
   atc-logs:
   ev-crossover-logs:
   dynamic-vs-fixed-logs:

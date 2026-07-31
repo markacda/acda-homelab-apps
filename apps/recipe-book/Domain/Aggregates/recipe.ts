@@ -4,8 +4,8 @@ import { ValidationError } from '../Exceptions/validation-error.ts';
 // The Recipe aggregate: a single recipe in the shared library, plus the
 // invariants that were previously scattered across server.ts and lib/store.ts
 // (a title is always required; the image gallery is an ordered subset of the
-// files actually held for the recipe). Persistence lives in the JsonFileStore
-// adapter, which (de)serializes via fromJSON/toJSON.
+// files actually held for the recipe). Persistence lives in the Postgres
+// repository adapter, which (de)serializes via fromJSON/toJSON.
 
 /** The editable field set accepted when creating or patching a recipe. */
 export interface RecipeContent {

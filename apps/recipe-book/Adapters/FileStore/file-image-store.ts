@@ -1,11 +1,10 @@
-import { writeFile, unlink } from 'node:fs/promises';
+import { writeFile, unlink, mkdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { join, extname } from 'node:path';
 import type { ImageStore } from '../../Domain/Ports/image-store.ts';
 import { DomainError } from '../../Domain/Exceptions/domain-error.ts';
 import { BROWSER_UA } from '../browser-user-agent.ts';
 import { IMAGES_DIR } from './paths.ts';
-import { ensureDir } from './json-file.ts';
 
 // Only these raster formats embed cleanly in LaTeX via \includegraphics.
 const EXT_BY_TYPE: Record<string, string> = {
@@ -52,7 +51,7 @@ export class FileImageStore implements ImageStore {
   }
 
   private async writeImageFile(recipeId: string, buffer: Buffer, ext: string): Promise<string> {
-    await ensureDir(IMAGES_DIR);
+    await mkdir(IMAGES_DIR, { recursive: true });
     const filename = `${recipeId}-${randomUUID().slice(0, 8)}${ext}`;
     await writeFile(join(IMAGES_DIR, filename), buffer);
     return filename;

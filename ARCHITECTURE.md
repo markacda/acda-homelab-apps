@@ -102,8 +102,8 @@ types; `Registrations` is the only place that knows every concrete class.
 ## Naming conventions
 
 - **Folders**: PascalCase for the layer/adapter folders (`Domain`, `Application`, `Web`,
-  `Adapters/JsonFileStore`). App dirs stay kebab-case (`recipe-book`).
-- **Files**: kebab-case (`recipe-controller.ts`, `json-recipe-repository.ts`).
+  `Adapters/Postgres`). App dirs stay kebab-case (`recipe-book`).
+- **Files**: kebab-case (`recipe-controller.ts`, `postgres-recipe-repository.ts`).
 - **Classes / interfaces / constructors**: PascalCase (`class Recipe`,
   `interface RecipeRepository`).
 - **Variables / functions / properties**: camelCase.
@@ -111,7 +111,7 @@ types; `Registrations` is the only place that knows every concrete class.
 ## Shared code
 
 `apps/Common/*` holds the shared libraries (`@homelab/access-log`, `@homelab/server-kit`,
-`@homelab/http-utils`), imported by relative `.ts` path (e.g.
+`@homelab/http-utils`, `@homelab/db`), imported by relative `.ts` path (e.g.
 `../Common/server-kit/app.ts` from an app root) and compiled into each app's `dist/`. See
 `CLAUDE.md` for the build model (each app pins `rootDir: "../.."` so its output stays at
 `dist/apps/<name>/server.js`).
@@ -120,12 +120,14 @@ types; `Registrations` is the only place that knows every concrete class.
 
 Folders in use: `Domain/{Aggregates,Exceptions,Ports/Repositories}`,
 `Application/{Controllers,Services,Mappers,Filters,Registrations}`, `Ports/{Allerhande,Latex}`,
-`Adapters/{JsonFileStore,Allerhande,Tectonic}`, `Models/{Requests,Responses}`, `Web/{client,public}`.
+`Adapters/{Postgres,FileStore,Allerhande,Tectonic}`, `Models/{Requests,Responses}`, `Web/{client,public}`.
 Notable pieces:
 
 - `Domain/Aggregates/recipe.ts`, `book.ts` — the two aggregate roots and their invariants.
 - `Domain/Ports/Repositories/*` + `Domain/Ports/image-store.ts` — persistence ports;
-  `Adapters/JsonFileStore/*` implements them over JSON files on the data volume.
+  `Adapters/Postgres/*` implements the repositories over the shared database (via
+  `@homelab/db`), and `Adapters/FileStore/*` keeps image bytes + generated PDFs on the
+  data volume.
 - `Ports/Allerhande/recipe-source.ts` + `Ports/Latex/document-generator.ts` — external
   ports; `Adapters/Allerhande/*` (fetch + JSON-LD parse) and `Adapters/Tectonic/*` (LaTeX
   render + PDF) implement them.
