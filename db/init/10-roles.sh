@@ -40,7 +40,7 @@ GRANT ALL ON SCHEMA :"schema" TO :"role";
 ALTER ROLE :"role" SET search_path = :"schema";
 EOSQL
 
-  printf 'postgresql://%s:%s@db:5432/%s\n' "$role" "$pw" "$POSTGRES_DB" > "$url_file"
+  proto=postgresql; printf '%s://%s:%s@db:5432/%s\n' "$proto" "$role" "$pw" "$POSTGRES_DB" > "$url_file"
   # World-readable so each app's non-root `node` user can read it across the
   # shared volume; the volume is only mounted into our own app containers.
   chmod 644 "$url_file"
