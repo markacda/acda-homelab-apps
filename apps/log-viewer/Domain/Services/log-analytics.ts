@@ -77,7 +77,9 @@ export function computeStats(entries: AccessLogEntry[], topN = 10): Stats {
   const byStatus = new Map<number, number>();
   const byIp = new Map<string, number>();
   const byUa = new Map<string, number>();
-  const byBucket = new Map<string, number>();
+  // Split each bucket into non-overlapping bands (ok = 2xx/3xx) so the stacked
+  // chart's total height is the true request count for that bucket.
+  const byBucket = new Map<string, { ok: number; c4xx: number; c5xx: number }>();
   const bucketKey = bucketKeyFor(entries);
 
   for (const e of entries) {
@@ -100,7 +102,11 @@ export function computeStats(entries: AccessLogEntry[], topN = 10): Stats {
     if (e.ip) byIp.set(e.ip, (byIp.get(e.ip) ?? 0) + 1);
     if (e.ua) byUa.set(e.ua, (byUa.get(e.ua) ?? 0) + 1);
     const bk = bucketKey(e.ts);
-    byBucket.set(bk, (byBucket.get(bk) ?? 0) + 1);
+    const b = byBucket.get(bk) ?? { ok: 0, c4xx: 0, c5xx: 0 };
+    if (e.status >= 500) b.c5xx += 1;
+    else if (e.status >= 400) b.c4xx += 1;
+    else b.ok += 1;
+    byBucket.set(bk, b);
   }
 
   const perApp: AppStat[] = [...byApp.entries()]
@@ -149,7 +155,7 @@ export function computeStats(entries: AccessLogEntry[], topN = 10): Stats {
       topN
     ),
     overTime: [...byBucket.entries()]
-      .map(([bucket, count]) => ({ bucket, count }))
+      .map(([bucket, b]) => ({ bucket, ...b }))
       .sort((a, b) => (a.bucket < b.bucket ? -1 : a.bucket > b.bucket ? 1 : 0)),
   };
 }

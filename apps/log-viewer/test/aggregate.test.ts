@@ -87,6 +87,18 @@ test('computeStats: overall counts, avg and error rate', () => {
   assert.equal(s.overall.errorRate, 0.5);
 });
 
+test('computeStats: overTime is split into ok/4xx/5xx bands and sorted ascending', () => {
+  const s = computeStats(sample);
+  const totals = s.overTime.reduce((acc, b) => ({ ok: acc.ok + b.ok, c4xx: acc.c4xx + b.c4xx, c5xx: acc.c5xx + b.c5xx }), {
+    ok: 0,
+    c4xx: 0,
+    c5xx: 0,
+  });
+  assert.deepEqual(totals, { ok: 2, c4xx: 1, c5xx: 1 }); // two 2xx, one 404, one 500
+  const buckets = s.overTime.map((b) => b.bucket);
+  assert.deepEqual([...buckets].sort(), buckets);
+});
+
 test('computeStats: perApp and perEndpoint aggregation', () => {
   const s = computeStats(sample);
   const atc = s.perApp.find((a) => a.app === 'atc')!;

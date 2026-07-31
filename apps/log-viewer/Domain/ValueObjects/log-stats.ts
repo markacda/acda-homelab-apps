@@ -33,7 +33,9 @@ export interface Stats {
   statusDistribution: { status: number; count: number }[];
   topIps: { ip: string; count: number }[];
   topUserAgents: { ua: string; count: number }[];
-  overTime: { bucket: string; count: number }[]; // ascending; hour or day buckets
+  // Ascending time series, split into non-overlapping bands (ok = 2xx/3xx) for a
+  // stacked chart. Hour or day buckets.
+  overTime: { bucket: string; ok: number; c4xx: number; c5xx: number }[];
 }
 
 export interface LogAppStat {
