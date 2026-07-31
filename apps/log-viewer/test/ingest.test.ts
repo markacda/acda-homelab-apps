@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { parseLines, parseAll } from '../Adapters/FileLogStore/parse.ts';
+import { extractError } from '../Application/Services/Background/log-ingest-service.ts';
 import { FileLogStore } from '../Adapters/FileLogStore/file-log-store.ts';
 import type { AccessLogEntry, AppLogEntry } from '../Domain/ValueObjects/log-entry.ts';
 
@@ -109,4 +110,22 @@ test('parseLines still returns only request entries (back-compat)', () => {
   const out = parseLines(text);
   assert.equal(out.length, 1);
   assert.equal(out[0].url, '/x');
+});
+
+test('extractError pulls a string error out of a JSON response body', () => {
+  assert.equal(extractError('{"error":"boom"}'), 'boom');
+  assert.equal(extractError('{"error":"  spaced  "}'), 'spaced');
+});
+
+test('extractError stringifies a non-string error and ignores bodies without one', () => {
+  assert.equal(extractError('{"error":{"code":42}}'), '{"code":42}');
+  assert.equal(extractError('{"message":"nope"}'), undefined);
+  assert.equal(extractError('{"error":""}'), undefined);
+  assert.equal(extractError('{"error":null}'), undefined);
+});
+
+test('extractError is undefined for absent or non-JSON bodies', () => {
+  assert.equal(extractError(undefined), undefined);
+  assert.equal(extractError(''), undefined);
+  assert.equal(extractError('<html>500</html>'), undefined);
 });

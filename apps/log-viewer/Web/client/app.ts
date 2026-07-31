@@ -74,11 +74,15 @@ function mountLanding(root: HTMLElement): void {
 
 // ---- routing --------------------------------------------------------------
 
-function currentRoute(): string {
-  const hash = location.hash.replace(/^#/, '');
-  if (hash === '/requests') return '/requests';
-  if (hash === '/logs') return '/logs';
-  return '/';
+// The hash carries the route plus optional query params (e.g. a deep link
+// `#/requests?ts=…` opens straight onto one request's detail sheet).
+function parseHash(): { route: string; params: URLSearchParams } {
+  const raw = location.hash.replace(/^#/, '');
+  const qIdx = raw.indexOf('?');
+  const path = qIdx === -1 ? raw : raw.slice(0, qIdx);
+  const params = new URLSearchParams(qIdx === -1 ? '' : raw.slice(qIdx + 1));
+  const route = path === '/requests' ? '/requests' : path === '/logs' ? '/logs' : '/';
+  return { route, params };
 }
 
 function highlightNav(route: string): void {
@@ -89,9 +93,9 @@ function highlightNav(route: string): void {
 
 function render(): void {
   unmount();
-  const route = currentRoute();
+  const { route, params } = parseHash();
   highlightNav(route);
-  if (route === '/requests') teardown = mountRequests(view);
+  if (route === '/requests') teardown = mountRequests(view, params.get('ts') ?? undefined);
   else if (route === '/logs') teardown = mountLogs(view);
   else mountLanding(view);
 }

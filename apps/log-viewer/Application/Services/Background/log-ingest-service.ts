@@ -6,6 +6,26 @@ import type { FailureNotifier } from '../../../Ports/Notifier/failure-notifier.t
 const FAILURE_STATUS = 500;
 
 /**
+ * Pull a human-readable `error` out of a captured (non-2xx) JSON response body,
+ * so the notification can say *what* went wrong without opening the log viewer.
+ * Returns undefined when the body is absent, not JSON, or has no `error` field.
+ */
+export function extractError(resBody: string | undefined): string | undefined {
+  if (!resBody) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(resBody);
+    if (parsed && typeof parsed === 'object' && 'error' in parsed) {
+      const val = (parsed as { error: unknown }).error;
+      if (typeof val === 'string') return val.trim() || undefined;
+      if (val != null) return JSON.stringify(val);
+    }
+  } catch {
+    // Body wasn't JSON (e.g. an HTML error page); nothing to extract.
+  }
+  return undefined;
+}
+
+/**
  * Background service holding the in-memory view of the logs, rebuilt from the
  * LogStore on an interval. The query service reads the current view; new requests
  * show up within one refresh cycle. When a FailureNotifier is provided, each
@@ -65,7 +85,14 @@ export class LogIngestService {
     try {
       await this.notifier.notify({
         count: newFailures.length,
-        latest: { method: latest.method ?? '?', url: latest.url ?? '?', status: latest.status, app: latest.app },
+        latest: {
+          method: latest.method ?? '?',
+          url: latest.url ?? '?',
+          status: latest.status,
+          app: latest.app,
+          ts: latest.ts,
+          error: extractError(latest.resBody),
+        },
       });
     } catch (err) {
       console.error(`[ingest] failure notification failed: ${(err as Error).message}`);

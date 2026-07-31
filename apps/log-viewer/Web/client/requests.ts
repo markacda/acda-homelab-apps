@@ -89,8 +89,12 @@ const EMPTY_STATS: Stats = {
 // cannot import from apps/Common/, so keep the two in step if the value changes.
 const DISCOVERY_UA = 'homelab-dashboard-discovery-agent';
 
-/** Mount the Requests view into `root`. Returns a teardown to stop its timer. */
-export function mountRequests(root: HTMLElement): () => void {
+/**
+ * Mount the Requests view into `root`. Returns a teardown to stop its timer.
+ * `deepLinkTs`, when given (a failure notification's `?ts=` deep link), looks
+ * that exact entry up and opens its detail sheet once the view is mounted.
+ */
+export function mountRequests(root: HTMLElement, deepLinkTs?: string): () => void {
   // ---- build the view markup ---------------------------------------------
   const cardsEl = el('section', { class: 'cards' });
 
@@ -439,9 +443,25 @@ export function mountRequests(root: HTMLElement): () => void {
     th.addEventListener('click', () => setSort(th.dataset.sort!));
   }
 
+  // Deep link (?ts=… from a failure notification): look the exact entry up by
+  // timestamp — bypassing the view's noise filters so it always resolves — and
+  // open its detail sheet. Best-effort; a miss just leaves the list as-is.
+  async function openDeepLinked(ts: string): Promise<void> {
+    const p = new URLSearchParams({ from: ts, to: ts, limit: '1' });
+    try {
+      const res = await fetch(`api/logs?${p.toString()}`);
+      if (!res.ok) return;
+      const data = (await res.json()) as LogsResponse;
+      if (data.entries.length) showDetail(data.entries[0]);
+    } catch {
+      // ignore: the list still loaded normally
+    }
+  }
+
   // initial load
   loadMeta();
   refresh();
+  if (deepLinkTs) void openDeepLinked(deepLinkTs);
 
   return () => {
     if (autoTimer !== undefined) clearInterval(autoTimer);
