@@ -141,9 +141,9 @@ to show it on the dashboard at that path, add an `overrides:` entry in
 `apps/dashboard/config/config.yaml`.
 
 **Env vars.** `PORT`, `LOG_DIR` (persistent log volume), `DATA_DIR` (persistent
-state — `dynamic-vs-fixed` price cache; `recipe-book` images/PDFs; `notification`
-legacy import source), `DATABASE_URL_FILE` (path to the self-provisioned connection
-string on the `db-secrets` volume — `recipe-book`, `notification`), plus app-specific
+state — `dynamic-vs-fixed` price cache; `recipe-book` images/PDFs), `DATABASE_URL_FILE`
+(path to the self-provisioned connection string on the `db-secrets` volume —
+`recipe-book`, `notification`), plus app-specific
 ones (dashboard: `HOST_ADDRESS` + read-only Docker socket for container auto-discovery;
 recipe-book: `TECTONIC_CACHE_DIR` for the LaTeX toolchain; notification: optional
 `SEND_TOKEN` guarding `POST /send`, plus optional `SMTP_HOST`/`SMTP_PORT`/

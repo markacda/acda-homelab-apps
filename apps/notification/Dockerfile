@@ -55,14 +55,13 @@ COPY --from=builder /repo/apps/notification/Adapters/Postgres/migrations ./dist/
 COPY --from=builder /repo/apps/notification/Web/public ./Web/public
 
 ENV PORT=6006
-ENV DATA_DIR=/app/data
 ENV LOG_DIR=/app/logs
 EXPOSE 6006
 
-# Writable data + log dirs owned by the non-root "node" user. Named volumes
-# mounted here inherit this ownership on first use, so the app can persist
-# subscriptions/notifications and write access logs.
-RUN mkdir -p /app/data /app/logs && chown -R node:node /app/data /app/logs
+# Writable log dir owned by the non-root "node" user. The named log volume
+# mounted here inherits this ownership on first use. (Notification data lives in
+# Postgres now, so there's no data volume.)
+RUN mkdir -p /app/logs && chown -R node:node /app/logs
 
 # Drop root privileges (the base image ships a non-root "node" user).
 USER node

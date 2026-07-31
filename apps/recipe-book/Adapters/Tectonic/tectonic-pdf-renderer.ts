@@ -7,7 +7,7 @@ import type { Book } from '../../Domain/Aggregates/book.ts';
 import type { Recipe } from '../../Domain/Aggregates/recipe.ts';
 import { renderBook } from './latex-renderer.ts';
 import type { Templates, RenderPaths } from './latex-renderer.ts';
-import { OUTPUT_DIR, DATA_DIR, IMAGES_DIR } from '../JsonFileStore/paths.ts';
+import { OUTPUT_DIR, DATA_DIR, IMAGES_DIR } from '../FileStore/paths.ts';
 
 const execFileAsync = promisify(execFile);
 

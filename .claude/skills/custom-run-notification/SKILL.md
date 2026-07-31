@@ -77,9 +77,11 @@ npm test -w notification
 
 ## Gotchas
 
-- **The feed persists between runs** — in dev `DATA_DIR` defaults to
-  `apps/notification/data/` (gitignored); notifications accumulate in
-  `notifications.json` there. Delete that file for a clean slate.
+- **The feed persists in Postgres** — notifications are stored in the shared
+  `db` container (schema `notification`), not on disk. The app connects on
+  startup via `DATABASE_URL_FILE`/`DATABASE_URL` and runs its migrations, so it
+  needs the database reachable. For a clean slate, `TRUNCATE
+  notification.notifications` (or drop the schema and let migrations recreate it).
 - **`SEND_TOKEN` is optional and off by default in dev** — if set,
   `POST /send` requires it; the smoke calls above assume it's unset.
 - **The email channel only exists if `SMTP_HOST` is set** — otherwise

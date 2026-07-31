@@ -30,10 +30,16 @@ string from that volume via `DATABASE_URL_FILE`. There is **nothing to put in a
 
 ## First deployment (migrating existing JSON data)
 
-The apps carry a **one-time, idempotent importer**: on startup, after migrations,
-if a table is empty and the old JSON data is still on the data volume, they copy
-it into Postgres. So the migration is driven entirely by starting the updated
-apps — no manual data-copy scripts.
+> **Historical.** The one-time JSON→DB importer described below shipped only in
+> the initial rollout (PR #133, commit `927247f`) and has since been **removed**
+> now that the cutover is complete. Fresh deployments start with empty tables.
+> To replay this migration against an old JSON data volume, check out that commit
+> first, run the steps, then update to `main`.
+
+That importer was **idempotent**: on startup, after migrations, if a table was
+empty and the old JSON data was still on the data volume, the app copied it into
+Postgres — so the migration was driven entirely by starting the updated apps,
+with no manual data-copy scripts.
 
 1. **Bring up the database** (provisions roles/schemas + secrets on first boot):
    ```sh
@@ -52,14 +58,13 @@ apps — no manual data-copy scripts.
 4. **Verify** the data appears in each app's UI (the notification feed at
    `/notificaties`, recipes/books at `/receptenboek`). Check the logs for the
    import summary lines.
-5. **Clean up** the migrated JSON (optional, once verified):
-   - notification: its data volume is no longer used — you may remove the
-     `notification-data` volume mount and the `notification-data` volume.
+5. **Clean up** the migrated JSON (done, once verified):
+   - notification: its data volume is no longer used — the `notification-data`
+     volume + mount and the app's `DATA_DIR` have been removed.
    - recipe-book: **keep** `recipe-book-data` — it still holds image bytes, the
      generated PDF/TeX output, and the Tectonic cache.
-   - Optionally drop the importer code (`*/Adapters/Postgres/*import*.ts` and its
-     call in `register.ts`) in a follow-up PR. Leaving it in is harmless: the
-     empty-table guard makes it a no-op.
+   - The importer code (`*/Adapters/Postgres/*import*.ts`) and the legacy
+     JSON-file store have been removed now that every deployment has cut over.
 6. **Bring the whole stack back:**
    ```sh
    docker compose up -d --build
