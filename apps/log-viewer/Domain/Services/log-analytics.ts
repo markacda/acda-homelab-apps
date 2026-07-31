@@ -215,7 +215,7 @@ export function computeLogStats(logs: AppLogEntry[]): LogStats {
     const band = bandFor(e.level);
     if (band === 'error') errorCount += 1;
     else if (band === 'warn') warnCount += 1;
-    else infoCount += 1;
+    else if (e.level !== 'debug') infoCount += 1; // debug is tracked separately (levelDistribution), not in the Info card
 
     const app = byApp.get(e.app) ?? { app: e.app, count: 0, errorCount: 0, warnCount: 0 };
     app.count += 1;
