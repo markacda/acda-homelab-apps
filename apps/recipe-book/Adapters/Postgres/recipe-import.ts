@@ -16,19 +16,35 @@ import type { StorableData } from './jsonb-store.ts';
 
 /** Import one entity directory into its table if the table is empty. Returns rows imported. */
 async function importDir(pool: Pool, table: string, dir: string): Promise<number> {
-  if ((await countRows(pool, table)) > 0) return 0;
-
-  const ids = await listIds(dir);
+  const client = await pool.connect();
   let imported = 0;
-  for (const id of ids) {
-    const raw = await readJson<StorableData & { schemaVersion?: number }>(join(dir, `${id}.json`));
-    if (!raw) continue;
-    // Drop the on-disk schemaVersion envelope key before storing.
-    const data: StorableData & { schemaVersion?: number } = { ...raw };
-    delete data.schemaVersion;
-    await upsertJson(pool, table, data);
-    imported++;
+  try {
+    await client.query('BEGIN');
+
+    // Re-check inside the transaction so a crash mid-import rolls back to empty and a restart retries.
+    if ((await countRows(client as unknown as Pool, table)) > 0) {
+      await client.query('ROLLBACK');
+      return 0;
+    }
+
+    const ids = await listIds(dir);
+    for (const id of ids) {
+      const raw = await readJson<StorableData & { schemaVersion?: number }>(join(dir, `${id}.json`));
+      if (!raw) continue;
+      const data: StorableData & { schemaVersion?: number } = { ...raw };
+      delete data.schemaVersion;
+      await upsertJson(client as unknown as Pool, table, data);
+      imported++;
+    }
+
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
   }
+
   if (imported > 0) console.log(`[import] ${table}: imported ${imported} row(s) from ${dir}`);
   return imported;
 }
