@@ -5,6 +5,38 @@
 # To add an app: create apps/<name> with a Dockerfile, add a service below on the
 # next free port, and add an nginx `location` block in proxy/nginx.conf.
 services:
+  # Shared PostgreSQL database. One container fronts all data-owning apps; each
+  # app gets its own role + schema, provisioned on first boot (see db/init). No
+  # host port is published — it's internal-only, reachable as host `db`. Secrets
+  # self-generate into the db-secrets volume, so `docker compose up` needs no
+  # manual passwords. See docs/database-migration.md.
+  db:
+    image: postgres:17-alpine
+    container_name: postgres
+    labels:
+      # Not an app tile on the dashboard.
+      - 'homelab.enable=false'
+    # Wrapper generates the superuser password on first boot, then execs the
+    # stock entrypoint. Run via sh so no +x bit is required on the mounted file.
+    entrypoint: ['/bin/sh', '/db-entrypoint.sh']
+    environment:
+      - POSTGRES_DB=homelab
+      - POSTGRES_USER=postgres
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      # Generated per-app credentials (read-write here; apps mount this read-only).
+      - db-secrets:/secrets
+      # Bootstrap wrapper + one-time role/schema provisioning (read-only).
+      - ./db/entrypoint.sh:/db-entrypoint.sh:ro
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d homelab']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   # Reverse proxy: the single public entrypoint on 80/443. See proxy/nginx.conf.
   proxy:
     build:
@@ -183,14 +215,23 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=6005
+      # DATA_DIR stays: image blobs, generated PDFs and the Tectonic cache remain
+      # on the volume. Structured recipe/book/category data lives in Postgres, and
+      # DATA_DIR also feeds the one-time JSON->DB import on first boot.
       - DATA_DIR=/app/data
       - LOG_DIR=/app/logs
+      # Connection string read from the shared secrets volume (self-provisioned).
+      - DATABASE_URL_FILE=/secrets/recipe_book.url
       # Tectonic caches downloaded LaTeX support files here (on the data volume).
       - TECTONIC_CACHE_DIR=/app/data/.tectonic-cache
     volumes:
-      # Persistent recipes, books, downloaded images, generated output + TeX cache.
+      # Downloaded images, generated output + TeX cache (structured data is in DB).
       - recipe-book-data:/app/data
       - recipe-book-logs:/app/logs
+      - db-secrets:/secrets:ro
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'node', '-e', "fetch('http://localhost:6005/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -212,8 +253,12 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=6006
+      # DATA_DIR retained only for the one-time JSON->DB import on first boot
+      # (removable once cut over — see docs/database-migration.md).
       - DATA_DIR=/app/data
       - LOG_DIR=/app/logs
+      # Connection string read from the shared secrets volume (self-provisioned).
+      - DATABASE_URL_FILE=/secrets/notification.url
       # Optional shared secret required on POST /send (defence-in-depth).
       - SEND_TOKEN=${SEND_TOKEN:-}
       # Email delivery channel (SKELETON — deliver() not implemented yet). Set
@@ -227,6 +272,10 @@ services:
     volumes:
       - notification-data:/app/data
       - notification-logs:/app/logs
+      - db-secrets:/secrets:ro
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'node', '-e', "fetch('http://localhost:6006/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -272,6 +321,11 @@ services:
 
 volumes:
   proxy-certs:
+  # Shared database storage + self-generated per-app credentials. Treat these two
+  # as a matched pair (see docs/database-migration.md): wiping only one causes an
+  # auth mismatch between the roles in pg-data and the passwords in db-secrets.
+  pg-data:
+  db-secrets:
   dynamic-vs-fixed-data:
   recipe-book-data:
   notification-data:

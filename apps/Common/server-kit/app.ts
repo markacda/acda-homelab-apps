@@ -22,10 +22,21 @@ export function createApp(name: string): Express {
   return app;
 }
 
-/** Standard health handler: 200 `{ status: "ok" }`. Excluded from the access log. */
-export function healthHandler(): RequestHandler {
+/**
+ * Standard health handler: 200 `{ status: "ok" }`. When a `healthCheck` is
+ * given, it is awaited first (e.g. a DB ping); if it throws, respond
+ * 503 `{ status: "unhealthy" }` so the container healthcheck reports the app as
+ * unhealthy while its dependency is down. Excluded from the access log.
+ */
+export function healthHandler(healthCheck?: () => Promise<void> | void): RequestHandler {
   return (_req, res) => {
-    res.json({ status: 'ok' });
+    void Promise.resolve()
+      .then(() => healthCheck?.())
+      .then(() => res.json({ status: 'ok' }))
+      .catch((err) => {
+        console.error('healthcheck failed', err);
+        res.status(503).json({ status: 'unhealthy' });
+      });
   };
 }
 
@@ -71,6 +82,9 @@ export interface StartOptions {
   // streams flush (e.g. to disconnect a long-lived MQTT/DB client). Awaited; the
   // shutdown timeout still guards against it hanging.
   onShutdown?: () => Promise<void> | void;
+  // Optional readiness probe run on every GET /healthz (e.g. a DB ping). If it
+  // throws, /healthz responds 503; if omitted, /healthz is always 200.
+  healthCheck?: () => Promise<void> | void;
 }
 
 // How long to wait for in-flight connections to drain before forcing exit.
@@ -82,9 +96,9 @@ const SHUTDOWN_TIMEOUT_MS = 10_000;
  * shutdown. Returns the http.Server.
  */
 export function startServer(app: Express, opts: StartOptions): Server {
-  const { name, port, staticDir, onListen, onShutdown } = opts;
+  const { name, port, staticDir, onListen, onShutdown, healthCheck } = opts;
 
-  app.get('/healthz', healthHandler());
+  app.get('/healthz', healthHandler(healthCheck));
 
   const dir = staticDir === undefined ? join(process.cwd(), 'public') : staticDir;
   if (dir) app.use(express.static(dir));
