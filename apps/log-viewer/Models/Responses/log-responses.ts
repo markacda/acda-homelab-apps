@@ -1,4 +1,4 @@
-import type { LogLevel, ExceptionSource, DependencyType } from '../../Domain/ValueObjects/log-entry.ts';
+import type { LogLevel, ExceptionSource, DependencyType, TraceItem } from '../../Domain/ValueObjects/log-entry.ts';
 
 /** Paginated list of log entries (either kind). */
 export interface LogListResponse<T> {
@@ -7,6 +7,13 @@ export interface LogListResponse<T> {
   offset: number;
   lastRefresh: string | null;
   entries: T[];
+}
+
+/** GET /api/trace/:traceId — every record sharing one trace id, ts-ascending. */
+export interface TraceResponse {
+  traceId: string;
+  lastRefresh: string | null;
+  items: TraceItem[];
 }
 
 /** GET /api/meta — the facets available across the loaded access-log entries. */

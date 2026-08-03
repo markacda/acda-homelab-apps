@@ -9,6 +9,7 @@ import { RequestLogController } from '../Controllers/request-log-controller.ts';
 import { AppLogController } from '../Controllers/app-log-controller.ts';
 import { ExceptionController } from '../Controllers/exception-controller.ts';
 import { DependencyController } from '../Controllers/dependency-controller.ts';
+import { TraceController } from '../Controllers/trace-controller.ts';
 
 // Re-ingest on an interval; new requests show up within one cycle.
 const REFRESH_INTERVAL_MS = 15_000;
@@ -59,10 +60,12 @@ export function register(app: Express): LogIngestService {
   const appLogController = new AppLogController(query);
   const exceptionController = new ExceptionController(query);
   const dependencyController = new DependencyController(query);
+  const traceController = new TraceController(query);
 
   app.use('/api/app-logs', appLogController.router); // /api/app-logs[/stats|/meta]
   app.use('/api/exceptions', exceptionController.router); // /api/exceptions[/stats|/meta]
   app.use('/api/dependencies', dependencyController.router); // /api/dependencies[/stats|/meta]
+  app.use('/api/trace', traceController.router); // /api/trace/:traceId (cross-kind timeline)
   app.use('/api', requestController.router); // /api/logs, /api/stats, /api/meta
 
   return ingest;

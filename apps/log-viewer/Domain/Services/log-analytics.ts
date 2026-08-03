@@ -7,6 +7,7 @@ import type {
   ExceptionLogEntry,
   DependencyLogEntry,
   ExceptionSource,
+  TraceItem,
 } from '../ValueObjects/log-entry.ts';
 import type { LogFilter, AppLogFilter, ExceptionFilter, DependencyFilter } from '../ValueObjects/log-filter.ts';
 import type {
@@ -423,4 +424,30 @@ export function computeDependencyStats(items: DependencyLogEntry[], topN = 10): 
     ),
     overTime: densifyBuckets(byBucket, () => ({ ok: 0, failed: 0 })).map(([bucket, b]) => ({ bucket, ...b })),
   };
+}
+
+// ---- trace timeline -------------------------------------------------------
+
+/** The four record kinds available to correlate under one trace id. */
+export interface TraceSources {
+  requests: AccessLogEntry[];
+  logs: AppLogEntry[];
+  exceptions: ExceptionLogEntry[];
+  dependencies: DependencyLogEntry[];
+}
+
+/**
+ * Gather every record sharing `traceId` across all four kinds into a single
+ * timeline, ordered by timestamp ascending. Records with no `traceId` (or a
+ * different one) are skipped. Each item is tagged with its kind so the two kinds
+ * that lack a `kind` field (requests, app-logs) stay distinguishable. Pure — the
+ * `ts` values are ISO strings, so ascending order is a plain string compare.
+ */
+export function collectTrace(traceId: string, sources: TraceSources): TraceItem[] {
+  const items: TraceItem[] = [];
+  for (const entry of sources.requests) if (entry.traceId === traceId) items.push({ kind: 'request', entry });
+  for (const entry of sources.logs) if (entry.traceId === traceId) items.push({ kind: 'log', entry });
+  for (const entry of sources.exceptions) if (entry.traceId === traceId) items.push({ kind: 'exception', entry });
+  for (const entry of sources.dependencies) if (entry.traceId === traceId) items.push({ kind: 'dependency', entry });
+  return items.sort((a, b) => (a.entry.ts < b.entry.ts ? -1 : a.entry.ts > b.entry.ts ? 1 : 0));
 }

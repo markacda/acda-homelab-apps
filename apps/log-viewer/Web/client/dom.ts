@@ -41,6 +41,26 @@ export function pill(text: string, cls: string): HTMLElement {
   return el('span', { class: `pill ${cls}` }, text);
 }
 
+/** CSS pill class for a log level. */
+export function levelClass(level: string): string {
+  if (level === 'error') return 'lvl-error';
+  if (level === 'warn') return 'lvl-warn';
+  if (level === 'debug') return 'lvl-debug';
+  return 'lvl-info'; // log / info / anything else
+}
+
+/** CSS pill class for an exception source (by rough severity). */
+export function sourceClass(source: string): string {
+  if (source === 'uncaught' || source === 'unhandledRejection') return 'lvl-error';
+  if (source === 'express') return 'lvl-warn';
+  return 'lvl-info'; // manual / anything else
+}
+
+/** A success/failure badge for a dependency call outcome. */
+export function outcomePill(success: boolean): HTMLElement {
+  return pill(success ? 'ok' : 'fail', success ? 's2' : 's5');
+}
+
 // ---- summary card ---------------------------------------------------------
 
 export function card(label: string, value: string, cls = '', title = '', onClick?: () => void): HTMLElement {

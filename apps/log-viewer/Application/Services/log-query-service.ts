@@ -8,6 +8,7 @@ import {
   computeExceptionStats,
   filterDependencies,
   computeDependencyStats,
+  collectTrace,
 } from '../../Domain/Services/log-analytics.ts';
 import type { AccessLogEntry, AppLogEntry, ExceptionLogEntry, DependencyLogEntry } from '../../Domain/ValueObjects/log-entry.ts';
 import type { LogFilter, AppLogFilter, ExceptionFilter, DependencyFilter } from '../../Domain/ValueObjects/log-filter.ts';
@@ -20,7 +21,7 @@ import type {
   SortSpec,
   Pagination,
 } from '../../Models/Requests/log-query.ts';
-import type { LogListResponse, RequestMeta, AppLogMeta, ExceptionMeta, DependencyMeta } from '../../Models/Responses/log-responses.ts';
+import type { LogListResponse, RequestMeta, AppLogMeta, ExceptionMeta, DependencyMeta, TraceResponse } from '../../Models/Responses/log-responses.ts';
 
 // Read model over the in-memory log view: filter (domain), sort, paginate, and
 // aggregate. The view is stored ts-descending, so ts:desc needs no re-sort.
@@ -198,5 +199,19 @@ export class LogQueryService {
       to: max,
       lastRefresh: this.ingest.getLastRefresh(),
     };
+  }
+
+  // ---- trace timeline -----------------------------------------------------
+
+  /** Every record (requests/logs/exceptions/dependencies) sharing `traceId`,
+   *  merged into one ts-ascending timeline. Unknown trace → empty items. */
+  traceById(traceId: string): TraceResponse {
+    const items = collectTrace(traceId, {
+      requests: this.ingest.getEntries(),
+      logs: this.ingest.getLogs(),
+      exceptions: this.ingest.getExceptions(),
+      dependencies: this.ingest.getDependencies(),
+    });
+    return { traceId, lastRefresh: this.ingest.getLastRefresh(), items };
   }
 }

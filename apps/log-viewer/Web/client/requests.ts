@@ -2,26 +2,8 @@
 // Talks to /api/logs, /api/stats, /api/meta.
 
 import { el, card, table, pill, checkboxDropdown, statusClassName, fmtTs, fmtMs } from './dom.ts';
-import { openSheet, type SheetRow } from './sheet.ts';
+import { showRequestDetail, type RequestEntry as Entry } from './details.ts';
 import { stackedBarChart } from './chart.ts';
-
-interface Entry {
-  ts: string;
-  app: string;
-  method: string | null;
-  url: string | null;
-  status: number;
-  durationMs: number;
-  ip: string | null;
-  ua: string | null;
-  referer: string | null;
-  bytes: number | null;
-  traceId?: string;
-  // Present only on non-2xx entries (see @homelab/access-log buildEntry).
-  resHeaders?: Record<string, string | number | string[]>;
-  resBody?: string;
-  resBodyTruncated?: boolean;
-}
 
 interface LogsResponse {
   total: number;
@@ -280,31 +262,6 @@ export function mountRequests(root: HTMLElement): () => void {
     );
   }
 
-  function showDetail(e: Entry): void {
-    const rows: SheetRow[] = [
-      { label: 'Time', value: fmtTs(e.ts) },
-      { label: 'App', value: e.app },
-      { label: 'Method', value: e.method ?? '—' },
-      { label: 'URL', value: e.url ?? '—', mono: true },
-      { label: 'Status', value: pill(String(e.status), statusClassName(e.status)) },
-      { label: 'Duration', value: fmtMs(e.durationMs) },
-      { label: 'IP', value: e.ip ?? '—' },
-      { label: 'User-Agent', value: e.ua ?? '—', mono: true },
-      { label: 'Referer', value: e.referer ?? '—', mono: true },
-      { label: 'Bytes', value: e.bytes === null ? '—' : e.bytes.toLocaleString() },
-      { label: 'Trace ID', value: e.traceId ?? '—', mono: true },
-    ];
-    // Response headers + body are captured only for non-2xx responses.
-    if (e.resHeaders) {
-      rows.push({ label: 'Response headers', value: fmtHeaders(e.resHeaders), mono: true });
-    }
-    if (e.resBody !== undefined) {
-      const body = e.resBodyTruncated ? `${prettyBody(e.resBody)}\n… (truncated)` : prettyBody(e.resBody);
-      rows.push({ label: 'Response body', value: body, mono: true });
-    }
-    openSheet(`${e.method ?? ''} ${e.url ?? ''}`.trim() || 'Request', rows);
-  }
-
   function logRow(e: Entry): HTMLElement {
     const row = el(
       'tr',
@@ -318,7 +275,7 @@ export function mountRequests(root: HTMLElement): () => void {
       el('td', { class: 'ip' }, e.ip ?? ''),
       el('td', { class: 'ua', title: e.ua ?? '' }, e.ua ?? '')
     );
-    row.addEventListener('click', () => showDetail(e));
+    row.addEventListener('click', () => showRequestDetail(e));
     return row;
   }
 
@@ -452,22 +409,6 @@ export function mountRequests(root: HTMLElement): () => void {
 }
 
 // ---- small markup helpers -------------------------------------------------
-
-/** Render a captured response header map as one `key: value` line per header. */
-function fmtHeaders(headers: Record<string, string | number | string[]>): string {
-  return Object.entries(headers)
-    .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
-    .join('\n');
-}
-
-/** Pretty-print a JSON response body; fall back to the raw text otherwise. */
-function prettyBody(body: string): string {
-  try {
-    return JSON.stringify(JSON.parse(body), null, 2);
-  } catch {
-    return body;
-  }
-}
 
 function panel(title: string, body: HTMLElement, cls = ''): HTMLElement {
   return el('div', { class: `panel ${cls}`.trim() }, el('h2', {}, title), body);

@@ -1,18 +1,10 @@
 // The Logs view: browse, filter and aggregate application (console) log entries.
 // Talks to /api/app-logs, /api/app-logs/stats, /api/app-logs/meta.
 
-import { el, card, pill, table, checkboxDropdown, fmtTs } from './dom.ts';
-import { openSheet } from './sheet.ts';
+import { el, card, pill, table, checkboxDropdown, fmtTs, levelClass } from './dom.ts';
+import { showLogDetail, type AppLog } from './details.ts';
 import { stackedBarChart } from './chart.ts';
 
-interface AppLog {
-  ts: string;
-  app: string;
-  level: string;
-  message: string;
-  params: unknown[];
-  traceId?: string;
-}
 interface AppLogsResponse {
   total: number;
   limit: number;
@@ -48,14 +40,6 @@ const EMPTY_STATS: LogStats = {
   levelDistribution: [],
   overTime: [],
 };
-
-/** CSS pill class for a log level. */
-function levelClass(level: string): string {
-  if (level === 'error') return 'lvl-error';
-  if (level === 'warn') return 'lvl-warn';
-  if (level === 'debug') return 'lvl-debug';
-  return 'lvl-info'; // log / info / anything else
-}
 
 /** Mount the Logs view into `root`. Returns a teardown to stop its timer. */
 export function mountLogs(root: HTMLElement): () => void {
@@ -185,21 +169,6 @@ export function mountLogs(root: HTMLElement): () => void {
     );
   }
 
-  function showDetail(e: AppLog): void {
-    const rows = [
-      { label: 'Time', value: fmtTs(e.ts) },
-      { label: 'App', value: e.app },
-      { label: 'Level', value: pill(e.level, levelClass(e.level)) },
-      { label: 'Message', value: e.message, mono: true },
-      { label: 'Trace ID', value: e.traceId ?? '—', mono: true },
-    ];
-    e.params.forEach((p, i) => {
-      const value = typeof p === 'string' ? p : JSON.stringify(p, null, 2);
-      rows.push({ label: `Param ${i + 1}`, value, mono: true });
-    });
-    openSheet('Log entry', rows);
-  }
-
   function logRow(e: AppLog): HTMLElement {
     const row = el(
       'tr',
@@ -209,7 +178,7 @@ export function mountLogs(root: HTMLElement): () => void {
       el('td', {}, pill(e.level, levelClass(e.level))),
       el('td', { class: 'msg', title: e.message }, e.message)
     );
-    row.addEventListener('click', () => showDetail(e));
+    row.addEventListener('click', () => showLogDetail(e));
     return row;
   }
 
