@@ -2,7 +2,7 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import { gunzipSync } from 'node:zlib';
 import { join } from 'node:path';
 import type { LogStore, ParsedLogs } from '../../Ports/LogStore/log-store.ts';
-import type { AccessLogEntry, AppLogEntry } from '../../Domain/ValueObjects/log-entry.ts';
+import type { AccessLogEntry, AppLogEntry, ExceptionLogEntry, DependencyLogEntry } from '../../Domain/ValueObjects/log-entry.ts';
 import { parseAll, sortAndCap, MAX_ENTRIES } from './parse.ts';
 
 // Cache parsed files by path; a file is re-read only when its size/mtime change.
@@ -14,7 +14,7 @@ interface CacheItem {
   parsed: ParsedLogs;
 }
 
-const EMPTY: ParsedLogs = { requests: [], logs: [] };
+const EMPTY: ParsedLogs = { requests: [], logs: [], exceptions: [], dependencies: [] };
 
 /**
  * LogStore backed by the filesystem: every app persists its logs to a directory
@@ -36,12 +36,21 @@ export class FileLogStore implements LogStore {
     const files = await this.listFiles(this.root);
     const requests: AccessLogEntry[] = [];
     const logs: AppLogEntry[] = [];
+    const exceptions: ExceptionLogEntry[] = [];
+    const dependencies: DependencyLogEntry[] = [];
     for (const f of files) {
       const parsed = await this.readFileParsed(f);
       requests.push(...parsed.requests);
       logs.push(...parsed.logs);
+      exceptions.push(...parsed.exceptions);
+      dependencies.push(...parsed.dependencies);
     }
-    return { requests: sortAndCap(requests, this.cap), logs: sortAndCap(logs, this.cap) };
+    return {
+      requests: sortAndCap(requests, this.cap),
+      logs: sortAndCap(logs, this.cap),
+      exceptions: sortAndCap(exceptions, this.cap),
+      dependencies: sortAndCap(dependencies, this.cap),
+    };
   }
 
   /** Convenience for callers/tests that only want request (access-log) entries. */

@@ -1,9 +1,11 @@
-import type { AccessLogEntry, AppLogEntry } from '../../Domain/ValueObjects/log-entry.ts';
+import type { AccessLogEntry, AppLogEntry, ExceptionLogEntry, DependencyLogEntry } from '../../Domain/ValueObjects/log-entry.ts';
 
-/** Both record kinds returned by a read, split by kind. */
+/** All four record kinds returned by a read, split by kind. */
 export interface ParsedLogs {
   requests: AccessLogEntry[];
   logs: AppLogEntry[];
+  exceptions: ExceptionLogEntry[];
+  dependencies: DependencyLogEntry[];
 }
 
 /**

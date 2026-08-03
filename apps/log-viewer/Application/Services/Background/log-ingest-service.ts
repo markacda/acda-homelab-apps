@@ -1,30 +1,39 @@
 import type { LogStore } from '../../../Ports/LogStore/log-store.ts';
-import type { AccessLogEntry, AppLogEntry } from '../../../Domain/ValueObjects/log-entry.ts';
-import type { FailureNotifier } from '../../../Ports/Notifier/failure-notifier.ts';
-
-/** Alert only on server errors (5xx); 3xx/4xx are not pushed as notifications. */
-const FAILURE_STATUS = 500;
+import type { AccessLogEntry, AppLogEntry, ExceptionLogEntry, DependencyLogEntry } from '../../../Domain/ValueObjects/log-entry.ts';
+import type { Notifier } from '../../../Ports/Notifier/failure-notifier.ts';
+import { evaluateAlertRules, type AlertRuleConfig } from '../../../Domain/Services/alert-rules.ts';
 
 /**
  * Background service holding the in-memory view of the logs, rebuilt from the
- * LogStore on an interval. The query service reads the current view; new requests
- * show up within one refresh cycle. When a FailureNotifier is provided, each
- * cycle (after the first) also pushes a notification for newly-seen failed
- * requests, tracked by a high-water timestamp so the boot backlog isn't replayed.
+ * LogStore on an interval. The query service reads the current view; new records
+ * show up within one refresh cycle. When a Notifier is provided, each cycle (after
+ * the first) also evaluates the alert rules over a trailing window and pushes a
+ * notification per firing rule — subject to a per-rule cooldown, and only over
+ * records that appeared since the service started (so a restart doesn't replay the
+ * backlog as fresh alerts).
  */
 export class LogIngestService {
   private store: LogStore;
   private intervalMs: number;
-  private notifier?: FailureNotifier;
+  private notifier?: Notifier;
+  private alertConfig?: AlertRuleConfig;
+  private cooldownMs: number;
   private entries: AccessLogEntry[] = [];
   private logs: AppLogEntry[] = [];
+  private exceptions: ExceptionLogEntry[] = [];
+  private dependencies: DependencyLogEntry[] = [];
   private lastRefresh: string | null = null;
-  private highWater = '';
+  // Records at or before this ISO timestamp existed at boot; alerts ignore them.
+  private startedAt = '';
+  // Per-rule (by alert key) epoch-ms of the last time we fired it, for cooldown.
+  private lastAlertAt = new Map<string, number>();
 
-  constructor(store: LogStore, intervalMs: number, notifier?: FailureNotifier) {
+  constructor(store: LogStore, intervalMs: number, notifier?: Notifier, alertConfig?: AlertRuleConfig, cooldownMs = 15 * 60 * 1000) {
     this.store = store;
     this.intervalMs = intervalMs;
     this.notifier = notifier;
+    this.alertConfig = alertConfig;
+    this.cooldownMs = cooldownMs;
   }
 
   async refresh(): Promise<void> {
@@ -32,6 +41,8 @@ export class LogIngestService {
       const parsed = await this.store.readAll();
       this.entries = parsed.requests;
       this.logs = parsed.logs;
+      this.exceptions = parsed.exceptions;
+      this.dependencies = parsed.dependencies;
       this.lastRefresh = new Date().toISOString();
     } catch (err) {
       console.error(`[ingest] refresh failed: ${(err as Error).message}`);
@@ -41,40 +52,43 @@ export class LogIngestService {
   /** Load once, then re-ingest on the configured interval. */
   async start(): Promise<void> {
     await this.refresh();
-    // Anchor the high-water mark at the latest entry already on disk so existing
-    // failures aren't re-notified when the service (re)starts.
-    this.highWater = this.latestTs();
-    console.log(`[ingest] loaded ${this.entries.length} requests, ${this.logs.length} app-log entries`);
+    // Anchor "now" so pre-existing records aren't treated as new alerts on (re)start.
+    this.startedAt = new Date().toISOString();
+    console.log(
+      `[ingest] loaded ${this.entries.length} requests, ${this.logs.length} app-log entries, ${this.exceptions.length} exceptions, ${this.dependencies.length} dependencies`
+    );
     setInterval(() => void this.cycle(), this.intervalMs);
   }
 
-  /** One poll cycle: refresh the view, then notify on any new failures. */
+  /** One poll cycle: refresh the view, then evaluate the alert rules. */
   private async cycle(): Promise<void> {
     await this.refresh();
-    await this.notifyNewFailures();
+    await this.evaluateAlerts();
   }
 
-  private async notifyNewFailures(): Promise<void> {
-    if (!this.notifier) return;
-    // entries are ts-descending, so the first match is the most recent failure.
-    const newFailures = this.entries.filter((e) => e.ts > this.highWater && e.status >= FAILURE_STATUS);
-    const latestTs = this.latestTs();
-    if (latestTs > this.highWater) this.highWater = latestTs;
-    if (newFailures.length === 0) return;
-    const latest = newFailures[0];
-    try {
-      await this.notifier.notify({
-        count: newFailures.length,
-        latest: { method: latest.method ?? '?', url: latest.url ?? '?', status: latest.status, app: latest.app },
-      });
-    } catch (err) {
-      console.error(`[ingest] failure notification failed: ${(err as Error).message}`);
+  /** Run the rule engine over records seen since boot and notify (with cooldown). */
+  private async evaluateAlerts(): Promise<void> {
+    if (!this.notifier || !this.alertConfig) return;
+    const now = Date.now();
+    const boot = this.startedAt;
+    const alerts = evaluateAlertRules(
+      {
+        requests: this.entries.filter((e) => e.ts > boot),
+        exceptions: this.exceptions.filter((e) => e.ts > boot),
+      },
+      this.alertConfig,
+      now
+    );
+    for (const alert of alerts) {
+      const last = this.lastAlertAt.get(alert.key) ?? 0;
+      if (now - last < this.cooldownMs) continue; // still cooling down; skip
+      this.lastAlertAt.set(alert.key, now);
+      try {
+        await this.notifier.notify({ title: alert.title, message: alert.message, url: '/logs/' });
+      } catch (err) {
+        console.error(`[ingest] alert notification failed: ${(err as Error).message}`);
+      }
     }
-  }
-
-  /** The newest entry timestamp currently in view (entries are ts-descending). */
-  private latestTs(): string {
-    return this.entries.reduce((max, e) => (e.ts > max ? e.ts : max), this.highWater);
   }
 
   getEntries(): AccessLogEntry[] {
@@ -83,6 +97,14 @@ export class LogIngestService {
 
   getLogs(): AppLogEntry[] {
     return this.logs;
+  }
+
+  getExceptions(): ExceptionLogEntry[] {
+    return this.exceptions;
+  }
+
+  getDependencies(): DependencyLogEntry[] {
+    return this.dependencies;
   }
 
   getLastRefresh(): string | null {

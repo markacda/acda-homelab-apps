@@ -1,4 +1,4 @@
-import type { StatusClass, LogLevel } from './log-entry.ts';
+import type { StatusClass, LogLevel, ExceptionSource, DependencyType } from './log-entry.ts';
 
 /** Filter spec for HTTP access-log entries (empty/absent field = match all). */
 export interface LogFilter {
@@ -18,6 +18,28 @@ export interface AppLogFilter {
   app?: string[];
   level?: LogLevel[];
   q?: string; // case-insensitive substring over message
+  from?: string;
+  to?: string;
+  excludeApp?: string[];
+}
+
+/** Filter spec for exception records. */
+export interface ExceptionFilter {
+  app?: string[];
+  source?: ExceptionSource[]; // match ANY of these sources
+  q?: string; // case-insensitive substring over name/message
+  from?: string;
+  to?: string;
+  excludeApp?: string[];
+}
+
+/** Filter spec for outbound-dependency records. */
+export interface DependencyFilter {
+  app?: string[];
+  type?: DependencyType[]; // match ANY of these dependency types
+  target?: string[]; // match ANY of these targets
+  outcome?: 'success' | 'failure'; // restrict to only successes or only failures
+  q?: string; // case-insensitive substring over name/target
   from?: string;
   to?: string;
   excludeApp?: string[];

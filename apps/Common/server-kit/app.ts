@@ -2,7 +2,14 @@ import express from 'express';
 import type { Express, RequestHandler, ErrorRequestHandler } from 'express';
 import type { Server } from 'node:http';
 import { join } from 'node:path';
-import { pageLoadLogger, installConsoleLogging, closeLogStreams } from '../access-log/logger.ts';
+import {
+  pageLoadLogger,
+  installConsoleLogging,
+  installFetchLogging,
+  installProcessExceptionHandlers,
+  logException,
+  closeLogStreams,
+} from '../access-log/logger.ts';
 
 // Shared Express bootstrap. Folds together the ritual every app's server.ts used
 // to repeat: install console logging, create the app, mount the access logger
@@ -15,8 +22,12 @@ import { pageLoadLogger, installConsoleLogging, closeLogStreams } from '../acces
  * routes on the returned app, then hand it to startServer().
  */
 export function createApp(name: string): Express {
-  // Mirror console.* output into the structured app.log (see log-viewer).
+  // Mirror console.* output into the structured app.log (see log-viewer), time
+  // outbound fetches as dependencies, and record process-level faults as
+  // first-class exceptions. All idempotent.
   installConsoleLogging(name);
+  installFetchLogging(name);
+  installProcessExceptionHandlers(name);
   const app = express();
   app.use(pageLoadLogger(name));
   return app;
@@ -55,8 +66,11 @@ export function healthHandler(healthCheck?: () => Promise<void> | void): Request
  * errors here automatically.
  */
 export function errorLogger(name: string): ErrorRequestHandler {
-  return (err, _req, _res, next) => {
+  return (err, req, _res, next) => {
     console.error(`[${name}] unhandled error`, err);
+    // Also record a first-class exception, correlated to the in-flight request
+    // (traceId resolves automatically from the request's async context).
+    logException(err, name, 'express', { method: req.method, url: req.originalUrl || req.url });
     next(err);
   };
 }

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildEntry, buildAppLogEntry } from './logger.ts';
+import { buildEntry, buildAppLogEntry, buildException, buildDependency, currentTraceId } from './logger.ts';
 
 // Minimal req/res doubles — buildEntry only reads these fields.
 function fakeReq(overrides = {}) {
@@ -114,4 +114,91 @@ test('buildAppLogEntry keeps plain objects and tolerates circular refs', () => {
   const entry = buildAppLogEntry('log', [{ ok: true }, circular], 'test-app', '2026-07-06T00:00:00.000Z');
   assert.deepEqual(entry.params[0], { ok: true });
   assert.equal(typeof entry.params[1], 'string'); // circular -> best-effort string
+});
+
+// ---- correlation ----------------------------------------------------------
+
+test('currentTraceId is undefined outside a request scope', () => {
+  assert.equal(currentTraceId(), undefined);
+});
+
+test('buildEntry attaches a traceId when given, and omits it otherwise', () => {
+  const withId = buildEntry(fakeReq(), fakeRes(), 1, 'app', '2026-07-06T00:00:00.000Z', undefined, undefined, 'trace-123');
+  assert.equal(withId.traceId, 'trace-123');
+  const without = buildEntry(fakeReq(), fakeRes(), 1, 'app', '2026-07-06T00:00:00.000Z');
+  assert.equal('traceId' in without, false);
+});
+
+test('buildAppLogEntry attaches a traceId when given, and omits it otherwise', () => {
+  const withId = buildAppLogEntry('info', ['hi'], 'app', '2026-07-06T00:00:00.000Z', 'trace-9');
+  assert.equal(withId.traceId, 'trace-9');
+  const without = buildAppLogEntry('info', ['hi'], 'app', '2026-07-06T00:00:00.000Z');
+  assert.equal('traceId' in without, false);
+});
+
+// ---- exceptions -----------------------------------------------------------
+
+test('buildException captures an Error name/message/stack + source', () => {
+  const err = new TypeError('bad thing');
+  const e = buildException(err, 'app', 'express', {}, '2026-07-06T00:00:00.000Z');
+  assert.equal(e.kind, 'exception');
+  assert.equal(e.name, 'TypeError');
+  assert.equal(e.message, 'bad thing');
+  assert.equal(e.source, 'express');
+  assert.equal(typeof e.stack, 'string');
+  assert.equal('traceId' in e, false); // none outside a request
+});
+
+test('buildException stringifies a non-Error throwable', () => {
+  const e = buildException('just a string', 'app', 'manual', {}, '2026-07-06T00:00:00.000Z');
+  assert.equal(e.name, 'Error');
+  assert.equal(e.message, 'just a string');
+  assert.equal(e.stack, undefined);
+});
+
+test('buildException records the request context and traceId', () => {
+  const e = buildException(
+    new Error('boom'),
+    'app',
+    'express',
+    { method: 'POST', url: '/x', status: 500, traceId: 't-1' },
+    '2026-07-06T00:00:00.000Z'
+  );
+  assert.equal(e.method, 'POST');
+  assert.equal(e.url, '/x');
+  assert.equal(e.status, 500);
+  assert.equal(e.traceId, 't-1');
+});
+
+// ---- dependencies ---------------------------------------------------------
+
+test('buildDependency records a successful call', () => {
+  const d = buildDependency(
+    { type: 'http', target: 'example.com', name: 'GET /y', durationMs: 12.5, success: true, status: 200 },
+    'app',
+    '2026-07-06T00:00:00.000Z'
+  );
+  assert.deepEqual(d, {
+    ts: '2026-07-06T00:00:00.000Z',
+    app: 'app',
+    kind: 'dependency',
+    type: 'http',
+    target: 'example.com',
+    name: 'GET /y',
+    durationMs: 12.5,
+    success: true,
+    status: 200,
+  });
+});
+
+test('buildDependency records a failure with an error message and traceId', () => {
+  const d = buildDependency(
+    { type: 'postgres', target: 'db', name: 'SELECT', durationMs: 3, success: false, error: 'timeout', traceId: 't-2' },
+    'app',
+    '2026-07-06T00:00:00.000Z'
+  );
+  assert.equal(d.success, false);
+  assert.equal(d.error, 'timeout');
+  assert.equal(d.traceId, 't-2');
+  assert.equal('status' in d, false);
 });

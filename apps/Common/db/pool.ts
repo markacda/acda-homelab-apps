@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import pg from 'pg';
 import type { Pool, PoolConfig } from 'pg';
+import { logDependency } from '../access-log/logger.ts';
 
 // Shared PostgreSQL connection pool factory. Every data-owning app builds its
 // pool here so connection sourcing, sizing and shutdown behave identically.
@@ -38,7 +39,61 @@ export function createPool(name?: string): Pool {
   const connectionString = resolveConnectionString();
   if (connectionString) config.connectionString = connectionString;
   if (name) config.application_name = name;
-  return new pg.Pool(config);
+  const pool = new pg.Pool(config);
+  instrumentQueries(pool, name);
+  return pool;
+}
+
+/** Leading SQL keyword (SELECT/INSERT/…) from a query text or config object. */
+function sqlVerb(arg: unknown): string {
+  const text =
+    typeof arg === 'string'
+      ? arg
+      : arg && typeof arg === 'object' && 'text' in arg && typeof (arg as { text: unknown }).text === 'string'
+        ? (arg as { text: string }).text
+        : '';
+  const m = text.trim().match(/^(\w+)/);
+  return m ? m[1].toUpperCase() : 'QUERY';
+}
+
+/**
+ * Wrap `pool.query` so each query is timed and recorded as a postgres dependency
+ * (see @homelab/access-log). Transparent: arguments and the resolved result pass
+ * through untouched and logging never throws. The callback form and non-promise
+ * (query-stream) form are passed straight through; queries issued via an explicit
+ * `pool.connect()` client — e.g. inside a transaction — are not captured here.
+ */
+function instrumentQueries(pool: Pool, name?: string): void {
+  const app = name ?? 'app';
+  const original = pool.query.bind(pool) as (...args: unknown[]) => unknown;
+  const wrapped = (...args: unknown[]): unknown => {
+    if (typeof args[args.length - 1] === 'function') return original(...args); // callback form
+    const start = process.hrtime.bigint();
+    const verb = sqlVerb(args[0]);
+    const durationMs = (): number => Math.round(Number(process.hrtime.bigint() - start) / 1e3) / 1e3;
+    const record = (success: boolean, error?: string): void =>
+      logDependency({ type: 'postgres', target: 'db', name: verb, durationMs: durationMs(), success, error }, app);
+    let result: unknown;
+    try {
+      result = original(...args);
+    } catch (err) {
+      record(false, (err as Error).message);
+      throw err;
+    }
+    // Not a thenable (e.g. a Submittable query stream) — pass through untimed.
+    if (!result || typeof (result as { then?: unknown }).then !== 'function') return result;
+    return (result as Promise<unknown>).then(
+      (res) => {
+        record(true);
+        return res;
+      },
+      (err: unknown) => {
+        record(false, (err as Error).message);
+        throw err;
+      }
+    );
+  };
+  pool.query = wrapped as typeof pool.query;
 }
 
 /** Close a pool, swallowing errors — safe to call from an onShutdown hook. */

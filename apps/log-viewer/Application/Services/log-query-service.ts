@@ -1,14 +1,30 @@
 import { LogIngestService } from './Background/log-ingest-service.ts';
-import { filterEntries, computeStats, filterAppLogs, computeLogStats } from '../../Domain/Services/log-analytics.ts';
-import type { AccessLogEntry, AppLogEntry } from '../../Domain/ValueObjects/log-entry.ts';
-import type { LogFilter, AppLogFilter } from '../../Domain/ValueObjects/log-filter.ts';
-import type { Stats, LogStats } from '../../Domain/ValueObjects/log-stats.ts';
-import type { RequestSortField, AppLogSortField, SortSpec, Pagination } from '../../Models/Requests/log-query.ts';
-import type { LogListResponse, RequestMeta, AppLogMeta } from '../../Models/Responses/log-responses.ts';
+import {
+  filterEntries,
+  computeStats,
+  filterAppLogs,
+  computeLogStats,
+  filterExceptions,
+  computeExceptionStats,
+  filterDependencies,
+  computeDependencyStats,
+} from '../../Domain/Services/log-analytics.ts';
+import type { AccessLogEntry, AppLogEntry, ExceptionLogEntry, DependencyLogEntry } from '../../Domain/ValueObjects/log-entry.ts';
+import type { LogFilter, AppLogFilter, ExceptionFilter, DependencyFilter } from '../../Domain/ValueObjects/log-filter.ts';
+import type { Stats, LogStats, ExceptionStats, DependencyStats } from '../../Domain/ValueObjects/log-stats.ts';
+import type {
+  RequestSortField,
+  AppLogSortField,
+  ExceptionSortField,
+  DependencySortField,
+  SortSpec,
+  Pagination,
+} from '../../Models/Requests/log-query.ts';
+import type { LogListResponse, RequestMeta, AppLogMeta, ExceptionMeta, DependencyMeta } from '../../Models/Responses/log-responses.ts';
 
 // Read model over the in-memory log view: filter (domain), sort, paginate, and
 // aggregate. The view is stored ts-descending, so ts:desc needs no re-sort.
-function sortByField<T extends AccessLogEntry | AppLogEntry, F extends keyof T & string>(list: T[], field: F, dir: 'asc' | 'desc'): T[] {
+function sortByField<T extends { ts: string }, F extends keyof T & string>(list: T[], field: F, dir: 'asc' | 'desc'): T[] {
   if (field === 'ts' && dir === 'desc') return list;
   const mult = dir === 'asc' ? 1 : -1;
   return [...list].sort((a, b) => {
@@ -95,6 +111,89 @@ export class LogQueryService {
       apps: [...apps].sort(),
       levels: [...levels].sort(),
       count: this.ingest.getLogs().length,
+      from: min,
+      to: max,
+      lastRefresh: this.ingest.getLastRefresh(),
+    };
+  }
+
+  // ---- exceptions ---------------------------------------------------------
+
+  listExceptions(filter: ExceptionFilter, sort: SortSpec<ExceptionSortField>, page: Pagination): LogListResponse<ExceptionLogEntry> {
+    const filtered = filterExceptions(this.ingest.getExceptions(), filter);
+    const sorted = sortByField(filtered, sort.field, sort.dir);
+    return {
+      total: sorted.length,
+      limit: page.limit,
+      offset: page.offset,
+      lastRefresh: this.ingest.getLastRefresh(),
+      entries: sorted.slice(page.offset, page.offset + page.limit),
+    };
+  }
+
+  exceptionStats(filter: ExceptionFilter): { lastRefresh: string | null; stats: ExceptionStats } {
+    const filtered = filterExceptions(this.ingest.getExceptions(), filter);
+    return { lastRefresh: this.ingest.getLastRefresh(), stats: computeExceptionStats(filtered) };
+  }
+
+  exceptionMeta(): ExceptionMeta {
+    const apps = new Set<string>();
+    const sources = new Set<ExceptionLogEntry['source']>();
+    let min: string | null = null;
+    let max: string | null = null;
+    for (const e of this.ingest.getExceptions()) {
+      apps.add(e.app);
+      sources.add(e.source);
+      if (min === null || e.ts < min) min = e.ts;
+      if (max === null || e.ts > max) max = e.ts;
+    }
+    return {
+      apps: [...apps].sort(),
+      sources: [...sources].sort(),
+      count: this.ingest.getExceptions().length,
+      from: min,
+      to: max,
+      lastRefresh: this.ingest.getLastRefresh(),
+    };
+  }
+
+  // ---- dependencies -------------------------------------------------------
+
+  listDependencies(filter: DependencyFilter, sort: SortSpec<DependencySortField>, page: Pagination): LogListResponse<DependencyLogEntry> {
+    const filtered = filterDependencies(this.ingest.getDependencies(), filter);
+    const sorted = sortByField(filtered, sort.field, sort.dir);
+    return {
+      total: sorted.length,
+      limit: page.limit,
+      offset: page.offset,
+      lastRefresh: this.ingest.getLastRefresh(),
+      entries: sorted.slice(page.offset, page.offset + page.limit),
+    };
+  }
+
+  dependencyStats(filter: DependencyFilter): { lastRefresh: string | null; stats: DependencyStats } {
+    const filtered = filterDependencies(this.ingest.getDependencies(), filter);
+    return { lastRefresh: this.ingest.getLastRefresh(), stats: computeDependencyStats(filtered) };
+  }
+
+  dependencyMeta(): DependencyMeta {
+    const apps = new Set<string>();
+    const types = new Set<DependencyLogEntry['type']>();
+    const targets = new Set<string>();
+    let min: string | null = null;
+    let max: string | null = null;
+    for (const e of this.ingest.getDependencies()) {
+      apps.add(e.app);
+      types.add(e.type);
+      targets.add(e.target);
+      if (min === null || e.ts < min) min = e.ts;
+      if (max === null || e.ts > max) max = e.ts;
+    }
+    return {
+      apps: [...apps].sort(),
+      types: [...types].sort(),
+      targets: [...targets].sort(),
+      count: this.ingest.getDependencies().length,
       from: min,
       to: max,
       lastRefresh: this.ingest.getLastRefresh(),
