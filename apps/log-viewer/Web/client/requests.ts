@@ -16,6 +16,7 @@ interface Entry {
   ua: string | null;
   referer: string | null;
   bytes: number | null;
+  traceId?: string;
   // Present only on non-2xx entries (see @homelab/access-log buildEntry).
   resHeaders?: Record<string, string | number | string[]>;
   resBody?: string;
@@ -291,6 +292,7 @@ export function mountRequests(root: HTMLElement): () => void {
       { label: 'User-Agent', value: e.ua ?? '—', mono: true },
       { label: 'Referer', value: e.referer ?? '—', mono: true },
       { label: 'Bytes', value: e.bytes === null ? '—' : e.bytes.toLocaleString() },
+      { label: 'Trace ID', value: e.traceId ?? '—', mono: true },
     ];
     // Response headers + body are captured only for non-2xx responses.
     if (e.resHeaders) {
@@ -485,5 +487,6 @@ function rangeSelect(): HTMLSelectElement {
     ['30d', 'Last 30 days'],
   ];
   for (const [value, label] of opts) sel.append(el('option', { value }, label));
+  sel.value = '24h';
   return sel;
 }

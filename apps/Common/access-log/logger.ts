@@ -425,6 +425,7 @@ export interface DependencyLogEntry {
   status?: number; // HTTP status, when applicable
   error?: string; // failure message, when !success
   traceId?: string; // the request this call was made under, when applicable
+  command?: string; // full statement text (postgres) — name keeps only the verb
 }
 
 /** The measured fields of a dependency call, minus the boilerplate. */
@@ -437,6 +438,7 @@ export interface DependencyFields {
   status?: number;
   error?: string;
   traceId?: string;
+  command?: string;
 }
 
 /** Build a structured dependency record. Pure and side-effect free. */
@@ -453,6 +455,7 @@ export function buildDependency(f: DependencyFields, app: string, nowIso: string
   };
   if (f.status !== undefined) entry.status = f.status;
   if (f.error !== undefined) entry.error = f.error;
+  if (f.command !== undefined) entry.command = f.command;
   const traceId = f.traceId ?? currentTraceId();
   if (traceId !== undefined) entry.traceId = traceId;
   return entry;

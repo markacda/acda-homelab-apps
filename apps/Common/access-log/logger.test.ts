@@ -202,3 +202,19 @@ test('buildDependency records a failure with an error message and traceId', () =
   assert.equal(d.traceId, 't-2');
   assert.equal('status' in d, false);
 });
+
+test('buildDependency carries the full command when supplied and omits it otherwise', () => {
+  const withCommand = buildDependency(
+    { type: 'postgres', target: 'db', name: 'SELECT', durationMs: 3, success: true, command: 'SELECT * FROM recipes WHERE id = $1' },
+    'app',
+    '2026-07-06T00:00:00.000Z'
+  );
+  assert.equal(withCommand.command, 'SELECT * FROM recipes WHERE id = $1');
+
+  const withoutCommand = buildDependency(
+    { type: 'postgres', target: 'db', name: 'SELECT', durationMs: 3, success: true },
+    'app',
+    '2026-07-06T00:00:00.000Z'
+  );
+  assert.equal('command' in withoutCommand, false);
+});

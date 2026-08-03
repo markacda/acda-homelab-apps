@@ -215,7 +215,7 @@ export function mountExceptions(root: HTMLElement): () => void {
     ];
     if (e.method || e.url) rows.push({ label: 'Request', value: `${e.method ?? ''} ${e.url ?? ''}`.trim(), mono: true });
     if (e.status !== undefined) rows.push({ label: 'Status', value: String(e.status) });
-    if (e.traceId) rows.push({ label: 'Trace ID', value: e.traceId, mono: true });
+    rows.push({ label: 'Trace ID', value: e.traceId ?? '—', mono: true });
     if (e.stack) rows.push({ label: 'Stack', value: e.stack, mono: true });
     openSheet(`${e.name}: ${e.message}`.trim() || 'Exception', rows);
   }
@@ -375,5 +375,6 @@ function rangeSelect(): HTMLSelectElement {
     ['30d', 'Last 30 days'],
   ];
   for (const [value, label] of opts) sel.append(el('option', { value }, label));
+  sel.value = '24h';
   return sel;
 }
