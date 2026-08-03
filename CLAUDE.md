@@ -127,14 +127,19 @@ and lists their runtime deps in its own `package.json`:
 regenerable price cache stay off it. It's internal-only (no published port, reachable
 as host `db`), with one database `homelab` and a **schema + login role per app**
 (`notification`, `recipe_book`), each role's `search_path` defaulting to its schema.
-Credentials **self-provision** on first boot: `db/entrypoint.sh` generates the
-superuser password and `db/init/10-roles.sh` generates a per-app password + writes
+Credentials **self-provision**: `db/entrypoint.sh` generates the superuser password
+and then runs `db/provision-roles.sh` **idempotently on every boot** (a background
+waiter fires once the server is ready; `db/init/10-roles.sh` runs the same shared
+provisioner on fresh-volume init), generating a per-app password + writing
 `/secrets/<role>.url` to the shared `db-secrets` volume, which apps read via
-`DATABASE_URL_FILE` — so there's no `.env` and no manual secret. Treat the `pg-data`
-and `db-secrets` volumes as a matched pair. Migrations live per app under
-`Adapters/Postgres/migrations/*.sql` (shipped into `dist/` by the Dockerfile, since
-tsc doesn't emit `.sql`) and run at startup. recipe-book keeps its data volume for
-image bytes + generated PDFs. See `docs/database-migration.md`.
+`DATABASE_URL_FILE` — so there's no `.env` and no manual secret, and a newly added
+role appears on the next `docker compose up -d --build db` with no volume wipe.
+Treat the `pg-data` and `db-secrets` volumes as a matched pair. **Schema/data
+changes go through numbered app migrations, never the init sh scripts** (which only
+bootstrap roles/schemas/credentials): migrations live per app under
+`Adapters/Postgres/migrations/NNN_*.sql` (shipped into `dist/` by the Dockerfile,
+since tsc doesn't emit `.sql`) and run at startup. recipe-book keeps its data volume
+for image bytes + generated PDFs. See `docs/database-migration.md`.
 
 **Conventions for a new app.** Copy `apps/recipe-book` for the full layered DDD
 layout, or `apps/ev-crossover` for a trivial static page (see `ARCHITECTURE.md`;

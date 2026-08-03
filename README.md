@@ -21,6 +21,7 @@ stay plain HTTP.
 | `/logs`              | `log-viewer`       | 6004        | Browse, search, filter and aggregate the structured logs written by every app — requests, app-logs, exceptions and dependencies — with rule-based anomaly alerts |
 | `/receptenboek`      | `recipe-book`      | 6005        | Import Albert Heijn (Allerhande) recipes into a shared library, assemble named recipe books, and export them as LaTeX / PDF                                      |
 | `/notificaties`      | `notification`     | 6006        | Collects notifications from the other apps (via `POST /send`) and shows a feed of recent ones, e.g. failed-request alerts from the log viewer                    |
+| `/auth`              | `auth`             | 6007        | Authentication: persons store (email = username, hashed password, roles) backing the auth epic; registration/login/tokens land in follow-up work                 |
 
 The proxy (`proxy/nginx.conf`) strips the path prefix before forwarding, so each
 app is unaware it's served under a subpath — the only requirement is that app
@@ -215,7 +216,7 @@ env vars (see the app's registration). In dev, point it at the repo's logs with
    handler. Reuse `apps/Common/http-utils` for query/body parsing and file uploads.
    Use **relative** URLs in client code (`fetch('api/…')`, `src="images/…"`) so the
    app works under the reverse proxy's path prefix.
-3. Add a service to the root `docker-compose.yml` on the next free port (6006, 6007…).
+3. Add a service to the root `docker-compose.yml` on the next free port (6008, 6009…).
 4. Add a `location /<path>/ { proxy_pass http://<service>:<port>/; … }` block (plus the
    trailing-slash redirect) to the HTTPS server in `proxy/nginx.conf`, and — if it should appear on the
    dashboard — an `overrides:` entry in `apps/dashboard/config/config.yaml` pointing its

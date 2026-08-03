@@ -20,8 +20,21 @@ string from that volume via `DATABASE_URL_FILE`. There is **nothing to put in a
   - recipe-book → schema/role `recipe_book`
 - Each role's `search_path` defaults to its own schema, so app SQL is unqualified.
 - Migrations run at app startup (idempotent, fail-loud) from `Adapters/Postgres/migrations/*.sql`.
-- `db/entrypoint.sh` bootstraps the superuser password; `db/init/10-roles.sh`
-  provisions the roles/schemas and writes `/secrets/<role>.url` on first init.
+- `db/entrypoint.sh` bootstraps the superuser password, then provisions the app
+  roles/schemas/credentials **idempotently on every boot** (a background waiter
+  runs `db/provision-roles.sh` once the server is ready). `db/init/10-roles.sh`
+  runs the same shared provisioner on fresh-volume init. So provisioning is a
+  self-healing boot task, not a one-shot: adding an app takes effect on the next
+  `docker compose up -d --build db` with no data-volume wipe.
+
+> **Schema/data changes go through migrations, never the init sh scripts.** The
+> `db/*.sh` scripts only bootstrap roles/schemas/credentials (which a SQL
+> migration can't do — an app needs its role to connect, and a migration can't
+> write the secret file). Everything an app owns — tables, columns, indexes,
+> seed data — belongs in a numbered `Adapters/Postgres/migrations/NNN_*.sql`
+> applied at startup. Editing `db/init/10-roles.sh` does nothing on an
+> already-initialised database; the every-boot provisioner is what picks up a
+> newly added role there.
 
 > **Volumes are a matched pair.** `pg-data` (the database) and `db-secrets` (the
 > generated credentials) must be backed up and wiped **together**. Deleting only
@@ -79,12 +92,17 @@ already-applied migration — add a new one.
 
 ## Adding a new data-owning app
 
-1. Add a `provision <role> <schema>` line to `db/init/10-roles.sh`.
+1. Add a `provision <role> <schema>` line to `db/provision-roles.sh` (the single
+   source of truth for both fresh init and the every-boot pass). Then
+   `docker compose up -d --build db` provisions the role/schema/credential on the
+   running database — no fresh volume, no manual SQL.
 2. Add the service to `docker-compose.yml` with `depends_on: { db: { condition:
 service_healthy } }`, `DATABASE_URL_FILE=/secrets/<role>.url`, and a
-   `db-secrets:/secrets:ro` mount.
+   `db-secrets:/secrets:ro` mount. (Run `up -d --build db` before the app the
+   first time so the role exists; otherwise the app retries via its restart policy.)
 3. In the app: `createPool()` → `runMigrations()` → build a Postgres adapter for
    its port; pass `onShutdown: () => closePool(pool)` and
-   `healthCheck: () => pingDb(pool)` to `startServer`.
+   `healthCheck: () => pingDb(pool)` to `startServer`. The app's schema (tables,
+   etc.) lives in its own numbered migrations, **not** in the db sh scripts.
 4. Stage `apps/Common/db` in the app's Dockerfile builder and copy its
    `Adapters/Postgres/migrations` into `dist/`.

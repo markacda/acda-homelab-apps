@@ -27,4 +27,25 @@ fi
 POSTGRES_PASSWORD="$(cat "$PW_FILE")"
 export POSTGRES_PASSWORD
 
+# Provision app roles/schemas/credentials idempotently on EVERY boot — not just
+# on fresh-volume init (which runs init/10-roles.sh). A background waiter blocks
+# until the real post-init server accepts TCP connections, then runs the shared
+# provisioner, so a newly added app (e.g. auth) gets its role/schema/credential
+# on the next `up` with no data-volume wipe. Re-running is a safe no-op. See
+# db/provision-roles.sh.
+provision_on_boot() {
+  db_user="${POSTGRES_USER:-postgres}"
+  db_name="${POSTGRES_DB:-postgres}"
+  # Only the real server (post-init) listens on TCP; the transient init server
+  # binds the unix socket only, so this waits past the init phase.
+  until pg_isready -h 127.0.0.1 -U "$db_user" -d "$db_name" >/dev/null 2>&1; do
+    sleep 1
+  done
+  PGPASSWORD="$POSTGRES_PASSWORD" \
+  PSQL_BASE="psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U $db_user -d $db_name" \
+    sh /provision-roles.sh \
+    || echo "[db-provision] boot provisioning failed (will retry on next boot)"
+}
+provision_on_boot &
+
 exec docker-entrypoint.sh postgres

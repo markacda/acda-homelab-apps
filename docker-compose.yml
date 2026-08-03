@@ -26,8 +26,11 @@ services:
       - pg-data:/var/lib/postgresql/data
       # Generated per-app credentials (read-write here; apps mount this read-only).
       - db-secrets:/secrets
-      # Bootstrap wrapper + one-time role/schema provisioning (read-only).
+      # Bootstrap wrapper + role/schema provisioning (read-only). provision-roles.sh
+      # is the shared, idempotent provisioner run both on fresh init (init/10-roles.sh)
+      # and on every boot (entrypoint.sh) so newly added apps are picked up.
       - ./db/entrypoint.sh:/db-entrypoint.sh:ro
+      - ./db/provision-roles.sh:/provision-roles.sh:ro
       - ./db/init:/docker-entrypoint-initdb.d:ro
     restart: unless-stopped
     healthcheck:
@@ -66,6 +69,7 @@ services:
       - recipe-book
       - log-viewer
       - notification
+      - auth
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://localhost/nginx-health']
@@ -190,6 +194,7 @@ services:
       - recipe-book-logs:/logs/recipe-book:ro
       - log-viewer-logs:/logs/log-viewer:ro
       - notification-logs:/logs/notification:ro
+      - auth-logs:/logs/auth:ro
       # Read-write target for this app's own access log.
       - log-viewer-logs:/app/logs
     depends_on:
@@ -279,6 +284,40 @@ services:
       retries: 3
       start_period: 10s
 
+  # Authentication: owns the persons store (email = username, hashed password,
+  # roles) backing the auth epic. Data lives in Postgres (auth schema/role,
+  # self-provisioned), so there's no data volume. Registration/login/tokens land
+  # in issue #149.
+  auth:
+    build:
+      context: .
+      dockerfile: apps/auth/Dockerfile
+    container_name: auth
+    labels:
+      - 'homelab.name=Authenticatie'
+      - 'homelab.icon=🔐'
+    ports:
+      - '6007:6007'
+    environment:
+      - NODE_ENV=production
+      - PORT=6007
+      - LOG_DIR=/app/logs
+      # Connection string read from the shared secrets volume (self-provisioned).
+      - DATABASE_URL_FILE=/secrets/auth.url
+    volumes:
+      - auth-logs:/app/logs
+      - db-secrets:/secrets:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:6007/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   dashboard:
     build:
       context: .
@@ -330,3 +369,4 @@ volumes:
   recipe-book-logs:
   log-viewer-logs:
   notification-logs:
+  auth-logs:
