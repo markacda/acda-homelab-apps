@@ -11,6 +11,7 @@ interface AppLog {
   level: string;
   message: string;
   params: unknown[];
+  traceId?: string;
 }
 interface AppLogsResponse {
   total: number;
@@ -190,6 +191,7 @@ export function mountLogs(root: HTMLElement): () => void {
       { label: 'App', value: e.app },
       { label: 'Level', value: pill(e.level, levelClass(e.level)) },
       { label: 'Message', value: e.message, mono: true },
+      { label: 'Trace ID', value: e.traceId ?? '—', mono: true },
     ];
     e.params.forEach((p, i) => {
       const value = typeof p === 'string' ? p : JSON.stringify(p, null, 2);
@@ -358,5 +360,6 @@ function rangeSelect(): HTMLSelectElement {
     ['30d', 'Last 30 days'],
   ];
   for (const [value, label] of opts) sel.append(el('option', { value }, label));
+  sel.value = '24h';
   return sel;
 }

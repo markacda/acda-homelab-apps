@@ -44,15 +44,25 @@ export function createPool(name?: string): Pool {
   return pool;
 }
 
-/** Leading SQL keyword (SELECT/INSERT/…) from a query text or config object. */
-function sqlVerb(arg: unknown): string {
+// Longest SQL statement text we keep on a dependency record; a guard against a
+// pathological generated query bloating dependencies.log.
+const MAX_SQL_LEN = 2000;
+
+/** The raw query text from a query string or a `{ text }` config object. */
+function sqlText(arg: unknown): string {
   const text =
     typeof arg === 'string'
       ? arg
       : arg && typeof arg === 'object' && 'text' in arg && typeof (arg as { text: unknown }).text === 'string'
         ? (arg as { text: string }).text
         : '';
-  const m = text.trim().match(/^(\w+)/);
+  const trimmed = text.trim();
+  return trimmed.length > MAX_SQL_LEN ? trimmed.slice(0, MAX_SQL_LEN) + '…' : trimmed;
+}
+
+/** Leading SQL keyword (SELECT/INSERT/…) from a query text or config object. */
+function sqlVerb(arg: unknown): string {
+  const m = sqlText(arg).match(/^(\w+)/);
   return m ? m[1].toUpperCase() : 'QUERY';
 }
 
@@ -70,9 +80,10 @@ function instrumentQueries(pool: Pool, name?: string): void {
     if (typeof args[args.length - 1] === 'function') return original(...args); // callback form
     const start = process.hrtime.bigint();
     const verb = sqlVerb(args[0]);
+    const command = sqlText(args[0]) || undefined;
     const durationMs = (): number => Math.round(Number(process.hrtime.bigint() - start) / 1e3) / 1e3;
     const record = (success: boolean, error?: string): void =>
-      logDependency({ type: 'postgres', target: 'db', name: verb, durationMs: durationMs(), success, error }, app);
+      logDependency({ type: 'postgres', target: 'db', name: verb, durationMs: durationMs(), success, error, command }, app);
     let result: unknown;
     try {
       result = original(...args);

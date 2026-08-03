@@ -16,6 +16,7 @@ interface Dependency {
   status?: number;
   error?: string;
   traceId?: string;
+  command?: string; // full SQL statement for postgres deps (name holds only the verb)
 }
 interface DependenciesResponse {
   total: number;
@@ -231,9 +232,10 @@ export function mountDependencies(root: HTMLElement): () => void {
       { label: 'Duration', value: fmtMs(e.durationMs) },
       { label: 'Outcome', value: outcomePill(e.success) },
     ];
+    if (e.command) rows.push({ label: 'Query', value: e.command, mono: true });
     if (e.status !== undefined) rows.push({ label: 'Status', value: pill(String(e.status), statusClassName(e.status)) });
     if (e.error) rows.push({ label: 'Error', value: e.error, mono: true });
-    if (e.traceId) rows.push({ label: 'Trace ID', value: e.traceId, mono: true });
+    rows.push({ label: 'Trace ID', value: e.traceId ?? '—', mono: true });
     openSheet(`${e.type} · ${e.name}`.trim() || 'Dependency', rows);
   }
 
@@ -395,6 +397,7 @@ function rangeSelect(): HTMLSelectElement {
     ['30d', 'Last 30 days'],
   ];
   for (const [value, label] of opts) sel.append(el('option', { value }, label));
+  sel.value = '24h';
   return sel;
 }
 

@@ -34,6 +34,7 @@ body {
 .topbar {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   gap: 1.25rem;
   margin-bottom: 1rem;
 }
@@ -72,11 +73,22 @@ h1 {
   .back-link .label {
     display: none;
   }
+  /* Let the four nav links wrap onto their own full-width row and shrink a touch
+     so the header no longer overflows a phone viewport. */
+  .topnav {
+    flex-basis: 100%;
+    gap: 0.35rem;
+  }
+  .topnav a {
+    font-size: 0.85rem;
+    padding: 0.25rem 0.55rem;
+  }
 }
 
 /* top navigation */
 .topnav {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
