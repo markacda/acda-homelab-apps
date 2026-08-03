@@ -96,6 +96,9 @@ export function mountLogs(root: HTMLElement): () => void {
   // ---- state --------------------------------------------------------------
   let sortField = 'ts';
   let sortDir: 'asc' | 'desc' = 'desc';
+  // Last known total count, so the header can re-render its "updated" timestamp
+  // on auto-refresh without re-fetching /api/app-logs/meta (which owns the count).
+  let metaCount = 0;
   let offset = 0;
   let total = 0;
   let autoTimer: number | undefined;
@@ -158,7 +161,7 @@ export function mountLogs(root: HTMLElement): () => void {
     perAppEl.replaceChildren(
       table(
         ['App', 'Logs', 'Errors', 'Warnings'],
-        s.perApp.map((a) => [a.app, String(a.count), String(a.errorCount), String(a.warnCount)])
+        s.perApp.slice(0, 10).map((a) => [a.app, String(a.count), String(a.errorCount), String(a.warnCount)])
       )
     );
     levelDistEl.replaceChildren(
@@ -191,9 +194,11 @@ export function mountLogs(root: HTMLElement): () => void {
     }
     const res = await fetch(`api/app-logs/stats?${baseParams().toString()}`);
     if (!res.ok) return;
-    const { stats } = (await res.json()) as { stats: LogStats };
+    const { stats, lastRefresh } = (await res.json()) as { stats: LogStats; lastRefresh: string | null };
     renderCards(stats);
     renderPanels(stats);
+    // Auto-refresh runs loadStats, so advance the header timestamp here too.
+    renderHeader(lastRefresh);
   }
   async function loadLogs(reset: boolean): Promise<void> {
     if (selectionEmpty()) {
@@ -239,12 +244,16 @@ export function mountLogs(root: HTMLElement): () => void {
   async function refresh(): Promise<void> {
     await Promise.all([loadStats(), loadLogs(true)]);
   }
+  function renderHeader(lastRefresh: string | null): void {
+    metaEl.textContent = `${metaCount.toLocaleString()} log entries · updated ${lastRefresh ? fmtTs(lastRefresh) : '—'}`;
+  }
   async function loadMeta(): Promise<void> {
     const res = await fetch('api/app-logs/meta');
     if (!res.ok) return;
     const meta = (await res.json()) as LogMeta;
     appDropdown.setOptions(meta.apps);
-    metaEl.textContent = `${meta.count.toLocaleString()} log entries · updated ${meta.lastRefresh ? fmtTs(meta.lastRefresh) : '—'}`;
+    metaCount = meta.count;
+    renderHeader(meta.lastRefresh);
   }
 
   // ---- wiring -------------------------------------------------------------

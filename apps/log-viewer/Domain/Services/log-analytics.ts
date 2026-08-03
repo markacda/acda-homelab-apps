@@ -20,6 +20,7 @@ import type {
   ExceptionProblem,
   DependencyStats,
   DependencyTargetStat,
+  SlowRequest,
 } from '../ValueObjects/log-stats.ts';
 
 // Pure filtering + aggregation over parsed log entries. No I/O here so it can be
@@ -183,6 +184,14 @@ export function computeStats(entries: AccessLogEntry[], topN = 10): Stats {
       (e) => e.avgDurationMs,
       topN
     ),
+    slowestRequests: topBy(entries, (e) => e.durationMs || 0, topN).map((e): SlowRequest => ({
+      app: e.app,
+      method: e.method ?? '?',
+      url: e.url ?? '?',
+      status: e.status,
+      durationMs: e.durationMs || 0,
+      ts: e.ts,
+    })),
     statusDistribution: [...byStatus.entries()].map(([status, count]) => ({ status, count })).sort((a, b) => a.status - b.status),
     topIps: topBy(
       [...byIp.entries()].map(([ip, count]) => ({ ip, count })),
