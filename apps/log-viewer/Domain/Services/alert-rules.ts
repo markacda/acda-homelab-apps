@@ -39,7 +39,10 @@ function percentile(sortedAsc: number[], p: number): number {
  */
 export function evaluateAlertRules(inputs: AlertInputs, config: AlertRuleConfig, now: number): Alert[] {
   const since = now - config.windowMs;
-  const inWindow = (ts: string): boolean => Date.parse(ts) >= since;
+  const inWindow = (ts: string): boolean => {
+    const t = Date.parse(ts);
+    return t >= since && t <= now;
+  };
   const reqs = inputs.requests.filter((r) => inWindow(r.ts));
   const excs = inputs.exceptions.filter((e) => inWindow(e.ts));
   const mins = Math.max(1, Math.round(config.windowMs / 60_000));
