@@ -1,0 +1,30 @@
+{
+  "name": "auth",
+  "version": "1.0.0",
+  "description": "Homelab authentication: persons store (email = username, hashed password, roles) backing the auth epic",
+  "private": true,
+  "type": "module",
+  "main": "dist/apps/auth/server.js",
+  "scripts": {
+    "dev": "node --watch server.ts",
+    "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.client.json",
+    "start": "node dist/apps/auth/server.js",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.client.json --noEmit",
+    "test": "node --test",
+    "clean": "rm -rf dist Web/public/*.js"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "pg": "^8.13.1",
+    "rotating-file-stream": "^3.2.6"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.11.10",
+    "typescript": "^5.9.3"
+  }
+}

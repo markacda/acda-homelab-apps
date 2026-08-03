@@ -50,6 +50,7 @@ overrides:
   recipe-book: { url: /receptenboek }
   log-viewer: { url: /logs }
   notification: { url: /notificaties }
+  auth: { url: /auth }
   # sonarr:
   #   name: "Sonarr"
   #   icon: "sonarr"
