@@ -1,4 +1,4 @@
-import type { AccessLogEntry, AppLogEntry } from '../../Domain/ValueObjects/log-entry.ts';
+import type { AccessLogEntry, AppLogEntry, ExceptionLogEntry, DependencyLogEntry } from '../../Domain/ValueObjects/log-entry.ts';
 import type { ParsedLogs } from '../../Ports/LogStore/log-store.ts';
 
 // Pure JSON-Lines parsing for the structured logs every app writes. Each app
@@ -8,38 +8,67 @@ import type { ParsedLogs } from '../../Ports/LogStore/log-store.ts';
 // Bound memory on the Pi: keep only the most-recent N entries after sorting.
 export const MAX_ENTRIES = 200_000;
 
-// A request entry needs ts + numeric status.
-function isRequestEntry(v: unknown): v is AccessLogEntry {
-  return typeof v === 'object' && v !== null && typeof (v as AccessLogEntry).ts === 'string' && typeof (v as AccessLogEntry).status === 'number';
-}
+// The exception + dependency records carry a `kind` discriminator; the request +
+// app-log records predate it and have none, so they're matched by shape. Each
+// guard takes the raw parsed object (fields typed loosely for the checks).
+type Rec = Record<string, unknown>;
 
-// An app-log entry needs ts + string level + string message (no status).
-function isAppLogEntry(v: unknown): v is AppLogEntry {
+function isExceptionEntry(v: Rec): v is Rec & ExceptionLogEntry {
   return (
-    typeof v === 'object' &&
-    v !== null &&
-    typeof (v as AppLogEntry).ts === 'string' &&
-    typeof (v as AppLogEntry).level === 'string' &&
-    typeof (v as AppLogEntry).message === 'string'
+    v.kind === 'exception' &&
+    typeof v.ts === 'string' &&
+    typeof v.app === 'string' &&
+    typeof v.name === 'string' &&
+    typeof v.message === 'string' &&
+    typeof v.source === 'string'
   );
 }
 
-/** Parse JSON-Lines text into both record kinds, skipping blank/malformed lines. */
+function isDependencyEntry(v: Rec): v is Rec & DependencyLogEntry {
+  return (
+    v.kind === 'dependency' &&
+    typeof v.ts === 'string' &&
+    typeof v.app === 'string' &&
+    typeof v.type === 'string' &&
+    typeof v.target === 'string' &&
+    typeof v.name === 'string' &&
+    typeof v.durationMs === 'number' &&
+    typeof v.success === 'boolean'
+  );
+}
+
+// A request entry needs ts + numeric status.
+function isRequestEntry(v: Rec): v is Rec & AccessLogEntry {
+  return typeof v.ts === 'string' && typeof v.status === 'number';
+}
+
+// An app-log entry needs ts + string level + string message (no status).
+function isAppLogEntry(v: Rec): v is Rec & AppLogEntry {
+  return typeof v.ts === 'string' && typeof v.level === 'string' && typeof v.message === 'string';
+}
+
+/** Parse JSON-Lines text into all four record kinds, skipping blank/malformed lines. */
 export function parseAll(text: string): ParsedLogs {
   const requests: AccessLogEntry[] = [];
   const logs: AppLogEntry[] = [];
+  const exceptions: ExceptionLogEntry[] = [];
+  const dependencies: DependencyLogEntry[] = [];
   for (const line of text.split('\n')) {
     const trimmed = line.trim();
     if (!trimmed) continue;
     try {
       const parsed: unknown = JSON.parse(trimmed);
-      if (isRequestEntry(parsed)) requests.push(parsed);
-      else if (isAppLogEntry(parsed)) logs.push(parsed);
+      if (typeof parsed !== 'object' || parsed === null) continue;
+      const v = parsed as Rec;
+      if (isExceptionEntry(v)) exceptions.push(v);
+      else if (isDependencyEntry(v)) dependencies.push(v);
+      else if (isRequestEntry(v)) requests.push(v);
+      else if (isAppLogEntry(v)) logs.push(v);
     } catch {
       // Tolerate partial trailing writes and other malformed lines.
     }
   }
-  return { requests, logs };
+  return { requests, logs, exceptions, dependencies };
 }
 
 /** Parse JSON-Lines text, returning only request (access-log) entries. */

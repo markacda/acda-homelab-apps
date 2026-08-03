@@ -61,7 +61,7 @@ Each app only creates the layers it needs. By example:
 
 - **recipe-book** — the fuller reference: aggregates + repositories.
 - **dynamic-vs-fixed** — a stateless calculation pipeline (external ports, no repository).
-- **log-viewer** — a read-only analytics app (a store port + background ingest service + a query/read model).
+- **log-viewer** — a read-only analytics app (a store port + background ingest service + a query/read model). Four views over the four `@homelab/access-log` record kinds — Requests, Logs, Exceptions (grouped by name+message), Dependencies (HTTP + postgres, with failure rate + p95) — plus a rule-based alert monitor (`Domain/Services/alert-rules.ts`) that pushes anomaly notifications (5xx burst, error-rate, slow p95, exception burst) to the notification app with a per-rule cooldown.
 - **dashboard** — discovery/config/health-probe ports with a gated background monitor.
 - **atc** — a thin proxy (a validated `PointQuery` value object + one external `AirplanesSource` adapter, `cors`/`compression`, and a `Web/public` with no client build — a tar1090-derived browser app. Its own client code (`js/**`, `index.html`, `style.css`) is Prettier-formatted like every app; only the vendored third-party `libs/` and static assets stay unformatted, and the whole `Web/public` is excluded from ESLint).
 - **ev-crossover** — a static page with no server-side domain at all: just `Web/` (the browser-side `crossover.ts` formula + UI) and a bare composition-root `server.ts` that serves it.
@@ -92,15 +92,24 @@ Each app only creates the layers it needs. By example:
 app's Dockerfile stages the packages it uses in the builder (`COPY apps/Common/<x>/...`),
 and lists their runtime deps in its own `package.json`:
 
-- **`@homelab/access-log`** — `pageLoadLogger`/`installConsoleLogging` (structured
-  per-request `access.log` + mirrored `app.log`, daily-rotated + gzipped under
-  `LOG_DIR`, ~30-day retention, skipping `/healthz` and `/health`); pure
-  `buildEntry`/`buildAppLogEntry`; the `AccessLogEntry`/`AppLogEntry`/`LogLevel`
+- **`@homelab/access-log`** — the structured-logging kit. Four JSON-Lines record
+  kinds, all daily-rotated + gzipped under `LOG_DIR` (~30-day retention): per-request
+  `access.log` (`pageLoadLogger`, skipping `/healthz`/`/health`), mirrored console
+  `app.log` (`installConsoleLogging`), first-class `exceptions.log`
+  (`logException` + `installProcessExceptionHandlers` for uncaught/unhandledRejection),
+  and outbound-call `dependencies.log` (`installFetchLogging` wraps global `fetch`;
+  `logDependency` also used by `@homelab/db`). A per-request `traceId`
+  (`AsyncLocalStorage`, exposed via `currentTraceId`) correlates the app-logs,
+  dependencies and exceptions a request produces. Pure builders
+  (`buildEntry`/`buildAppLogEntry`/`buildException`/`buildDependency`); the
+  `AccessLogEntry`/`AppLogEntry`/`ExceptionLogEntry`/`DependencyLogEntry`/`LogLevel`
   types the `log-viewer` reads back; and the `DISCOVERY_UA` constant.
 - **`@homelab/server-kit`** — the Express bootstrap: `createApp(name)` (installs
-  console logging + mounts the access logger first) and `startServer` (mounts
-  `/healthz` + `public/` static + a terminal error handler, binds `0.0.0.0`, and
-  installs SIGTERM/SIGINT graceful shutdown), plus `healthHandler`/`errorHandler`.
+  console logging, `fetch` dependency logging, and process-level exception handlers,
+  then mounts the access logger first) and `startServer` (mounts `/healthz` +
+  `public/` static + a terminal error handler that also records an exception, binds
+  `0.0.0.0`, and installs SIGTERM/SIGINT graceful shutdown), plus
+  `healthHandler`/`errorHandler`.
 - **`@homelab/http-utils`** — dependency-free query/body helpers (`firstStr`,
   `optStr`, `csvList`, `toStringArray`, `clampInt`) in `index.ts`; the multer-backed
   `memoryUpload` in `upload.ts` (kept separate so non-upload apps don't pull multer).
@@ -108,8 +117,10 @@ and lists their runtime deps in its own `package.json`:
   factory whose connection string comes from `DATABASE_URL_FILE` → `DATABASE_URL` →
   discrete `PG*`), `runMigrations(pool, {schema, dir})` (an idempotent, fail-loud
   SQL-file migration runner recording applied files in `<schema>.schema_migrations`),
-  and `pingDb` (a `SELECT 1` for `startServer`'s `healthCheck`). Used by the
-  data-owning apps; `startServer`'s `onShutdown` closes the pool.
+  and `pingDb` (a `SELECT 1` for `startServer`'s `healthCheck`). `createPool` also
+  wraps `pool.query` to time each query as a postgres dependency (see
+  `@homelab/access-log`); queries via an explicit `pool.connect()` client aren't
+  captured. Used by the data-owning apps; `startServer`'s `onShutdown` closes the pool.
 
 **Database.** A single `db` service (`postgres:17-alpine`) backs the data-owning apps
 (**notification**, **recipe-book**); the stateless apps and dynamic-vs-fixed's
@@ -148,13 +159,18 @@ ones (dashboard: `HOST_ADDRESS` + read-only Docker socket for container auto-dis
 recipe-book: `TECTONIC_CACHE_DIR` for the LaTeX toolchain; notification: optional
 `SEND_TOKEN` guarding `POST /send`, plus optional `SMTP_HOST`/`SMTP_PORT`/
 `SMTP_USER`/`SMTP_PASS`/`SMTP_FROM`/`SMTP_TO` that register the email channel
-skeleton; log-viewer: `NOTIFICATION_URL` to post failed-request alerts to the
-notification app).
+skeleton; log-viewer: `NOTIFICATION_URL` (+ optional `SEND_TOKEN`) to post rule-based
+alerts to the notification app, tuned by optional `ALERT_WINDOW_MS` (default 5 min),
+`ALERT_ERROR_BURST` (5xx count, default 5), `ALERT_ERROR_RATE` (0..1, default 0.5),
+`ALERT_SLOW_P95_MS` (default 3000), `ALERT_EXCEPTION_BURST` (default 5),
+`ALERT_MIN_SAMPLE` (default 20), and `ALERT_COOLDOWN_MS` (default 15 min) — a rule with
+a 0 threshold is disabled).
 
 **Notifications.** The **notification** app (`/notificaties`) records every
 notification in a persistent feed (shown in the recent-notifications UI) and can
 additionally deliver it over pluggable channels. Other apps call `POST /send`
-(e.g. `log-viewer` on new `>=500` requests); an **optional** `channels` array
+(e.g. `log-viewer` when an alert rule fires — 5xx burst, error-rate, slow p95, or
+exception burst over a trailing window); an **optional** `channels` array
 names extra delivery channels to fan out to (an unknown name is a `400`, and one
 channel failing never fails the request or the feed). The feed is always written
 and is not itself a channel. `email` is a wired-but-stubbed skeleton showing how to

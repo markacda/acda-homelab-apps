@@ -2,6 +2,8 @@
 
 export type RequestSortField = 'ts' | 'durationMs' | 'status' | 'app';
 export type AppLogSortField = 'ts' | 'level' | 'app';
+export type ExceptionSortField = 'ts' | 'app' | 'source' | 'name';
+export type DependencySortField = 'ts' | 'app' | 'type' | 'target' | 'durationMs';
 
 export interface SortSpec<F> {
   field: F;

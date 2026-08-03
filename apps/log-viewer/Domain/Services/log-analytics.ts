@@ -1,6 +1,25 @@
-import type { AccessLogEntry, AppLogEntry, LogLevel, StatusClass, LogBand } from '../ValueObjects/log-entry.ts';
-import type { LogFilter, AppLogFilter } from '../ValueObjects/log-filter.ts';
-import type { Stats, LogStats, EndpointStat, AppStat, LogAppStat } from '../ValueObjects/log-stats.ts';
+import type {
+  AccessLogEntry,
+  AppLogEntry,
+  LogLevel,
+  StatusClass,
+  LogBand,
+  ExceptionLogEntry,
+  DependencyLogEntry,
+  ExceptionSource,
+} from '../ValueObjects/log-entry.ts';
+import type { LogFilter, AppLogFilter, ExceptionFilter, DependencyFilter } from '../ValueObjects/log-filter.ts';
+import type {
+  Stats,
+  LogStats,
+  EndpointStat,
+  AppStat,
+  LogAppStat,
+  ExceptionStats,
+  ExceptionProblem,
+  DependencyStats,
+  DependencyTargetStat,
+} from '../ValueObjects/log-stats.ts';
 
 // Pure filtering + aggregation over parsed log entries. No I/O here so it can be
 // unit-tested directly, and the query service can reuse it per request.
@@ -236,5 +255,172 @@ export function computeLogStats(logs: AppLogEntry[]): LogStats {
     perApp: [...byApp.values()].sort((a, b) => b.count - a.count),
     levelDistribution: [...byLevel.entries()].map(([level, count]) => ({ level, count })).sort((a, b) => b.count - a.count),
     overTime: densifyBuckets(byBucket, () => ({ error: 0, warn: 0, info: 0 })).map(([bucket, b]) => ({ bucket, ...b })),
+  };
+}
+
+// ---- exceptions -----------------------------------------------------------
+
+/** Apply a filter to exception records. Order is preserved (caller sorts upstream). */
+export function filterExceptions(items: ExceptionLogEntry[], f: ExceptionFilter): ExceptionLogEntry[] {
+  const q = f.q?.trim().toLowerCase();
+  return items.filter((e) => {
+    if (f.app?.length && !f.app.includes(e.app)) return false;
+    if (f.source?.length && !f.source.includes(e.source)) return false;
+    if (f.from && e.ts < f.from) return false;
+    if (f.to && e.ts > f.to) return false;
+    if (f.excludeApp?.length && f.excludeApp.includes(e.app)) return false;
+    if (q && !`${e.name} ${e.message}`.toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+/** Compute accumulated stats over an already-filtered set of exceptions. */
+export function computeExceptionStats(items: ExceptionLogEntry[], topN = 10): ExceptionStats {
+  interface ProblemAcc {
+    name: string;
+    message: string;
+    count: number;
+    lastSeen: string;
+    apps: Set<string>;
+  }
+  const byProblem = new Map<string, ProblemAcc>();
+  const byApp = new Map<string, number>();
+  const bySource = new Map<ExceptionSource, number>();
+  const byBucket = new Map<string, { count: number }>();
+  const bucketKey = bucketKeyFor(items);
+
+  for (const e of items) {
+    // Group distinct faults by name + message (NUL-joined to avoid collisions).
+    const key = `${e.name}\u0000${e.message}`;
+    const p = byProblem.get(key) ?? { name: e.name, message: e.message, count: 0, lastSeen: e.ts, apps: new Set<string>() };
+    p.count += 1;
+    if (e.ts > p.lastSeen) p.lastSeen = e.ts;
+    p.apps.add(e.app);
+    byProblem.set(key, p);
+
+    byApp.set(e.app, (byApp.get(e.app) ?? 0) + 1);
+    bySource.set(e.source, (bySource.get(e.source) ?? 0) + 1);
+
+    const bk = bucketKey(e.ts);
+    const b = byBucket.get(bk) ?? { count: 0 };
+    b.count += 1;
+    byBucket.set(bk, b);
+  }
+
+  const problems: ExceptionProblem[] = [...byProblem.values()]
+    .map((p) => ({ name: p.name, message: p.message, count: p.count, lastSeen: p.lastSeen, apps: [...p.apps].sort() }))
+    .sort((a, b) => b.count - a.count);
+
+  return {
+    overall: { count: items.length, problemCount: byProblem.size, appCount: byApp.size },
+    problems: problems.slice(0, topN),
+    perApp: [...byApp.entries()].map(([app, count]) => ({ app, count })).sort((a, b) => b.count - a.count),
+    bySource: [...bySource.entries()].map(([source, count]) => ({ source, count })).sort((a, b) => b.count - a.count),
+    overTime: densifyBuckets(byBucket, () => ({ count: 0 })).map(([bucket, b]) => ({ bucket, ...b })),
+  };
+}
+
+// ---- dependencies ---------------------------------------------------------
+
+/** The p-th percentile of an ascending-sorted array (nearest-rank). 0 if empty. */
+function percentile(sortedAsc: number[], p: number): number {
+  if (sortedAsc.length === 0) return 0;
+  const rank = Math.ceil(p * sortedAsc.length);
+  const idx = Math.min(sortedAsc.length - 1, Math.max(0, rank - 1));
+  return sortedAsc[idx];
+}
+
+/** Apply a filter to dependency records. Order is preserved (caller sorts upstream). */
+export function filterDependencies(items: DependencyLogEntry[], f: DependencyFilter): DependencyLogEntry[] {
+  const q = f.q?.trim().toLowerCase();
+  return items.filter((e) => {
+    if (f.app?.length && !f.app.includes(e.app)) return false;
+    if (f.type?.length && !f.type.includes(e.type)) return false;
+    if (f.target?.length && !f.target.includes(e.target)) return false;
+    if (f.outcome === 'success' && !e.success) return false;
+    if (f.outcome === 'failure' && e.success) return false;
+    if (f.from && e.ts < f.from) return false;
+    if (f.to && e.ts > f.to) return false;
+    if (f.excludeApp?.length && f.excludeApp.includes(e.app)) return false;
+    if (q && !`${e.name} ${e.target}`.toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+/** Compute accumulated stats over an already-filtered set of dependency calls. */
+export function computeDependencyStats(items: DependencyLogEntry[], topN = 10): DependencyStats {
+  interface TargetAcc {
+    target: string;
+    type: DependencyLogEntry['type'];
+    count: number;
+    failureCount: number;
+    durations: number[];
+  }
+  let failureCount = 0;
+  const allDurations: number[] = [];
+  const byTarget = new Map<string, TargetAcc>();
+  const byApp = new Map<string, { count: number; failureCount: number; totalDuration: number }>();
+  const byBucket = new Map<string, { ok: number; failed: number }>();
+  const bucketKey = bucketKeyFor(items);
+
+  for (const e of items) {
+    const dur = e.durationMs || 0;
+    allDurations.push(dur);
+    if (!e.success) failureCount += 1;
+
+    const tkey = `${e.type}\u0000${e.target}`;
+    const t = byTarget.get(tkey) ?? { target: e.target, type: e.type, count: 0, failureCount: 0, durations: [] };
+    t.count += 1;
+    if (!e.success) t.failureCount += 1;
+    t.durations.push(dur);
+    byTarget.set(tkey, t);
+
+    const a = byApp.get(e.app) ?? { count: 0, failureCount: 0, totalDuration: 0 };
+    a.count += 1;
+    if (!e.success) a.failureCount += 1;
+    a.totalDuration += dur;
+    byApp.set(e.app, a);
+
+    const bk = bucketKey(e.ts);
+    const b = byBucket.get(bk) ?? { ok: 0, failed: 0 };
+    if (e.success) b.ok += 1;
+    else b.failed += 1;
+    byBucket.set(bk, b);
+  }
+
+  const targets: DependencyTargetStat[] = [...byTarget.values()].map((t) => {
+    const sorted = [...t.durations].sort((x, y) => x - y);
+    const total = sorted.reduce((s, d) => s + d, 0);
+    return {
+      target: t.target,
+      type: t.type,
+      count: t.count,
+      failureCount: t.failureCount,
+      avgDurationMs: t.count ? round2(total / t.count) : 0,
+      p95DurationMs: round2(percentile(sorted, 0.95)),
+    };
+  });
+
+  const sortedAll = [...allDurations].sort((a, b) => a - b);
+  const totalAll = sortedAll.reduce((s, d) => s + d, 0);
+
+  return {
+    overall: {
+      count: items.length,
+      failureCount,
+      failureRate: items.length ? round2(failureCount / items.length) : 0,
+      avgDurationMs: items.length ? round2(totalAll / items.length) : 0,
+      p95DurationMs: round2(percentile(sortedAll, 0.95)),
+    },
+    perTarget: topBy(targets, (t) => t.count, topN),
+    perApp: [...byApp.entries()]
+      .map(([app, a]) => ({ app, count: a.count, failureCount: a.failureCount, avgDurationMs: a.count ? round2(a.totalDuration / a.count) : 0 }))
+      .sort((a, b) => b.count - a.count),
+    slowest: topBy(
+      targets.filter((t) => t.count >= 3),
+      (t) => t.p95DurationMs,
+      topN
+    ),
+    overTime: densifyBuckets(byBucket, () => ({ ok: 0, failed: 0 })).map(([bucket, b]) => ({ bucket, ...b })),
   };
 }

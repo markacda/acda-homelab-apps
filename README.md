@@ -12,15 +12,15 @@ Served through the proxy on `https://<pi-host>/` (recommended). The proxy uses a
 trust warning; plain HTTP on port 80 redirects to HTTPS. The direct `600x` ports
 stay plain HTTP.
 
-| Path                 | App                | Direct port | Description                                                                                                                                   |
-| -------------------- | ------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/`                  | `dashboard`        | 6000        | Landing page: tiled dashboard that auto-discovers the other apps via the Docker socket and health-checks them                                 |
-| `/atc`               | `atc`              | 6001        | Live aircraft-tracking frontend (airplanes.live), TypeScript/Express server + static map UI                                                   |
-| `/laden-of-tanken`   | `ev-crossover`     | 6002        | Electricity price (€/kWh) at which charging is cheaper than petrol                                                                            |
-| `/dynamisch-of-vast` | `dynamic-vs-fixed` | 6003        | Whether a dynamic (hourly-market) energy contract beats your fixed one, from HomeWizard usage + EnergyZero prices (NL)                        |
-| `/logs`              | `log-viewer`       | 6004        | Browse, search, filter and aggregate the structured access logs written by every app (per-app/per-endpoint stats, errors)                     |
-| `/receptenboek`      | `recipe-book`      | 6005        | Import Albert Heijn (Allerhande) recipes into a shared library, assemble named recipe books, and export them as LaTeX / PDF                   |
-| `/notificaties`      | `notification`     | 6006        | Collects notifications from the other apps (via `POST /send`) and shows a feed of recent ones, e.g. failed-request alerts from the log viewer |
+| Path                 | App                | Direct port | Description                                                                                                                                                      |
+| -------------------- | ------------------ | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                  | `dashboard`        | 6000        | Landing page: tiled dashboard that auto-discovers the other apps via the Docker socket and health-checks them                                                    |
+| `/atc`               | `atc`              | 6001        | Live aircraft-tracking frontend (airplanes.live), TypeScript/Express server + static map UI                                                                      |
+| `/laden-of-tanken`   | `ev-crossover`     | 6002        | Electricity price (€/kWh) at which charging is cheaper than petrol                                                                                               |
+| `/dynamisch-of-vast` | `dynamic-vs-fixed` | 6003        | Whether a dynamic (hourly-market) energy contract beats your fixed one, from HomeWizard usage + EnergyZero prices (NL)                                           |
+| `/logs`              | `log-viewer`       | 6004        | Browse, search, filter and aggregate the structured logs written by every app — requests, app-logs, exceptions and dependencies — with rule-based anomaly alerts |
+| `/receptenboek`      | `recipe-book`      | 6005        | Import Albert Heijn (Allerhande) recipes into a shared library, assemble named recipe books, and export them as LaTeX / PDF                                      |
+| `/notificaties`      | `notification`     | 6006        | Collects notifications from the other apps (via `POST /send`) and shows a feed of recent ones, e.g. failed-request alerts from the log viewer                    |
 
 The proxy (`proxy/nginx.conf`) strips the path prefix before forwarding, so each
 app is unaware it's served under a subpath — the only requirement is that app
@@ -112,8 +112,9 @@ docker compose up -d --build
 
 The `notification` app (`/notificaties`) records every notification in a
 persistent feed and shows the recent ones. Other apps post to its internal
-`POST /send` endpoint — for example the `log-viewer` calls it when new
-server-error (`>=500`) requests appear.
+`POST /send` endpoint — for example the `log-viewer` calls it when an alert rule
+fires (a 5xx burst, high error rate, slow p95, or exception burst over a trailing
+window).
 
 Beyond the always-written feed, a notification can be **delivered** over pluggable
 channels: include an optional `channels` array in the `POST /send` body naming the
@@ -162,14 +163,22 @@ apps/<name>/Dockerfile .`) so the shared `tsconfig.base.json` is reachable. The
 
 ## Logging
 
-Every app writes a **structured access log** — one JSON object per request —
-capturing page loads and their timing. Fields: `ts`, `app`, `method`, `url`,
-`status`, `durationMs`, `ip`, `ua`, `referer`, `bytes`. Health-check requests
-(`/healthz`, `/health`) are excluded to keep the log to real traffic.
+Every app writes **structured logs** — one JSON object per line — across four
+files in `LOG_DIR`, each rotated daily and gzipped with the most recent ~30 files
+kept (a **~1-month retention** window, via `rotating-file-stream`):
 
-Logs are written to `LOG_DIR` (`/app/logs` in Docker, backed by a per-app named
-volume) as `access.log`, rotated daily and gzipped, with the most recent ~30
-files kept — a **~1-month retention** window (via `rotating-file-stream`).
+- **`access.log`** — one record per request: `ts`, `app`, `method`, `url`,
+  `status`, `durationMs`, `ip`, `ua`, `referer`, `bytes` (health-check requests
+  `/healthz`/`/health` excluded to keep it to real traffic).
+- **`app.log`** — mirrored `console.*` output as structured records.
+- **`exceptions.log`** — first-class exception records (unhandled route errors,
+  `uncaughtException`/`unhandledRejection`, and explicit `logException` calls),
+  with name/message/stack/source.
+- **`dependencies.log`** — outbound-call timings: every global `fetch` and every
+  `pool.query` (postgres), with target, duration and success.
+
+Records made while handling a request share a `traceId`, correlating the
+app-logs, dependencies and exceptions back to the request that produced them.
 
 Read an app's logs:
 
@@ -182,9 +191,13 @@ In local dev the log lands in `apps/<name>/logs/` (git-ignored).
 
 Or use the **`log-viewer`** app (port 6004): it mounts every app's log volume
 read-only and serves a scrollable, searchable, filterable UI over the full
-1-month history, with accumulated stats (avg response time and request counts
-per app and per endpoint, error counts/rates, status distribution, and more).
-In dev, point it at the repo's logs with `LOGS_ROOT=./apps npm run dev -w log-viewer`.
+1-month history. Four views — **Requests**, **Logs**, **Exceptions** (grouped by
+name+message) and **Dependencies** (HTTP + postgres, with failure rate and p95) —
+each with accumulated stats and time charts. It also runs a rule-based alert
+monitor that posts anomaly notifications (5xx burst, error-rate, slow p95,
+exception burst) to the notification app; thresholds are tunable via the `ALERT_*`
+env vars (see the app's registration). In dev, point it at the repo's logs with
+`LOGS_ROOT=./apps npm run dev -w log-viewer`.
 
 ## Adding a new app
 

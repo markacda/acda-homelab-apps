@@ -1,10 +1,27 @@
 import { createStream } from 'rotating-file-stream';
 import { join } from 'node:path';
 import { format } from 'node:util';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { randomUUID } from 'node:crypto';
 import type { IncomingHttpHeaders, OutgoingHttpHeaders } from 'node:http';
 import type { RequestHandler } from 'express';
 
 export { DISCOVERY_UA } from './constants.ts';
+
+// ---- request correlation --------------------------------------------------
+
+// A per-request trace id, propagated through async work via AsyncLocalStorage so
+// the app-logs, dependencies and exceptions produced while handling a request can
+// be tied back to it. Work outside a request (startup, background polls) has none.
+interface TraceContext {
+  traceId: string;
+}
+const traceStore = new AsyncLocalStorage<TraceContext>();
+
+/** The trace id of the in-flight request, or undefined outside one. */
+export function currentTraceId(): string | undefined {
+  return traceStore.getStore()?.traceId;
+}
 
 // Structured per-request access log. One JSON object per line, written to a
 // daily-rotated file. Old files are gzipped and only ~30 are kept, giving a
@@ -39,14 +56,32 @@ function appLogStream(): ReturnType<typeof createStream> {
   return appStream;
 }
 
+// Two further streams, kept in the same LOG_DIR so they ride the Log Viewer's
+// existing read-only volume mounts: first-class exception and outbound-dependency
+// records (Application-Insights style), separate from the request + console logs.
+let excStream: ReturnType<typeof createStream> | undefined;
+function excLogStream(): ReturnType<typeof createStream> {
+  if (!excStream) {
+    excStream = createStream('exceptions.log', ROTATE_OPTS);
+  }
+  return excStream;
+}
+
+let depStream: ReturnType<typeof createStream> | undefined;
+function depLogStream(): ReturnType<typeof createStream> {
+  if (!depStream) {
+    depStream = createStream('dependencies.log', ROTATE_OPTS);
+  }
+  return depStream;
+}
+
 /**
- * Flush and close both rotating log streams, resolving once the OS has the
+ * Flush and close every rotating log stream, resolving once the OS has the
  * buffered data. Call on graceful shutdown so the tail of the log isn't lost
- * when the process exits. A no-op (resolves immediately) if neither stream was
- * ever opened.
+ * when the process exits. A no-op (resolves immediately) for streams never opened.
  */
 export function closeLogStreams(): Promise<void> {
-  const open = [stream, appStream].filter((s): s is NonNullable<typeof s> => Boolean(s));
+  const open = [stream, appStream, excStream, depStream].filter((s): s is NonNullable<typeof s> => Boolean(s));
   return Promise.all(open.map((s) => new Promise<void>((resolve) => s.end(resolve)))).then(() => undefined);
 }
 
@@ -81,6 +116,9 @@ export interface AccessLogEntry {
   ua: string | null;
   referer: string | null;
   bytes: number | null;
+  // Correlation id shared with the app-logs/dependencies/exceptions this request
+  // produced. Omitted for entries written before correlation was introduced.
+  traceId?: string;
   // Present only for non-2xx responses: the full response header map (with
   // sensitive values redacted) and a size-bounded copy of the response body.
   // Omitted entirely on 2xx to keep the common case's log lines small.
@@ -128,7 +166,8 @@ export function buildEntry(
   app: string,
   nowIso: string = new Date().toISOString(),
   resBody?: string,
-  resBodyTruncated?: boolean
+  resBodyTruncated?: boolean,
+  traceId?: string
 ): AccessLogEntry {
   const entry: AccessLogEntry = {
     ts: nowIso,
@@ -142,6 +181,7 @@ export function buildEntry(
     referer: req.headers?.referer || null,
     bytes: Number(res.getHeader?.('content-length')) || null,
   };
+  if (traceId !== undefined) entry.traceId = traceId;
   if (isNon2xx(res.statusCode)) {
     const headers = res.getHeaders?.();
     if (headers) entry.resHeaders = redactHeaders(headers);
@@ -155,6 +195,9 @@ export function buildEntry(
 export function pageLoadLogger(app: string): RequestHandler {
   return (req, res, next) => {
     if (SKIP_PATHS.has(req.path)) return next();
+    // A fresh correlation id per request. Captured here (not read at "finish",
+    // which fires outside the AsyncLocalStorage scope) so it lands on the entry.
+    const traceId = randomUUID();
     const start = process.hrtime.bigint();
 
     // Buffer the response body as it's written so it's still available at
@@ -203,9 +246,11 @@ export function pageLoadLogger(app: string): RequestHandler {
           body = `[binary, ${size} bytes, ${ct || 'unknown content-type'}]`;
         }
       }
-      logStream().write(JSON.stringify(buildEntry(req, res, durationMs, app, undefined, body, bodyTruncated)) + '\n');
+      logStream().write(JSON.stringify(buildEntry(req, res, durationMs, app, undefined, body, bodyTruncated, traceId)) + '\n');
     });
-    next();
+    // Run the rest of the request inside the trace scope so console.* /
+    // dependency / exception records made while handling it inherit the id.
+    traceStore.run({ traceId }, () => next());
   };
 }
 
@@ -224,6 +269,7 @@ export interface AppLogEntry {
   level: LogLevel;
   message: string; // human-readable, util.format(...args)
   params: unknown[]; // JSON-safe per-argument values, for structured display
+  traceId?: string; // correlation id when logged while handling a request
 }
 
 /** Make a single console argument JSON-safe for the `params` array. */
@@ -245,14 +291,22 @@ function safeParam(arg: unknown): unknown {
  * Build a structured application-log entry from console arguments.
  * Pure and side-effect free so it can be unit-tested (inject `nowIso`).
  */
-export function buildAppLogEntry(level: LogLevel, args: unknown[], app: string, nowIso: string = new Date().toISOString()): AppLogEntry {
-  return {
+export function buildAppLogEntry(
+  level: LogLevel,
+  args: unknown[],
+  app: string,
+  nowIso: string = new Date().toISOString(),
+  traceId?: string
+): AppLogEntry {
+  const entry: AppLogEntry = {
     ts: nowIso,
     app,
     level,
     message: format(...args),
     params: args.map(safeParam),
   };
+  if (traceId !== undefined) entry.traceId = traceId;
+  return entry;
 }
 
 let consoleInstalled = false;
@@ -270,10 +324,233 @@ export function installConsoleLogging(app: string): void {
     console[level] = (...args: unknown[]): void => {
       original(...args); // keep the normal stdout/stderr output intact
       try {
-        appLogStream().write(JSON.stringify(buildAppLogEntry(level, args, app)) + '\n');
+        appLogStream().write(JSON.stringify(buildAppLogEntry(level, args, app, undefined, currentTraceId())) + '\n');
       } catch {
         // Logging must never crash the app; drop the line on any write error.
       }
     };
   }
+}
+
+// ---- exception records ------------------------------------------------------
+
+// Where an exception was caught. `express` = an unhandled route error; `uncaught`
+// / `unhandledRejection` = a process-level fault; `manual` = an explicit
+// logException() call from app code.
+export const EXCEPTION_SOURCES = ['express', 'uncaught', 'unhandledRejection', 'manual'] as const;
+export type ExceptionSource = (typeof EXCEPTION_SOURCES)[number];
+
+// A first-class exception record: one JSON object per line in exceptions.log. The
+// `kind` discriminator lets the log-viewer classify it unambiguously (the request
+// and app-log records have no `kind`).
+export interface ExceptionLogEntry {
+  ts: string;
+  app: string;
+  kind: 'exception';
+  name: string; // error class name (e.g. "TypeError")
+  message: string;
+  stack?: string;
+  source: ExceptionSource;
+  traceId?: string; // the request this happened under, when applicable
+  method?: string; // request context, when caught in a route
+  url?: string;
+  status?: number;
+}
+
+/** Optional request context attached to an exception caught while serving one. */
+export interface ExceptionContext {
+  traceId?: string;
+  method?: string;
+  url?: string;
+  status?: number;
+}
+
+/**
+ * Build a structured exception record. Pure and side-effect free (inject
+ * `nowIso`). Accepts an unknown throwable: an Error keeps its name/message/stack,
+ * anything else is best-effort stringified.
+ */
+export function buildException(
+  err: unknown,
+  app: string,
+  source: ExceptionSource,
+  ctx: ExceptionContext = {},
+  nowIso: string = new Date().toISOString()
+): ExceptionLogEntry {
+  const isError = err instanceof Error;
+  const entry: ExceptionLogEntry = {
+    ts: nowIso,
+    app,
+    kind: 'exception',
+    name: isError ? err.name : 'Error',
+    message: isError ? err.message : String(err),
+    source,
+  };
+  if (isError && err.stack) entry.stack = err.stack;
+  const traceId = ctx.traceId ?? currentTraceId();
+  if (traceId !== undefined) entry.traceId = traceId;
+  if (ctx.method !== undefined) entry.method = ctx.method;
+  if (ctx.url !== undefined) entry.url = ctx.url;
+  if (ctx.status !== undefined) entry.status = ctx.status;
+  return entry;
+}
+
+/** Write an exception record to exceptions.log. Never throws. */
+export function logException(err: unknown, app: string, source: ExceptionSource, ctx: ExceptionContext = {}): void {
+  try {
+    excLogStream().write(JSON.stringify(buildException(err, app, source, ctx)) + '\n');
+  } catch {
+    // Logging must never crash the app.
+  }
+}
+
+// ---- dependency records -----------------------------------------------------
+
+// The kinds of outbound call we time. `http` = a global fetch; `postgres` = a
+// query through the shared pool.
+export const DEPENDENCY_TYPES = ['http', 'postgres'] as const;
+export type DependencyType = (typeof DEPENDENCY_TYPES)[number];
+
+// A first-class outbound-dependency record: one JSON object per line in
+// dependencies.log. `kind` discriminates it from the other record shapes.
+export interface DependencyLogEntry {
+  ts: string;
+  app: string;
+  kind: 'dependency';
+  type: DependencyType;
+  target: string; // host (http) or logical target such as "db" (postgres)
+  name: string; // e.g. "GET /send" or "SELECT"
+  durationMs: number;
+  success: boolean;
+  status?: number; // HTTP status, when applicable
+  error?: string; // failure message, when !success
+  traceId?: string; // the request this call was made under, when applicable
+}
+
+/** The measured fields of a dependency call, minus the boilerplate. */
+export interface DependencyFields {
+  type: DependencyType;
+  target: string;
+  name: string;
+  durationMs: number;
+  success: boolean;
+  status?: number;
+  error?: string;
+  traceId?: string;
+}
+
+/** Build a structured dependency record. Pure and side-effect free. */
+export function buildDependency(f: DependencyFields, app: string, nowIso: string = new Date().toISOString()): DependencyLogEntry {
+  const entry: DependencyLogEntry = {
+    ts: nowIso,
+    app,
+    kind: 'dependency',
+    type: f.type,
+    target: f.target,
+    name: f.name,
+    durationMs: f.durationMs,
+    success: f.success,
+  };
+  if (f.status !== undefined) entry.status = f.status;
+  if (f.error !== undefined) entry.error = f.error;
+  const traceId = f.traceId ?? currentTraceId();
+  if (traceId !== undefined) entry.traceId = traceId;
+  return entry;
+}
+
+/** Write a dependency record to dependencies.log. Never throws. */
+export function logDependency(f: DependencyFields, app: string): void {
+  try {
+    depLogStream().write(JSON.stringify(buildDependency(f, app)) + '\n');
+  } catch {
+    // Logging must never crash the app.
+  }
+}
+
+// Round hrtime nanoseconds to milliseconds with 3 decimals (matches pageLoadLogger).
+function elapsedMs(startNs: bigint): number {
+  return Math.round(Number(process.hrtime.bigint() - startNs) / 1e3) / 1e3;
+}
+
+// Extract a URL string from fetch's first argument (string | URL | Request),
+// duck-typed so it never depends on the Request/URL globals being present.
+function fetchUrl(input: unknown): string {
+  if (typeof input === 'string') return input;
+  if (input && typeof input === 'object' && 'url' in input && typeof (input as { url: unknown }).url === 'string') {
+    return (input as { url: string }).url;
+  }
+  return String(input);
+}
+
+function fetchMethod(input: unknown, init: unknown): string {
+  const fromInit = init && typeof init === 'object' && 'method' in init ? (init as { method?: unknown }).method : undefined;
+  const fromReq = input && typeof input === 'object' && 'method' in input ? (input as { method?: unknown }).method : undefined;
+  return String(fromInit ?? fromReq ?? 'GET').toUpperCase();
+}
+
+// Split a URL into a host (the dependency target) and path (part of its name),
+// tolerating relative or malformed URLs.
+function splitUrl(raw: string): { host: string; path: string } {
+  try {
+    const u = new URL(raw);
+    return { host: u.host, path: u.pathname };
+  } catch {
+    return { host: raw, path: raw };
+  }
+}
+
+let fetchInstalled = false;
+
+/**
+ * Wrap the global `fetch` so each outbound HTTP call is timed and recorded as a
+ * DependencyLogEntry (success = res.ok; failures captured with the error message).
+ * Idempotent and transparent — arguments and the resolved Response pass through
+ * untouched, and logging never alters the result. No-op if fetch is unavailable.
+ */
+export function installFetchLogging(app: string): void {
+  if (fetchInstalled || typeof globalThis.fetch !== 'function') return;
+  fetchInstalled = true;
+  const original = globalThis.fetch.bind(globalThis);
+  globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
+    const start = process.hrtime.bigint();
+    const method = fetchMethod(input, init);
+    const { host, path } = splitUrl(fetchUrl(input));
+    try {
+      const res = await original(input, init);
+      logDependency(
+        { type: 'http', target: host, name: `${method} ${path}`, durationMs: elapsedMs(start), success: res.ok, status: res.status },
+        app
+      );
+      return res;
+    } catch (err) {
+      logDependency(
+        { type: 'http', target: host, name: `${method} ${path}`, durationMs: elapsedMs(start), success: false, error: (err as Error).message },
+        app
+      );
+      throw err;
+    }
+  }) as typeof fetch;
+}
+
+let processHandlersInstalled = false;
+
+/**
+ * Install process-level fault handlers that record a first-class exception before
+ * the usual console output. `unhandledRejection` is logged; `uncaughtException` is
+ * logged and then the process exits non-zero (preserving Node's fail-fast default,
+ * which registering a handler would otherwise suppress). Idempotent.
+ */
+export function installProcessExceptionHandlers(app: string): void {
+  if (processHandlersInstalled) return;
+  processHandlersInstalled = true;
+  process.on('unhandledRejection', (reason) => {
+    logException(reason, app, 'unhandledRejection');
+    console.error(`[${app}] unhandledRejection`, reason);
+  });
+  process.on('uncaughtException', (err) => {
+    logException(err, app, 'uncaught');
+    console.error(`[${app}] uncaughtException`, err);
+    // Flush the tail, then exit non-zero as Node would have without a handler.
+    void closeLogStreams().finally(() => process.exit(1));
+  });
 }
