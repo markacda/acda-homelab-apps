@@ -93,7 +93,9 @@ let pickerRecipeId: string | null = null; // recipe awaiting a book choice in th
 // ---- library --------------------------------------------------------------
 
 async function loadRecipes(): Promise<void> {
-  recipes = await api<Recipe[]>('api/recipes');
+  const loaded = await api<Recipe[]>('api/recipes');
+  // Default order is alphabetical by title; search re-ranks by match quality.
+  recipes = loaded.sort((a, b) => a.title.localeCompare(b.title));
   renderLibrary();
 }
 
