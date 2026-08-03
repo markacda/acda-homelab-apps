@@ -285,9 +285,10 @@ services:
       start_period: 10s
 
   # Authentication: owns the persons store (email = username, hashed password,
-  # roles) backing the auth epic. Data lives in Postgres (auth schema/role,
-  # self-provisioned), so there's no data volume. Registration/login/tokens land
-  # in issue #149.
+  # roles) plus registration/login and cookie-based JWT sessions (issue #149).
+  # Account data lives in Postgres (auth schema/role, self-provisioned); the only
+  # local state is the JWT signing secret on the auth-secrets volume, self-generated
+  # on first boot so redeploys keep existing sessions valid.
   auth:
     build:
       context: .
@@ -304,9 +305,12 @@ services:
       - LOG_DIR=/app/logs
       # Connection string read from the shared secrets volume (self-provisioned).
       - DATABASE_URL_FILE=/secrets/auth.url
+      # JWT signing secret, self-provisioned on the auth-secrets volume at first boot.
+      - JWT_SECRET_FILE=/auth-secrets/jwt.key
     volumes:
       - auth-logs:/app/logs
       - db-secrets:/secrets:ro
+      - auth-secrets:/auth-secrets
     depends_on:
       db:
         condition: service_healthy
@@ -370,3 +374,6 @@ volumes:
   log-viewer-logs:
   notification-logs:
   auth-logs:
+  # Self-generated JWT signing secret for the auth app; persisted so redeploys
+  # don't invalidate existing sessions.
+  auth-secrets:
