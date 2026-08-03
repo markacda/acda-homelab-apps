@@ -1,22 +1,10 @@
 // The Exceptions view: browse, filter and aggregate first-class exception records.
 // Talks to /api/exceptions, /api/exceptions/stats, /api/exceptions/meta.
 
-import { el, card, pill, table, checkboxDropdown, fmtTs } from './dom.ts';
-import { openSheet, type SheetRow } from './sheet.ts';
+import { el, card, pill, table, checkboxDropdown, fmtTs, sourceClass } from './dom.ts';
+import { showExceptionDetail, type Exception } from './details.ts';
 import { stackedBarChart } from './chart.ts';
 
-interface Exception {
-  ts: string;
-  app: string;
-  name: string;
-  message: string;
-  stack?: string;
-  source: string;
-  traceId?: string;
-  method?: string;
-  url?: string;
-  status?: number;
-}
 interface ExceptionsResponse {
   total: number;
   limit: number;
@@ -57,13 +45,6 @@ const EMPTY_STATS: ExceptionStats = {
   bySource: [],
   overTime: [],
 };
-
-/** CSS pill class for an exception source (by rough severity). */
-function sourceClass(source: string): string {
-  if (source === 'uncaught' || source === 'unhandledRejection') return 'lvl-error';
-  if (source === 'express') return 'lvl-warn';
-  return 'lvl-info'; // manual / anything else
-}
 
 /** Mount the Exceptions view into `root`. Returns a teardown to stop its timer. */
 export function mountExceptions(root: HTMLElement): () => void {
@@ -205,21 +186,6 @@ export function mountExceptions(root: HTMLElement): () => void {
     );
   }
 
-  function showDetail(e: Exception): void {
-    const rows: SheetRow[] = [
-      { label: 'Time', value: fmtTs(e.ts) },
-      { label: 'App', value: e.app },
-      { label: 'Source', value: pill(e.source, sourceClass(e.source)) },
-      { label: 'Name', value: e.name },
-      { label: 'Message', value: e.message, mono: true },
-    ];
-    if (e.method || e.url) rows.push({ label: 'Request', value: `${e.method ?? ''} ${e.url ?? ''}`.trim(), mono: true });
-    if (e.status !== undefined) rows.push({ label: 'Status', value: String(e.status) });
-    rows.push({ label: 'Trace ID', value: e.traceId ?? '—', mono: true });
-    if (e.stack) rows.push({ label: 'Stack', value: e.stack, mono: true });
-    openSheet(`${e.name}: ${e.message}`.trim() || 'Exception', rows);
-  }
-
   function logRow(e: Exception): HTMLElement {
     const row = el(
       'tr',
@@ -230,7 +196,7 @@ export function mountExceptions(root: HTMLElement): () => void {
       el('td', {}, e.name),
       el('td', { class: 'msg', title: e.message }, e.message)
     );
-    row.addEventListener('click', () => showDetail(e));
+    row.addEventListener('click', () => showExceptionDetail(e));
     return row;
   }
 

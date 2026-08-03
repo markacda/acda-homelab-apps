@@ -1,23 +1,10 @@
 // The Dependencies view: browse, filter and aggregate outbound-dependency calls
 // (HTTP fetches + postgres queries). Talks to /api/dependencies[/stats|/meta].
 
-import { el, card, pill, table, checkboxDropdown, fmtTs, fmtMs, statusClassName } from './dom.ts';
-import { openSheet, type SheetRow } from './sheet.ts';
+import { el, card, pill, table, checkboxDropdown, fmtTs, fmtMs, statusClassName, outcomePill } from './dom.ts';
+import { showDependencyDetail, type Dependency } from './details.ts';
 import { stackedBarChart } from './chart.ts';
 
-interface Dependency {
-  ts: string;
-  app: string;
-  type: string;
-  target: string;
-  name: string;
-  durationMs: number;
-  success: boolean;
-  status?: number;
-  error?: string;
-  traceId?: string;
-  command?: string; // full SQL statement for postgres deps (name holds only the verb)
-}
 interface DependenciesResponse {
   total: number;
   limit: number;
@@ -218,27 +205,6 @@ export function mountDependencies(root: HTMLElement): () => void {
     );
   }
 
-  function outcomePill(success: boolean): HTMLElement {
-    return pill(success ? 'ok' : 'fail', success ? 's2' : 's5');
-  }
-
-  function showDetail(e: Dependency): void {
-    const rows: SheetRow[] = [
-      { label: 'Time', value: fmtTs(e.ts) },
-      { label: 'App', value: e.app },
-      { label: 'Type', value: e.type },
-      { label: 'Target', value: e.target, mono: true },
-      { label: 'Name', value: e.name, mono: true },
-      { label: 'Duration', value: fmtMs(e.durationMs) },
-      { label: 'Outcome', value: outcomePill(e.success) },
-    ];
-    if (e.command) rows.push({ label: 'Query', value: e.command, mono: true });
-    if (e.status !== undefined) rows.push({ label: 'Status', value: pill(String(e.status), statusClassName(e.status)) });
-    if (e.error) rows.push({ label: 'Error', value: e.error, mono: true });
-    rows.push({ label: 'Trace ID', value: e.traceId ?? '—', mono: true });
-    openSheet(`${e.type} · ${e.name}`.trim() || 'Dependency', rows);
-  }
-
   function logRow(e: Dependency): HTMLElement {
     const row = el(
       'tr',
@@ -252,7 +218,7 @@ export function mountDependencies(root: HTMLElement): () => void {
       el('td', { class: 'dur' }, fmtMs(e.durationMs)),
       el('td', {}, outcomePill(e.success))
     );
-    row.addEventListener('click', () => showDetail(e));
+    row.addEventListener('click', () => showDependencyDetail(e));
     return row;
   }
 

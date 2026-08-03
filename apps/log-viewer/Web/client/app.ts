@@ -7,6 +7,7 @@ import { mountRequests } from './requests.ts';
 import { mountLogs } from './logs.ts';
 import { mountExceptions } from './exceptions.ts';
 import { mountDependencies } from './dependencies.ts';
+import { mountTrace } from './trace.ts';
 
 const view = $('view');
 
@@ -95,6 +96,13 @@ function highlightNav(route: string): void {
 
 function render(): void {
   unmount();
+  const hash = location.hash.replace(/^#/, '');
+  // The trace view is a parameterised route (#/trace/<id>) with no nav entry.
+  if (hash.startsWith('/trace/')) {
+    highlightNav('');
+    teardown = mountTrace(view, decodeURIComponent(hash.slice('/trace/'.length)));
+    return;
+  }
   const route = currentRoute();
   highlightNav(route);
   if (route === '/requests') teardown = mountRequests(view);

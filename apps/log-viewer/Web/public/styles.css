@@ -125,6 +125,24 @@ h1 {
   font-size: 1.15rem;
 }
 
+/* the trace id shown beside the Trace view title */
+.view-head .trace-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+/* a clickable trace id (rendered in a side sheet) that opens the trace view */
+.trace-link {
+  color: var(--info);
+  text-decoration: none;
+}
+
+.trace-link:hover {
+  text-decoration: underline;
+}
+
 /* landing tiles */
 .tiles {
   display: grid;
