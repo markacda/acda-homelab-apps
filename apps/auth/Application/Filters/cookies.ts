@@ -37,8 +37,8 @@ export function parseCookies(header: string | undefined): Record<string, string>
     if (eq === -1) continue;
     const name = part.slice(0, eq).trim();
     if (!name) continue;
-    out[name] = decodeURIComponent(part.slice(eq + 1).trim());
-  }
+    const value = part.slice(eq + 1).trim();
+    try { out[name] = decodeURIComponent(value); } catch { out[name] = value; }
   return out;
 }
 
