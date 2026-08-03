@@ -1,6 +1,6 @@
 import type { LogStore } from '../../../Ports/LogStore/log-store.ts';
 import type { AccessLogEntry, AppLogEntry, ExceptionLogEntry, DependencyLogEntry } from '../../../Domain/ValueObjects/log-entry.ts';
-import type { Notifier } from '../../../Ports/Notifier/failure-notifier.ts';
+import type { Notifier } from '../../../Ports/Notifier/notifier.ts';
 import { evaluateAlertRules, type AlertRuleConfig } from '../../../Domain/Services/alert-rules.ts';
 
 /**

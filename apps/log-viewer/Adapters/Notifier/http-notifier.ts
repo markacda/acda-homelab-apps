@@ -1,11 +1,11 @@
-import type { Notifier, AlertMessage } from '../../Ports/Notifier/failure-notifier.ts';
+import type { Notifier, AlertMessage } from '../../Ports/Notifier/notifier.ts';
 
 /**
  * Posts alerts to the notification app's internal `/send` endpoint (reached by
  * container name over the docker network). Alerts link back to the log viewer
  * (url "/logs/") unless the caller overrides it.
  */
-export class HttpFailureNotifier implements Notifier {
+export class HttpNotifier implements Notifier {
   private readonly sendUrl: string;
   private readonly token?: string;
 

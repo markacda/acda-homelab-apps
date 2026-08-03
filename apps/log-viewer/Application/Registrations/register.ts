@@ -1,7 +1,7 @@
 import type { Express } from 'express';
 import { FileLogStore } from '../../Adapters/FileLogStore/file-log-store.ts';
-import { HttpFailureNotifier } from '../../Adapters/Notifier/http-failure-notifier.ts';
-import type { Notifier } from '../../Ports/Notifier/failure-notifier.ts';
+import { HttpNotifier } from '../../Adapters/Notifier/http-notifier.ts';
+import type { Notifier } from '../../Ports/Notifier/notifier.ts';
 import { LogIngestService } from '../Services/Background/log-ingest-service.ts';
 import type { AlertRuleConfig } from '../../Domain/Services/alert-rules.ts';
 import { LogQueryService } from '../Services/log-query-service.ts';
@@ -37,7 +37,7 @@ export function register(app: Express): LogIngestService {
   const notificationUrl = process.env.NOTIFICATION_URL;
   let notifier: Notifier | undefined;
   if (notificationUrl) {
-    notifier = new HttpFailureNotifier(notificationUrl, process.env.SEND_TOKEN || undefined);
+    notifier = new HttpNotifier(notificationUrl, process.env.SEND_TOKEN || undefined);
     console.log(`log-viewer alert notifications -> ${notificationUrl}`);
   }
 
