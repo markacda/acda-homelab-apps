@@ -61,7 +61,8 @@ export class Session {
 
   /** True when the session's expiry is in the past relative to `now` (default: current time). */
   isExpired(now: Date = new Date()): boolean {
-    return new Date(this.expiresAt).getTime() <= now.getTime();
+    const expiresMs = Date.parse(this.expiresAt);
+    return !Number.isFinite(expiresMs) || expiresMs <= now.getTime();
   }
 
   toJSON(): SessionData {
