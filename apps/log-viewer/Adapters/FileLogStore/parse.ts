@@ -14,7 +14,14 @@ export const MAX_ENTRIES = 200_000;
 type Rec = Record<string, unknown>;
 
 function isExceptionEntry(v: Rec): v is Rec & ExceptionLogEntry {
-  return v.kind === 'exception' && typeof v.ts === 'string';
+  return (
+    v.kind === 'exception' &&
+    typeof v.ts === 'string' &&
+    typeof v.app === 'string' &&
+    typeof v.name === 'string' &&
+    typeof v.message === 'string' &&
+    typeof v.source === 'string'
+  );
 }
 
 function isDependencyEntry(v: Rec): v is Rec & DependencyLogEntry {
