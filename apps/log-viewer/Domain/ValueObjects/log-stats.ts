@@ -18,6 +18,16 @@ export interface AppStat {
   errorCount: number;
 }
 
+/** A single slow request (not an endpoint average) — the raw entry, projected. */
+export interface SlowRequest {
+  app: string;
+  method: string;
+  url: string;
+  status: number;
+  durationMs: number;
+  ts: string;
+}
+
 export interface Stats {
   overall: {
     count: number;
@@ -30,6 +40,7 @@ export interface Stats {
   perApp: AppStat[];
   perEndpoint: EndpointStat[]; // top N by request count
   slowestEndpoints: EndpointStat[]; // top N by avg duration (min 3 requests)
+  slowestRequests: SlowRequest[]; // top N individual requests by duration
   statusDistribution: { status: number; count: number }[];
   topIps: { ip: string; count: number }[];
   topUserAgents: { ua: string; count: number }[];

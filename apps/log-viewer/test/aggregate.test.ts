@@ -134,6 +134,19 @@ test('computeStats: status distribution sorted ascending', () => {
   );
 });
 
+test('computeStats: slowestRequests are individual entries sorted by duration desc', () => {
+  const s = computeStats(sample);
+  assert.equal(s.slowestRequests.length, 4);
+  assert.deepEqual(
+    s.slowestRequests.map((r) => r.durationMs),
+    [40, 20, 6, 4]
+  );
+  // The slowest is the 500 on atc /planes — a single request, not an endpoint average.
+  assert.equal(s.slowestRequests[0].status, 500);
+  assert.equal(s.slowestRequests[0].app, 'atc');
+  assert.equal(s.slowestRequests[0].url, '/planes');
+});
+
 // ---- application logs -----------------------------------------------------
 
 function logEntry(over: Partial<AppLogEntry>): AppLogEntry {

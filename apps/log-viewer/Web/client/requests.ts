@@ -27,6 +27,14 @@ interface AppStat {
   avgDurationMs: number;
   errorCount: number;
 }
+interface SlowRequest {
+  app: string;
+  method: string;
+  url: string;
+  status: number;
+  durationMs: number;
+  ts: string;
+}
 interface Stats {
   overall: {
     count: number;
@@ -39,6 +47,7 @@ interface Stats {
   perApp: AppStat[];
   perEndpoint: EndpointStat[];
   slowestEndpoints: EndpointStat[];
+  slowestRequests: SlowRequest[];
   statusDistribution: { status: number; count: number }[];
   topIps: { ip: string; count: number }[];
   topUserAgents: { ua: string; count: number }[];
@@ -61,6 +70,7 @@ const EMPTY_STATS: Stats = {
   perApp: [],
   perEndpoint: [],
   slowestEndpoints: [],
+  slowestRequests: [],
   statusDistribution: [],
   topIps: [],
   topUserAgents: [],
@@ -81,6 +91,7 @@ export function mountRequests(root: HTMLElement): () => void {
   const perAppEl = el('div', { class: 'table-wrap' });
   const perEndpointEl = el('div', { class: 'table-wrap' });
   const slowestEl = el('div', { class: 'table-wrap' });
+  const slowestReqEl = el('div', { class: 'table-wrap' });
   const statusDistEl = el('div', { class: 'table-wrap' });
   const panels = el(
     'section',
@@ -89,6 +100,7 @@ export function mountRequests(root: HTMLElement): () => void {
     panel('Requests per app', perAppEl),
     panel('Top endpoints', perEndpointEl),
     panel('Slowest endpoints', slowestEl),
+    panel('Slowest requests', slowestReqEl),
     panel('Status codes', statusDistEl)
   );
 
@@ -162,6 +174,11 @@ export function mountRequests(root: HTMLElement): () => void {
   // ---- state --------------------------------------------------------------
   let sortField = 'ts';
   let sortDir: 'asc' | 'desc' = 'desc';
+  // An exact status-code filter toggled by clicking a Status codes row (null = off).
+  let statusFilter: number | null = null;
+  // Last known total request count, so the header can re-render its "updated"
+  // timestamp on auto-refresh without re-fetching /api/meta (which owns the count).
+  let metaCount = 0;
   let offset = 0;
   let total = 0;
   let autoTimer: number | undefined;
@@ -200,6 +217,7 @@ export function mountRequests(root: HTMLElement): () => void {
     if (apps.length) p.set('app', apps.join(','));
     if (methods.length) p.set('method', methods.join(','));
     if (statuses.length) p.set('statusClass', statuses.join(','));
+    if (statusFilter !== null) p.set('status', String(statusFilter));
     const from = rangeFrom();
     if (from) p.set('from', from);
     // Hide noise by default; the toggles opt back in to seeing it.
@@ -237,7 +255,7 @@ export function mountRequests(root: HTMLElement): () => void {
     perAppEl.replaceChildren(
       table(
         ['App', 'Requests', 'Avg ms', 'Errors'],
-        s.perApp.map((a) => [a.app, String(a.count), String(a.avgDurationMs), String(a.errorCount)])
+        s.perApp.slice(0, 10).map((a) => [a.app, String(a.count), String(a.avgDurationMs), String(a.errorCount)])
       )
     );
     perEndpointEl.replaceChildren(
@@ -254,12 +272,43 @@ export function mountRequests(root: HTMLElement): () => void {
         ['', '', 'cell-url', '', '']
       )
     );
-    statusDistEl.replaceChildren(
+    slowestReqEl.replaceChildren(
       table(
-        ['Status', 'Count'],
-        s.statusDistribution.map((d) => [pill(String(d.status), statusClassName(d.status)), String(d.count)])
+        ['App', 'Method', 'URL', 'Status', 'ms', 'Time'],
+        s.slowestRequests.map((r) => [r.app, r.method, r.url, pill(String(r.status), statusClassName(r.status)), String(r.durationMs), fmtTs(r.ts)]),
+        ['', '', 'cell-url', '', '', '']
       )
     );
+    renderStatusTable(s.statusDistribution);
+  }
+  // The Status codes table is built inline (not via table()) so each row can toggle
+  // an exact-status filter on click; the active row is highlighted.
+  function renderStatusTable(dist: { status: number; count: number }[]): void {
+    const rows = dist.slice(0, 10);
+    if (rows.length === 0) {
+      statusDistEl.replaceChildren(el('p', { class: 'empty' }, 'No data'));
+      return;
+    }
+    const thead = el('thead', {}, el('tr', {}, el('th', {}, 'Status'), el('th', {}, 'Count')));
+    const tbody = el(
+      'tbody',
+      {},
+      ...rows.map((d) => {
+        const active = statusFilter === d.status;
+        const row = el(
+          'tr',
+          { class: active ? 'clickable active' : 'clickable' },
+          el('td', {}, pill(String(d.status), statusClassName(d.status))),
+          el('td', {}, String(d.count))
+        );
+        row.addEventListener('click', () => {
+          statusFilter = active ? null : d.status;
+          refresh();
+        });
+        return row;
+      })
+    );
+    statusDistEl.replaceChildren(el('table', { class: 'stat-table' }, thead, tbody));
   }
 
   function logRow(e: Entry): HTMLElement {
@@ -288,9 +337,11 @@ export function mountRequests(root: HTMLElement): () => void {
     }
     const res = await fetch(`api/stats?${baseParams().toString()}`);
     if (!res.ok) return;
-    const { stats } = (await res.json()) as { stats: Stats };
+    const { stats, lastRefresh } = (await res.json()) as { stats: Stats; lastRefresh: string | null };
     renderCards(stats);
     renderStatTables(stats);
+    // Auto-refresh runs loadStats, so advance the header timestamp here too.
+    renderHeader(lastRefresh);
   }
   async function loadLogs(reset: boolean): Promise<void> {
     if (selectionEmpty()) {
@@ -336,13 +387,17 @@ export function mountRequests(root: HTMLElement): () => void {
   async function refresh(): Promise<void> {
     await Promise.all([loadStats(), loadLogs(true)]);
   }
+  function renderHeader(lastRefresh: string | null): void {
+    metaEl.textContent = `${metaCount.toLocaleString()} requests · updated ${lastRefresh ? fmtTs(lastRefresh) : '—'}`;
+  }
   async function loadMeta(): Promise<void> {
     const res = await fetch('api/meta');
     if (!res.ok) return;
     const meta = (await res.json()) as Meta;
     appDropdown.setOptions(meta.apps);
     methodDropdown.setOptions(meta.methods);
-    metaEl.textContent = `${meta.count.toLocaleString()} requests · updated ${meta.lastRefresh ? fmtTs(meta.lastRefresh) : '—'}`;
+    metaCount = meta.count;
+    renderHeader(meta.lastRefresh);
   }
 
   // ---- wiring -------------------------------------------------------------

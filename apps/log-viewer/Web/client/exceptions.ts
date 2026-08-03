@@ -121,6 +121,9 @@ export function mountExceptions(root: HTMLElement): () => void {
   // ---- state --------------------------------------------------------------
   let sortField = 'ts';
   let sortDir: 'asc' | 'desc' = 'desc';
+  // Last known total count, so the header can re-render its "updated" timestamp
+  // on auto-refresh without re-fetching /api/exceptions/meta (which owns the count).
+  let metaCount = 0;
   let offset = 0;
   let total = 0;
   let autoTimer: number | undefined;
@@ -175,7 +178,7 @@ export function mountExceptions(root: HTMLElement): () => void {
     perAppEl.replaceChildren(
       table(
         ['App', 'Exceptions'],
-        s.perApp.map((a) => [a.app, String(a.count)])
+        s.perApp.slice(0, 10).map((a) => [a.app, String(a.count)])
       )
     );
     bySourceEl.replaceChildren(
@@ -209,9 +212,11 @@ export function mountExceptions(root: HTMLElement): () => void {
     }
     const res = await fetch(`api/exceptions/stats?${baseParams().toString()}`);
     if (!res.ok) return;
-    const { stats } = (await res.json()) as { stats: ExceptionStats };
+    const { stats, lastRefresh } = (await res.json()) as { stats: ExceptionStats; lastRefresh: string | null };
     renderCards(stats);
     renderPanels(stats);
+    // Auto-refresh runs loadStats, so advance the header timestamp here too.
+    renderHeader(lastRefresh);
   }
   async function loadLogs(reset: boolean): Promise<void> {
     if (selectionEmpty()) {
@@ -254,12 +259,16 @@ export function mountExceptions(root: HTMLElement): () => void {
   async function refresh(): Promise<void> {
     await Promise.all([loadStats(), loadLogs(true)]);
   }
+  function renderHeader(lastRefresh: string | null): void {
+    metaEl.textContent = `${metaCount.toLocaleString()} exceptions · updated ${lastRefresh ? fmtTs(lastRefresh) : '—'}`;
+  }
   async function loadMeta(): Promise<void> {
     const res = await fetch('api/exceptions/meta');
     if (!res.ok) return;
     const meta = (await res.json()) as ExceptionMeta;
     appDropdown.setOptions(meta.apps);
-    metaEl.textContent = `${meta.count.toLocaleString()} exceptions · updated ${meta.lastRefresh ? fmtTs(meta.lastRefresh) : '—'}`;
+    metaCount = meta.count;
+    renderHeader(meta.lastRefresh);
   }
 
   // ---- wiring -------------------------------------------------------------

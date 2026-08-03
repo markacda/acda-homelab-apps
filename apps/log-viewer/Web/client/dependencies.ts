@@ -128,6 +128,9 @@ export function mountDependencies(root: HTMLElement): () => void {
   // ---- state --------------------------------------------------------------
   let sortField = 'ts';
   let sortDir: 'asc' | 'desc' = 'desc';
+  // Last known total count, so the header can re-render its "updated" timestamp
+  // on auto-refresh without re-fetching /api/dependencies/meta (which owns the count).
+  let metaCount = 0;
   let offset = 0;
   let total = 0;
   let autoTimer: number | undefined;
@@ -193,7 +196,7 @@ export function mountDependencies(root: HTMLElement): () => void {
     perAppEl.replaceChildren(
       table(
         ['App', 'Calls', 'Failures', 'Avg ms'],
-        s.perApp.map((a) => [a.app, String(a.count), String(a.failureCount), String(a.avgDurationMs)])
+        s.perApp.slice(0, 10).map((a) => [a.app, String(a.count), String(a.failureCount), String(a.avgDurationMs)])
       )
     );
     slowestEl.replaceChildren(
@@ -231,9 +234,11 @@ export function mountDependencies(root: HTMLElement): () => void {
     }
     const res = await fetch(`api/dependencies/stats?${baseParams().toString()}`);
     if (!res.ok) return;
-    const { stats } = (await res.json()) as { stats: DependencyStats };
+    const { stats, lastRefresh } = (await res.json()) as { stats: DependencyStats; lastRefresh: string | null };
     renderCards(stats);
     renderPanels(stats);
+    // Auto-refresh runs loadStats, so advance the header timestamp here too.
+    renderHeader(lastRefresh);
   }
   async function loadLogs(reset: boolean): Promise<void> {
     if (selectionEmpty()) {
@@ -276,12 +281,16 @@ export function mountDependencies(root: HTMLElement): () => void {
   async function refresh(): Promise<void> {
     await Promise.all([loadStats(), loadLogs(true)]);
   }
+  function renderHeader(lastRefresh: string | null): void {
+    metaEl.textContent = `${metaCount.toLocaleString()} dependency calls · updated ${lastRefresh ? fmtTs(lastRefresh) : '—'}`;
+  }
   async function loadMeta(): Promise<void> {
     const res = await fetch('api/dependencies/meta');
     if (!res.ok) return;
     const meta = (await res.json()) as DependencyMeta;
     appDropdown.setOptions(meta.apps);
-    metaEl.textContent = `${meta.count.toLocaleString()} dependency calls · updated ${meta.lastRefresh ? fmtTs(meta.lastRefresh) : '—'}`;
+    metaCount = meta.count;
+    renderHeader(meta.lastRefresh);
   }
 
   // ---- wiring -------------------------------------------------------------

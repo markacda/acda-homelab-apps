@@ -269,10 +269,10 @@ h1 {
   color: var(--text);
 }
 
+/* Aggregate tables grow to fit their rows (capped at 10 rows in the render) rather
+   than scrolling vertically. Overflow-x stays hidden — long URL cells ellipsize. */
 .table-wrap {
-  max-height: 16rem;
   overflow-x: hidden;
-  overflow-y: auto;
 }
 
 .stat-table {
@@ -304,6 +304,17 @@ h1 {
   width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Clickable stat rows (e.g. the Status codes table toggles an exact-status filter). */
+.stat-table tr.clickable {
+  cursor: pointer;
+}
+.stat-table tr.clickable:hover {
+  background: rgba(148, 163, 184, 0.1);
+}
+.stat-table tr.active {
+  background: rgba(96, 165, 250, 0.15);
 }
 
 .empty {
@@ -430,7 +441,17 @@ h1 {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 0.75rem;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* On small screens (mobile portrait) keep the wide data table readable by letting
+   it exceed the viewport and scroll horizontally inside .logs instead of crushing
+   columns. On desktop the table stays at width:100% (min-width is below its width). */
+@media (max-width: 48rem) {
+  .log-table {
+    min-width: 46rem;
+  }
 }
 
 .log-table {
