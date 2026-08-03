@@ -18,7 +18,16 @@ function isExceptionEntry(v: Rec): v is Rec & ExceptionLogEntry {
 }
 
 function isDependencyEntry(v: Rec): v is Rec & DependencyLogEntry {
-  return v.kind === 'dependency' && typeof v.ts === 'string';
+  return (
+    v.kind === 'dependency' &&
+    typeof v.ts === 'string' &&
+    typeof v.app === 'string' &&
+    typeof v.type === 'string' &&
+    typeof v.target === 'string' &&
+    typeof v.name === 'string' &&
+    typeof v.durationMs === 'number' &&
+    typeof v.success === 'boolean'
+  );
 }
 
 // A request entry needs ts + numeric status.
