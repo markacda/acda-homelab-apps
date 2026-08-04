@@ -2,9 +2,29 @@ import type { Pool } from 'pg';
 import { Category } from '../../Domain/Aggregates/category.ts';
 import type { CategoryData } from '../../Domain/Aggregates/category.ts';
 import type { CategoryRepository } from '../../Domain/Ports/Repositories/category-repository.ts';
-import { listJson, getJson, upsertJson, deleteJson } from './jsonb-store.ts';
 
-/** CategoryRepository backed by one JSONB row per category in the `categories` table. */
+// CategoryRepository over the normalized schema (issue #166): a category is now
+// a plain row of columns. Recipes reference it by the `recipes.category_id`
+// foreign key (ON DELETE SET NULL), so a rename is visible everywhere at once
+// and deleting a category simply unlinks its recipes — no application-level
+// cascade is needed anymore.
+
+interface CategoryRow {
+  id: string;
+  name: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+function toCategoryData(row: CategoryRow): CategoryData {
+  return {
+    id: row.id,
+    name: row.name,
+    createdAt: row.created_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
+  };
+}
+
 export class PostgresCategoryRepository implements CategoryRepository {
   private readonly pool: Pool;
 
@@ -13,19 +33,27 @@ export class PostgresCategoryRepository implements CategoryRepository {
   }
 
   async list(): Promise<Category[]> {
-    return (await listJson<CategoryData>(this.pool, 'categories')).map((d) => Category.fromJSON(d));
+    const res = await this.pool.query<CategoryRow>('SELECT id, name, created_at, updated_at FROM categories ORDER BY updated_at DESC');
+    return res.rows.map((row) => Category.fromJSON(toCategoryData(row)));
   }
 
   async get(id: string): Promise<Category | null> {
-    const data = await getJson<CategoryData>(this.pool, 'categories', id);
-    return data ? Category.fromJSON(data) : null;
+    const res = await this.pool.query<CategoryRow>('SELECT id, name, created_at, updated_at FROM categories WHERE id = $1', [id]);
+    const row = res.rows[0];
+    return row ? Category.fromJSON(toCategoryData(row)) : null;
   }
 
   async save(category: Category): Promise<void> {
-    await upsertJson(this.pool, 'categories', category.toJSON());
+    const data = category.toJSON();
+    await this.pool.query(
+      `INSERT INTO categories (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4)
+       ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, updated_at = EXCLUDED.updated_at`,
+      [data.id, data.name, data.createdAt, data.updatedAt]
+    );
   }
 
   async delete(id: string): Promise<void> {
-    await deleteJson(this.pool, 'categories', id);
+    // recipes.category_id is ON DELETE SET NULL, so linked recipes are unlinked.
+    await this.pool.query('DELETE FROM categories WHERE id = $1', [id]);
   }
 }

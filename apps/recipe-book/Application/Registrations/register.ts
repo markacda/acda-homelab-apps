@@ -47,7 +47,7 @@ export async function register(app: Express): Promise<Pool> {
   // Application services.
   const recipeService = new RecipeService(recipeRepository, imageStore);
   const bookService = new BookService(bookRepository, recipeRepository);
-  const categoryService = new CategoryService(categoryRepository, recipeRepository);
+  const categoryService = new CategoryService(categoryRepository);
   const importService = new RecipeImportService(recipeSource, recipeService);
   const generationService = new BookGenerationService(bookService, documentGenerator);
 
