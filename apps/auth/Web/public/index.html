@@ -18,7 +18,46 @@
       <h1>🔐 Authenticatie</h1>
     </header>
     <main>
-      <p id="status" class="placeholder">Loading…</p>
+      <div class="card">
+        <h2 id="form-title">Sign in</h2>
+        <p id="form-subtitle" class="subtitle">Sign in to your homelab account.</p>
+
+        <form id="login-form" novalidate>
+          <label
+            >Email
+            <input id="login-email" type="email" name="email" autocomplete="username" required />
+          </label>
+          <label
+            >Password
+            <input id="login-password" type="password" name="password" autocomplete="current-password" required />
+          </label>
+          <button id="login-submit" type="submit">Sign in</button>
+        </form>
+
+        <form id="register-form" novalidate hidden>
+          <label
+            >Email
+            <input id="register-email" type="email" name="email" autocomplete="username" required />
+          </label>
+          <label
+            >Password
+            <span class="hint">At least 8 characters.</span>
+            <input id="register-password" type="password" name="password" autocomplete="new-password" minlength="8" required />
+          </label>
+          <label
+            >Confirm password
+            <input id="register-confirm" type="password" name="confirm" autocomplete="new-password" minlength="8" required />
+          </label>
+          <button id="register-submit" type="submit">Create account</button>
+        </form>
+
+        <div id="status" class="status" role="alert" hidden></div>
+
+        <p class="toggle">
+          <span id="to-register">No account? <a href="#" id="show-register">Create one</a></span>
+          <span id="to-login" hidden>Already have an account? <a href="#" id="show-login">Sign in</a></span>
+        </p>
+      </div>
     </main>
     <script type="module" src="app.js"></script>
   </body>
