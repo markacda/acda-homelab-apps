@@ -6,16 +6,22 @@
 # next free port, and add an nginx `location` block in proxy/nginx.conf.
 services:
   # Shared PostgreSQL database. One container fronts all data-owning apps; each
-  # app gets its own role + schema, provisioned on first boot (see db/init). No
-  # host port is published — it's internal-only, reachable as host `db`. Secrets
-  # self-generate into the db-secrets volume, so `docker compose up` needs no
-  # manual passwords. See docs/database-migration.md.
+  # app gets its own role + schema, provisioned on first boot (see db/init).
+  # Published on the host loopback only (127.0.0.1:5432) — reachable as host `db`
+  # on the internal network, and from the host itself (e.g. an SSH-tunnelled
+  # DataGrip session), but NOT exposed to the LAN. Secrets self-generate into the
+  # db-secrets volume, so `docker compose up` needs no manual passwords. See
+  # docs/database-migration.md.
   db:
     image: postgres:17-alpine
     container_name: postgres
     labels:
       # Not an app tile on the dashboard.
       - 'homelab.enable=false'
+    ports:
+      # Loopback-only publish: reachable from the host (SSH-tunnelled clients like
+      # DataGrip) without exposing Postgres to the LAN.
+      - '127.0.0.1:5432:5432'
     # Wrapper generates the superuser password on first boot, then execs the
     # stock entrypoint. Run via sh so no +x bit is required on the mounted file.
     entrypoint: ['/bin/sh', '/db-entrypoint.sh']
