@@ -9,8 +9,11 @@ import { ScryptPasswordHasher } from '../../Adapters/Crypto/scrypt-password-hash
 import { JoseTokenIssuer } from '../../Adapters/Jwt/jose-token-issuer.ts';
 import { loadOrCreateJwtSecret } from '../../Adapters/Config/jwt-secret.ts';
 import { AuthService } from '../Services/auth-service.ts';
+import { UserAdminService } from '../Services/user-admin-service.ts';
 import { AuthController } from '../Controllers/auth-controller.ts';
+import { UserController } from '../Controllers/user-controller.ts';
 import { errorMapping } from '../Filters/error-mapping.ts';
+import { requireRole, ROLE_ADMINISTRATOR } from '../../../Common/auth/index.ts';
 
 /**
  * Composition root: connect the shared Postgres pool, run the persons-store
@@ -36,12 +39,18 @@ export async function register(app: Express): Promise<Pool> {
   const passwordHasher = new ScryptPasswordHasher();
   const tokenIssuer = new JoseTokenIssuer(loadOrCreateJwtSecret(), '7d');
 
-  // Application service + controller.
+  // Application services + controllers.
   const authService = new AuthService(personRepository, sessionRepository, passwordHasher, tokenIssuer);
   const authController = new AuthController(authService, tokenIssuer);
+  const userController = new UserController(new UserAdminService(personRepository));
 
   app.use(express.json({ limit: '256kb' }));
   app.use('/api', authController.router);
+  // Administrator-only user administration (issue #152). The shared guard verifies
+  // the access-token cookie with the env secret (JWT_SECRET_FILE) and responds
+  // 401/403 directly. Mounted after the auth router (which has no /users* route,
+  // so it falls through) and before the error filter.
+  app.use('/api/users', requireRole(ROLE_ADMINISTRATOR), userController.router);
   // Map domain errors to HTTP; unknown errors fall through to server-kit's handler.
   app.use(errorMapping());
 
