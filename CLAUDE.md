@@ -135,7 +135,9 @@ waiter fires once the server is ready; `db/init/10-roles.sh` runs the same share
 provisioner on fresh-volume init), generating a per-app password + writing
 `/secrets/<role>.url` to the shared `db-secrets` volume, which apps read via
 `DATABASE_URL_FILE` — so there's no `.env` and no manual secret, and a newly added
-role appears on the next `docker compose up -d --build db` with no volume wipe.
+role appears on the next `docker compose up -d --force-recreate db` with no volume wipe
+(the boot provisioner only runs when the db container (re)starts, and plain
+`up -d --build db` won't recreate an otherwise-unchanged, bind-mount-only db service).
 Treat the `pg-data` and `db-secrets` volumes as a matched pair. **Schema/data
 changes go through numbered app migrations, never the init sh scripts** (which only
 bootstrap roles/schemas/credentials): migrations live per app under
