@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { Person } from '../Domain/Aggregates/person.ts';
 import type { PersonRepository } from '../Domain/Ports/Repositories/person-repository.ts';
 import { Session } from '../Domain/Aggregates/session.ts';
@@ -40,6 +41,11 @@ class FakeSessionRepository implements SessionRepository {
   }
   async findByTokenHash(tokenHash: string): Promise<Session | null> {
     return this.byHash.get(tokenHash) ?? null;
+  }
+  async consumeByTokenHash(tokenHash: string): Promise<Session | null> {
+    const session = this.byHash.get(tokenHash) ?? null;
+    if (session) this.byHash.delete(tokenHash);
+    return session;
   }
   async deleteByTokenHash(tokenHash: string): Promise<void> {
     this.byHash.delete(tokenHash);
@@ -132,6 +138,19 @@ test('refresh rotates the token: the old one stops working, a new session exists
   // The freshly issued one is.
   const again = await service.refresh(rotated.refreshToken);
   assert.ok(again.accessToken.startsWith('token:'));
+});
+
+test('refresh consumes the presented token atomically: a second use is rejected', async () => {
+  const { service, sessions } = makeService();
+  await service.register('alice@example.com', 'password123');
+  const { refreshToken } = await service.login('alice@example.com', 'password123');
+
+  // Consume the token out from under the flow (as a concurrent /refresh would).
+  const consumed = await sessions.consumeByTokenHash(createHash('sha256').update(refreshToken).digest('hex'));
+  assert.ok(consumed);
+  // The now-spent token can no longer be rotated, and no session was minted.
+  await assert.rejects(() => service.refresh(refreshToken), UnauthorizedError);
+  assert.equal(sessions.byHash.size, 0);
 });
 
 test('refresh rejects a missing or unknown token', async () => {

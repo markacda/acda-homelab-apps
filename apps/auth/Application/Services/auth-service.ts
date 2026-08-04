@@ -97,20 +97,16 @@ export class AuthService {
   async refresh(refreshToken: string | undefined): Promise<IssuedTokens> {
     if (!refreshToken) throw new UnauthorizedError('Missing refresh token.');
     const tokenHash = hashToken(refreshToken);
-    const session = await this.sessions.findByTokenHash(tokenHash);
+    // Atomically spend the presented token: consume deletes-and-returns the row,
+    // so two concurrent /refresh calls with the same token can't both rotate it.
+    const session = await this.sessions.consumeByTokenHash(tokenHash);
     if (!session) throw new UnauthorizedError('Invalid refresh token.');
-    if (session.isExpired()) {
-      await this.sessions.deleteById(session.id);
-      throw new UnauthorizedError('Expired refresh token.');
-    }
+    // The row is already gone, so the reject paths need no extra cleanup.
+    if (session.isExpired()) throw new UnauthorizedError('Expired refresh token.');
     const person = await this.persons.findById(session.personId);
-    if (!person) {
-      await this.sessions.deleteById(session.id);
-      throw new UnauthorizedError('Invalid refresh token.');
-    }
+    if (!person) throw new UnauthorizedError('Invalid refresh token.');
 
-    // Rotate: retire the presented token and mint a new one.
-    await this.sessions.deleteByTokenHash(tokenHash);
+    // Mint a fresh access token and a rotated refresh session.
     const accessToken = await this.tokens.issue({ sub: person.id, roles: person.roles });
     const newRefreshToken = await this.startSession(person.id);
     return { accessToken, refreshToken: newRefreshToken };

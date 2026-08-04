@@ -65,6 +65,24 @@ test('findByTokenHash maps a matching row', async () => {
   assert.equal(found?.personId, 'p1');
 });
 
+test('consumeByTokenHash deletes-and-returns the matching row atomically', async () => {
+  const { pool, queries } = fakePool([
+    { id: 's1', person_id: 'p1', token_hash: 'abc', expires_at: '2026-09-01T00:00:00.000Z', created_at: '2026-08-03T00:00:00.000Z' },
+  ]);
+  const repo = new PostgresSessionRepository(pool);
+  const consumed = await repo.consumeByTokenHash('abc');
+  assert.equal(consumed?.id, 's1');
+  assert.match(queries[0].text, /DELETE FROM sessions WHERE token_hash = \$1/);
+  assert.match(queries[0].text, /RETURNING/);
+  assert.deepEqual(queries[0].params, ['abc']);
+});
+
+test('consumeByTokenHash returns null when no row matches', async () => {
+  const { pool } = fakePool([]);
+  const repo = new PostgresSessionRepository(pool);
+  assert.equal(await repo.consumeByTokenHash('nope'), null);
+});
+
 test('deleteByTokenHash and deleteById issue targeted DELETEs', async () => {
   const { pool, queries } = fakePool();
   const repo = new PostgresSessionRepository(pool);

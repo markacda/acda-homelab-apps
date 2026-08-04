@@ -16,7 +16,15 @@ export function loadOrCreateJwtSecret(): Uint8Array {
   if (file) {
     if (existsSync(file)) {
       const contents = readFileSync(file, 'utf8').trim();
-      if (contents) return Buffer.from(contents, 'base64');
+      if (contents) {
+        // Buffer.from(..,'base64') silently drops non-base64 chars, so corrupt or
+        // truncated material decodes short — fail loud rather than sign with a weak key.
+        const secret = Buffer.from(contents, 'base64');
+        if (secret.length < SECRET_BYTES) {
+          throw new Error(`JWT secret in ${file} is invalid or too short ` + `(${secret.length} bytes decoded, need >= ${SECRET_BYTES}).`);
+        }
+        return secret;
+      }
     }
     const secret = randomBytes(SECRET_BYTES);
     mkdirSync(dirname(file), { recursive: true });

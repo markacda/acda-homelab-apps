@@ -38,7 +38,13 @@ export function parseCookies(header: string | undefined): Record<string, string>
     const name = part.slice(0, eq).trim();
     if (!name) continue;
     const value = part.slice(eq + 1).trim();
-    try { out[name] = decodeURIComponent(value); } catch { out[name] = value; }
+    // The Cookie header is user-controlled; malformed %-encoding must not throw (DoS).
+    try {
+      out[name] = decodeURIComponent(value);
+    } catch {
+      out[name] = value;
+    }
+  }
   return out;
 }
 

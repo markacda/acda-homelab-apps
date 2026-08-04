@@ -3,8 +3,8 @@ import { Session } from '../../Domain/Aggregates/session.ts';
 import type { SessionRepository } from '../../Domain/Ports/Repositories/session-repository.ts';
 
 // SessionRepository backed by the `sessions` table: one row per active refresh
-// token, stored only as `token_hash`. Rotated on refresh (delete + create) and
-// deleted on logout. Timestamps come back from pg as Date and are normalized to
+// token, stored only as `token_hash`. Rotated on refresh (atomic consume +
+// create) and deleted on logout. Timestamps come back from pg as Date and are normalized to
 // ISO strings for the aggregate.
 
 /** A `sessions` row as returned by pg. */
@@ -49,6 +49,17 @@ export class PostgresSessionRepository implements SessionRepository {
     const res = await this.pool.query<SessionRow>(
       `SELECT id, person_id, token_hash, expires_at, created_at
          FROM sessions WHERE token_hash = $1`,
+      [tokenHash]
+    );
+    return res.rows[0] ? rowToSession(res.rows[0]) : null;
+  }
+
+  async consumeByTokenHash(tokenHash: string): Promise<Session | null> {
+    // Atomic delete-and-return: only one concurrent caller gets the row back,
+    // so a rotated/replayed refresh token can be spent exactly once.
+    const res = await this.pool.query<SessionRow>(
+      `DELETE FROM sessions WHERE token_hash = $1
+         RETURNING id, person_id, token_hash, expires_at, created_at`,
       [tokenHash]
     );
     return res.rows[0] ? rowToSession(res.rows[0]) : null;
