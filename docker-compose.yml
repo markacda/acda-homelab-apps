@@ -190,6 +190,9 @@ services:
       # notification app (reached by container name on the internal network).
       - NOTIFICATION_URL=http://notification:6006
       - SEND_TOKEN=${SEND_TOKEN:-}
+      # Verifies the auth app's access-token cookie (Administrator gate, issue #153).
+      # Same signing key the auth app self-provisions on the shared auth-secrets volume.
+      - JWT_SECRET_FILE=/auth-secrets/jwt.key
     volumes:
       # Read-only mounts of every app's access-log volume (incl. its own), so
       # the viewer can read the full daily-rotated, gzipped 1-month history.
@@ -203,8 +206,12 @@ services:
       - auth-logs:/logs/auth:ro
       # Read-write target for this app's own access log.
       - log-viewer-logs:/app/logs
+      # Read-only JWT signing key (auth self-provisions it on first boot); the guard
+      # loads it lazily on the first request, but requests will fail auth until the key exists.
+      - auth-secrets:/auth-secrets:ro
     depends_on:
       - notification
+      - auth
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'node', '-e', "fetch('http://localhost:6004/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]

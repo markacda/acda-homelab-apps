@@ -10,6 +10,7 @@ import { AppLogController } from '../Controllers/app-log-controller.ts';
 import { ExceptionController } from '../Controllers/exception-controller.ts';
 import { DependencyController } from '../Controllers/dependency-controller.ts';
 import { TraceController } from '../Controllers/trace-controller.ts';
+import { createLogViewerGuards } from './auth-guards.ts';
 
 // Re-ingest on an interval; new requests show up within one cycle.
 const REFRESH_INTERVAL_MS = 15_000;
@@ -62,11 +63,19 @@ export function register(app: Express): LogIngestService {
   const dependencyController = new DependencyController(query);
   const traceController = new TraceController(query);
 
+  // Administrator-only (issue #153): the API answers JSON 401/403; the served SPA
+  // shell bounces logged-out browsers to the auth login. /healthz stays public.
+  const { requireApiAdmin, requireAdminPage } = createLogViewerGuards();
+
+  app.use('/api', requireApiAdmin); // gate every /api/* router below
   app.use('/api/app-logs', appLogController.router); // /api/app-logs[/stats|/meta]
   app.use('/api/exceptions', exceptionController.router); // /api/exceptions[/stats|/meta]
   app.use('/api/dependencies', dependencyController.router); // /api/dependencies[/stats|/meta]
   app.use('/api/trace', traceController.router); // /api/trace/:traceId (cross-kind timeline)
   app.use('/api', requestController.router); // /api/logs, /api/stats, /api/meta
+
+  // Gate the static shell (served next by startServer) behind the same role.
+  app.use(requireAdminPage);
 
   return ingest;
 }
