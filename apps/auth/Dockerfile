@@ -57,12 +57,15 @@ COPY --from=builder /repo/apps/auth/Web/public ./Web/public
 
 ENV PORT=6007
 ENV LOG_DIR=/app/logs
+# Self-provisioned JWT signing secret, persisted on the auth-secrets volume so
+# redeploys keep existing sessions valid (see Adapters/Config/jwt-secret.ts).
+ENV JWT_SECRET_FILE=/auth-secrets/jwt.key
 EXPOSE 6007
 
-# Writable log dir owned by the non-root "node" user. The named log volume
-# mounted here inherits this ownership on first use. (Auth data lives in
-# Postgres, so there's no data volume.)
-RUN mkdir -p /app/logs && chown -R node:node /app/logs
+# Writable dirs owned by the non-root "node" user. The named volumes mounted here
+# inherit this ownership on first use: logs, and the secrets dir the app writes the
+# JWT signing key into. (Auth data itself lives in Postgres, so there's no data volume.)
+RUN mkdir -p /app/logs /auth-secrets && chown -R node:node /app/logs /auth-secrets
 
 # Drop root privileges (the base image ships a non-root "node" user).
 USER node
