@@ -59,7 +59,12 @@ EOSQL
   if [ "$reset_pw" = 1 ]; then
     # The secret file was missing: force the role password to the freshly issued
     # one (covers "role existed but the secret was wiped"), then write the file.
-    $PSQL_BASE -v role="$role" -v pw="$pw" -c "ALTER ROLE :\"role\" PASSWORD :'pw';"
+    # Fed via stdin, not `psql -c`: psql interpolates :"x"/:'x' variables only in
+    # script input, never in a -c command string (there they reach the server
+    # verbatim and error with `syntax error at or near ":"`).
+    $PSQL_BASE -v role="$role" -v pw="$pw" <<'EOSQL'
+ALTER ROLE :"role" PASSWORD :'pw';
+EOSQL
     printf 'postgresql://%s:%s@db:5432/%s\n' "$role" "$pw" "$POSTGRES_DB" > "$url_file"
     # World-readable so each app's non-root `node` user can read it across the
     # shared volume; the volume is only mounted into our own app containers.

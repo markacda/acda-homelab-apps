@@ -44,7 +44,9 @@ provision_on_boot() {
   PGPASSWORD="$POSTGRES_PASSWORD" \
   PSQL_BASE="psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U $db_user -d $db_name" \
     sh /provision-roles.sh \
-    || echo "[db-provision] boot provisioning failed (will retry on next boot)"
+    || echo "[db-provision] ERROR: boot provisioning FAILED -- one or more app" \
+            "credentials (/secrets/<role>.url) were NOT written; see the psql error" \
+            "above. Apps missing their secret will not start. Will retry on next boot."
 }
 provision_on_boot &
 
