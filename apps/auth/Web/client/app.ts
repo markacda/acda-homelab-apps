@@ -66,8 +66,10 @@ async function revealAdminLink(): Promise<void> {
     if (!res.ok) return;
     const me = (await res.json()) as PersonView;
     if (me.roles.includes('Administrator')) $('admin-link').hidden = false;
-  } catch {
-    // Ignore — not signed in, or the endpoint is unreachable.
+  } catch (err) {
+    // A non-ok response (e.g. 401 when signed out) is expected and handled above;
+    // reaching here means the request itself failed (network/parse), so warn.
+    console.warn('Could not check admin status:', err);
   }
 }
 void revealAdminLink();
