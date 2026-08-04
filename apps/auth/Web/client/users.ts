@@ -16,6 +16,11 @@ interface PersonView {
 /** The roles assignable via the admin API — mirrors the server's ASSIGNABLE_ROLES. */
 const ASSIGNABLE_ROLES = ['User', 'Administrator'];
 
+/** A copy of the roles in alphabetical order, for stable tag rendering. */
+function sortedRoles(roles: string[]): string[] {
+  return [...roles].sort((a, b) => a.localeCompare(b));
+}
+
 /** Throwing element getter (mirrors the login page helper). */
 function $<T extends HTMLElement = HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -99,7 +104,7 @@ function renderTable(): void {
     return;
   }
   const rows = users.map((u) => {
-    const roleCell = el('td', {}, ...u.roles.map((r) => el('span', { class: 'tag' }, r)));
+    const roleCell = el('td', {}, ...sortedRoles(u.roles).map((r) => el('span', { class: 'tag' }, r)));
     const editBtn = el('button', { type: 'button', class: 'icon-btn', 'aria-label': `Edit roles for ${u.email}` }, icon('pen'));
     editBtn.addEventListener('click', () => openModal(u.id));
     return el('tr', {}, el('td', { class: 'cell-email' }, u.email), roleCell, el('td', { class: 'cell-actions' }, editBtn));
@@ -115,7 +120,8 @@ function renderTable(): void {
 
 async function loadUsers(): Promise<void> {
   const query = searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : '';
-  users = await api<PersonView[]>(`api/users${query}`);
+  const fetched = await api<PersonView[]>(`api/users${query}`);
+  users = fetched.sort((a, b) => a.email.localeCompare(b.email));
   renderTable();
   refreshOpenModal();
 }
@@ -153,7 +159,7 @@ function refreshOpenModal(): void {
       'div',
       { class: 'tags' },
       ...(user.roles.length
-        ? user.roles.map((role) => {
+        ? sortedRoles(user.roles).map((role) => {
             const remove = el('button', { type: 'button', class: 'tag-btn', 'aria-label': `Remove ${role}` }, icon('bin'));
             remove.addEventListener('click', () =>
               mutate(() => api<PersonView>(`api/users/${user.id}/roles/${encodeURIComponent(role)}`, { method: 'DELETE' }))
@@ -164,7 +170,7 @@ function refreshOpenModal(): void {
     )
   );
 
-  const addable = ASSIGNABLE_ROLES.filter((r) => !user.roles.includes(r));
+  const addable = sortedRoles(ASSIGNABLE_ROLES.filter((r) => !user.roles.includes(r)));
   const add = el(
     'div',
     { class: 'role-group' },
