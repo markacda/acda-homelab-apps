@@ -24,7 +24,7 @@ import { errorMapping } from '../Filters/error-mapping.ts';
  * persistent volume (JWT_SECRET_FILE) so redeploys keep existing sessions valid.
  */
 export async function register(app: Express): Promise<Pool> {
-  const pool = createPool('auth');
+  const pool = await createPool('auth');
   await runMigrations(pool, {
     schema: 'auth',
     dir: join(import.meta.dirname, '../../Adapters/Postgres/migrations'),
