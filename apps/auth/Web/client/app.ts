@@ -56,6 +56,24 @@ function safeRedirect(raw: string | null): string {
 
 const redirectTarget = safeRedirect(new URLSearchParams(location.search).get('redirect'));
 
+/**
+ * Reveal the Administrator-only "Gebruikers" link if an already-signed-in visitor
+ * holds that role. Best-effort: a missing session (401) just leaves it hidden.
+ */
+async function revealAdminLink(): Promise<void> {
+  try {
+    const res = await fetch('api/me');
+    if (!res.ok) return;
+    const me = (await res.json()) as PersonView;
+    if (me.roles.includes('Administrator')) $('admin-link').hidden = false;
+  } catch (err) {
+    // A non-ok response (e.g. 401 when signed out) is expected and handled above;
+    // reaching here means the request itself failed (network/parse), so warn.
+    console.warn('Could not check admin status:', err);
+  }
+}
+void revealAdminLink();
+
 /** Client mirror of the server's credential rules (the server stays the source of truth). */
 function validate(email: string, password: string): string | null {
   if (!email.includes('@')) return 'Enter a valid email address.';

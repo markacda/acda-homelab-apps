@@ -33,6 +33,12 @@ COPY apps/Common/db/package.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm install --prefer-offline --no-audit --no-fund
 COPY apps/Common/db/ ./
+# Shared auth guards (requireRole/ROLE_*), imported by register.ts + user-admin-service.ts.
+WORKDIR /repo/apps/Common/auth
+COPY apps/Common/auth/package.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --prefer-offline --no-audit --no-fund
+COPY apps/Common/auth/ ./
 WORKDIR /repo/apps/auth
 # Manifest first for dependency-layer caching.
 COPY apps/auth/package.json ./

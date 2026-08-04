@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gebruikers</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="back-link" href="/" title="Dashboard" aria-label="Back to dashboard">
+        <span class="arrow">←</span> <span class="label">Dashboard</span>
+      </a>
+      <h1>🔐 Gebruikers</h1>
+    </header>
+    <main>
+      <div class="card">
+        <h2>User roles</h2>
+        <p class="subtitle">Manage which roles each account holds. Administrator-only.</p>
+
+        <label class="search-label"
+          >Search
+          <input id="search" type="search" placeholder="Filter by email…" autocomplete="off" />
+        </label>
+
+        <div id="status" class="status" role="alert" hidden></div>
+
+        <div id="users"></div>
+      </div>
+    </main>
+    <script type="module" src="users.js"></script>
+  </body>
+</html>
