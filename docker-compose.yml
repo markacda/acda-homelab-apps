@@ -207,7 +207,7 @@ services:
       # Read-write target for this app's own access log.
       - log-viewer-logs:/app/logs
       # Read-only JWT signing key (auth self-provisions it on first boot); the guard
-      # loads it lazily on the first request, so a not-yet-provisioned key is tolerated.
+      # loads it lazily on the first request, but requests will fail auth until the key exists.
       - auth-secrets:/auth-secrets:ro
     depends_on:
       - notification
