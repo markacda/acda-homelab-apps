@@ -1,0 +1,24 @@
+{
+  "name": "@homelab/auth",
+  "version": "1.0.0",
+  "description": "Shared authN/authZ Express middleware for the homelab apps: verify the access-token cookie and guard routes by role",
+  "private": true,
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "jose": "^5.9.6"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^24.0.0",
+    "express": "^5.1.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

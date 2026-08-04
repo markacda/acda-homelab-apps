@@ -1,0 +1,12 @@
+{
+  // Standalone type-check + test target for the shared auth middleware. The apps
+  // compile these sources into their own dist/ (they import them by relative
+  // path), so this project never emits — it only type-checks the source and its
+  // tests.
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["*.ts", "test/**/*.ts"]
+}
