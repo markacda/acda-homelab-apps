@@ -72,7 +72,14 @@ test('expired token → 401 unauthorized', async () => {
 
 test('invalid/tampered token → 401 unauthorized', async () => {
   const token = await sign();
-  const tampered = token.slice(0, -1) + (token.endsWith('a') ? 'b' : 'a');
+  // Corrupt the first character of the signature segment. Flipping the *last*
+  // char is unreliable: the final base64url char of a 32-byte HMAC signature
+  // carries only 4 significant bits (the low 2 are padding), so many single-char
+  // swaps decode to the same bytes and still verify. The first char is a full
+  // 6-bit value, so changing it always alters the signature.
+  const [header, payload, signature] = token.split('.');
+  const tamperedSig = (signature[0] === 'A' ? 'B' : 'A') + signature.slice(1);
+  const tampered = `${header}.${payload}.${tamperedSig}`;
   const res = fakeRes();
   const next = spyNext();
   await requireAuth(anyCast(fakeReq({ cookie: `access_token=${tampered}` })), anyCast(res), anyCast(next.next));
