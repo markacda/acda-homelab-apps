@@ -30,7 +30,7 @@ import { errorMapping } from '../Filters/error-mapping.ts';
  * after createApp() and before startServer().
  */
 export async function register(app: Express): Promise<Pool> {
-  const pool = createPool('recipe-book');
+  const pool = await createPool('recipe-book');
   await runMigrations(pool, {
     schema: 'recipe_book',
     dir: join(import.meta.dirname, '../../Adapters/Postgres/migrations'),

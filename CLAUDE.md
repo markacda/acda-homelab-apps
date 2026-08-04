@@ -113,9 +113,11 @@ and lists their runtime deps in its own `package.json`:
 - **`@homelab/http-utils`** — dependency-free query/body helpers (`firstStr`,
   `optStr`, `csvList`, `toStringArray`, `clampInt`) in `index.ts`; the multer-backed
   `memoryUpload` in `upload.ts` (kept separate so non-upload apps don't pull multer).
-- **`@homelab/db`** — the shared PostgreSQL kit: `createPool`/`closePool` (a `pg.Pool`
-  factory whose connection string comes from `DATABASE_URL_FILE` → `DATABASE_URL` →
-  discrete `PG*`), `runMigrations(pool, {schema, dir})` (an idempotent, fail-loud
+- **`@homelab/db`** — the shared PostgreSQL kit: `createPool`/`closePool` (an async
+  `pg.Pool` factory whose connection string comes from `DATABASE_URL_FILE` → `DATABASE_URL`
+  → discrete `PG*`; when `DATABASE_URL_FILE` is set it waits, bounded, for the db
+  container to provision that secret file rather than crash-looping on ENOENT —
+  tunable via `DATABASE_URL_FILE_WAIT_MS`), `runMigrations(pool, {schema, dir})` (an idempotent, fail-loud
   SQL-file migration runner recording applied files in `<schema>.schema_migrations`),
   and `pingDb` (a `SELECT 1` for `startServer`'s `healthCheck`). `createPool` also
   wraps `pool.query` to time each query as a postgres dependency (see

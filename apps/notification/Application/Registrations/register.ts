@@ -18,7 +18,7 @@ import { errorMapping } from '../Filters/error-mapping.ts';
  * shutdown and ping it for /healthz.
  */
 export async function register(app: Express): Promise<Pool> {
-  const pool = createPool('notification');
+  const pool = await createPool('notification');
   await runMigrations(pool, {
     schema: 'notification',
     dir: join(import.meta.dirname, '../../Adapters/Postgres/migrations'),

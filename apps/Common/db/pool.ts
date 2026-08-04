@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { setTimeout as sleep } from 'node:timers/promises';
 import pg from 'pg';
 import type { Pool, PoolConfig } from 'pg';
 import { logDependency } from '../access-log/logger.ts';
@@ -19,24 +20,60 @@ import { logDependency } from '../access-log/logger.ts';
 /** Pool size ceiling. Small: these apps are low-traffic and run on a Pi. */
 const MAX_POOL = Number(process.env.PG_POOL_MAX) || 5;
 
-/** Resolve the connection string from the env, or undefined to fall back to PG*. */
-function resolveConnectionString(): string | undefined {
+/**
+ * How long to wait for a not-yet-present DATABASE_URL_FILE before giving up.
+ * The db container provisions each app's `/secrets/<role>.url` asynchronously on
+ * boot (a background waiter in db/entrypoint.sh → db/provision-roles.sh), but an
+ * app is gated only on the db healthcheck, so it can start before its secret has
+ * been written. Wait for it rather than crash-looping on ENOENT.
+ */
+const SECRET_WAIT_MS = Number(process.env.DATABASE_URL_FILE_WAIT_MS) || 120_000;
+const SECRET_POLL_MS = 1_000;
+
+/**
+ * Resolve the connection string from the env, or undefined to fall back to PG*.
+ * When DATABASE_URL_FILE is set the file is required, but it may be provisioned a
+ * few seconds after the app starts (see SECRET_WAIT_MS), so we poll for it to
+ * appear and be non-empty within a bounded window — mirroring the self-healing
+ * wait the JWT secret loader uses — instead of throwing ENOENT immediately.
+ */
+async function resolveConnectionString(): Promise<string | undefined> {
   const file = process.env.DATABASE_URL_FILE;
-  if (file) {
-    const url = readFileSync(file, 'utf8').trim();
-    if (!url) throw new Error(`DATABASE_URL_FILE "${file}" is empty`);
-    return url;
+  if (!file) return process.env.DATABASE_URL || undefined;
+
+  const started = Date.now();
+  let announced = false;
+  for (;;) {
+    if (existsSync(file)) {
+      const url = readFileSync(file, 'utf8').trim();
+      if (url) return url;
+      // Present but empty: the provisioner may be mid-write — keep waiting.
+    }
+    if (Date.now() - started >= SECRET_WAIT_MS) {
+      throw new Error(
+        `DATABASE_URL_FILE "${file}" was not present and non-empty after ` +
+          `${Math.round(SECRET_WAIT_MS / 1000)}s. The db container provisions it on boot ` +
+          `(db/provision-roles.sh); ensure the db service has been (re)created, e.g. ` +
+          '`docker compose up -d --build db`.'
+      );
+    }
+    if (!announced) {
+      console.warn(`[db] waiting for secret file "${file}" to be provisioned…`);
+      announced = true;
+    }
+    await sleep(SECRET_POLL_MS);
   }
-  return process.env.DATABASE_URL || undefined;
 }
 
 /**
  * Build a pg.Pool. Pass `name` to tag connections (shown in pg_stat_activity as
  * application_name), which makes per-app activity legible on the shared server.
+ * Async because it waits (bounded) for a DATABASE_URL_FILE the db container may
+ * still be provisioning — see resolveConnectionString.
  */
-export function createPool(name?: string): Pool {
+export async function createPool(name?: string): Promise<Pool> {
   const config: PoolConfig = { max: MAX_POOL };
-  const connectionString = resolveConnectionString();
+  const connectionString = await resolveConnectionString();
   if (connectionString) config.connectionString = connectionString;
   if (name) config.application_name = name;
   const pool = new pg.Pool(config);
