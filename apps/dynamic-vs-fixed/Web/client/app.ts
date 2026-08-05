@@ -193,7 +193,6 @@ el('calc').addEventListener('submit', async (e) => {
   }
 });
 
-// Persist edits as you go.
 for (const id of [...NUMBER_FIELDS, ...BOOL_FIELDS]) {
   el(id).addEventListener('change', save);
 }

@@ -69,8 +69,6 @@ export interface LogStats {
   overTime: { bucket: string; error: number; warn: number; info: number }[];
 }
 
-// ---- exceptions -----------------------------------------------------------
-
 /** A distinct fault (grouped by name + message) and how often it recurs. */
 export interface ExceptionProblem {
   name: string;
@@ -92,8 +90,6 @@ export interface ExceptionStats {
   // Ascending time series (single band) for a bar chart.
   overTime: { bucket: string; count: number }[];
 }
-
-// ---- dependencies ---------------------------------------------------------
 
 export interface DependencyTargetStat {
   target: string;

@@ -157,6 +157,11 @@ npm run typecheck     # tsc --noEmit per app
 npm test              # runs each app's tests (node --test)
 ```
 
+**Code style.** Let the code speak for itself — prefer clear names and structure over
+comments. Add a comment only when it captures something the code can't: a non-obvious
+_why_, a constraint or workaround, an external/issue reference, or a subtle gotcha. See
+the Code style note in [`CLAUDE.md`](CLAUDE.md).
+
 > Docker builds each app image from the **repo-root context** (`docker build -f
 apps/<name>/Dockerfile .`) so the shared `tsconfig.base.json` is reachable. The
 > build stage compiles the TypeScript to `dist/`; the image then installs its own

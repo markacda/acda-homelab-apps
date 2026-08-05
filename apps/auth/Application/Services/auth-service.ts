@@ -105,7 +105,6 @@ export class AuthService {
     const person = await this.persons.findById(session.personId);
     if (!person) throw new UnauthorizedError('Invalid refresh token.');
 
-    // Mint a fresh access token and a rotated refresh session.
     const accessToken = await this.tokens.issue({ sub: person.id, roles: person.roles });
     const newRefreshToken = await this.startSession(person.id);
     return { accessToken, refreshToken: newRefreshToken };

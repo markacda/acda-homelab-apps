@@ -85,7 +85,6 @@ h1 {
   }
 }
 
-/* top navigation */
 .topnav {
   display: flex;
   flex-wrap: wrap;
@@ -112,7 +111,6 @@ h1 {
   background: var(--card);
 }
 
-/* view header */
 .view-head {
   display: flex;
   align-items: baseline;
@@ -125,7 +123,6 @@ h1 {
   font-size: 1.15rem;
 }
 
-/* the trace id shown beside the Trace view title */
 .view-head .trace-id {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.85rem;
@@ -133,7 +130,6 @@ h1 {
   word-break: break-all;
 }
 
-/* a clickable trace id (rendered in a side sheet) that opens the trace view */
 .trace-link {
   color: var(--info);
   text-decoration: none;
@@ -143,7 +139,6 @@ h1 {
   text-decoration: underline;
 }
 
-/* landing tiles */
 .tiles {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
@@ -198,7 +193,6 @@ h1 {
   font-size: 0.8rem;
 }
 
-/* summary cards */
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
@@ -324,7 +318,6 @@ h1 {
   margin: 0.25rem 0;
 }
 
-/* filters */
 .filters {
   display: flex;
   flex-wrap: wrap;
@@ -372,7 +365,6 @@ h1 {
   cursor: pointer;
 }
 
-/* checkbox multi-select dropdowns */
 .dropdown {
   position: relative;
 }
@@ -437,7 +429,6 @@ h1 {
   accent-color: var(--accent);
 }
 
-/* log table */
 .logs {
   background: var(--card);
   border: 1px solid var(--border);
@@ -516,7 +507,6 @@ h1 {
   color: var(--muted);
 }
 
-/* status pills */
 .pill {
   display: inline-block;
   min-width: 2.2rem;
@@ -576,7 +566,6 @@ h1 {
   font-variant-numeric: tabular-nums;
 }
 
-/* level pills (Logs view) */
 .pill.lvl-error {
   background: rgba(239, 68, 68, 0.2);
   color: var(--bad);
@@ -594,12 +583,10 @@ h1 {
   color: var(--muted);
 }
 
-/* a panel that spans the full grid width (e.g. the time chart) */
 .panel.panel-wide {
   grid-column: 1 / -1;
 }
 
-/* stacked bar chart */
 .chart {
   width: 100%;
 }
@@ -641,7 +628,6 @@ h1 {
   display: inline-block;
 }
 
-/* side-sheet drawer */
 .sheet-overlay {
   position: fixed;
   inset: 0;

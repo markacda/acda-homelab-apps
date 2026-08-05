@@ -181,8 +181,6 @@ button[type='submit']:disabled {
   text-decoration: underline;
 }
 
-/* ---- admin link in the topbar ------------------------------------------- */
-
 .admin-link {
   margin-left: auto;
   color: var(--accent);
@@ -224,8 +222,6 @@ button[type='submit']:disabled {
   opacity: 0.6;
   cursor: default;
 }
-
-/* ---- user roles admin page ---------------------------------------------- */
 
 .search-label {
   margin-bottom: 1rem;
@@ -316,8 +312,6 @@ button[type='submit']:disabled {
 .tag-add .tag-btn:hover {
   color: var(--accent);
 }
-
-/* ---- modal -------------------------------------------------------------- */
 
 .modal-overlay {
   position: fixed;

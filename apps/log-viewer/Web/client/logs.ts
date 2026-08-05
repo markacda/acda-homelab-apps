@@ -93,7 +93,6 @@ export function mountLogs(root: HTMLElement): () => void {
   const metaEl = el('span', { class: 'meta' });
   root.replaceChildren(el('div', { class: 'view-head' }, el('h2', { class: 'view-title' }, 'Logs'), metaEl), cardsEl, panels, filters, logsSection);
 
-  // ---- state --------------------------------------------------------------
   let sortField = 'ts';
   let sortDir: 'asc' | 'desc' = 'desc';
   // Last known total count, so the header can re-render its "updated" timestamp
@@ -117,7 +116,6 @@ export function mountLogs(root: HTMLElement): () => void {
     return appDropdown.isNone() || levelDropdown.isNone();
   }
 
-  // ---- query building -----------------------------------------------------
   function rangeFrom(): string | null {
     const map: Record<string, number> = {
       '1h': 3600e3,
@@ -141,7 +139,6 @@ export function mountLogs(root: HTMLElement): () => void {
     return p;
   }
 
-  // ---- rendering ----------------------------------------------------------
   function renderCards(s: LogStats): void {
     cardsEl.replaceChildren(
       card('Total logs', s.overall.count.toLocaleString()),
@@ -185,7 +182,6 @@ export function mountLogs(root: HTMLElement): () => void {
     return row;
   }
 
-  // ---- data loading -------------------------------------------------------
   async function loadStats(): Promise<void> {
     if (selectionEmpty()) {
       renderCards(EMPTY_STATS);
@@ -256,7 +252,6 @@ export function mountLogs(root: HTMLElement): () => void {
     renderHeader(meta.lastRefresh);
   }
 
-  // ---- wiring -------------------------------------------------------------
   function setSort(field: string): void {
     if (sortField === field) sortDir = sortDir === 'desc' ? 'asc' : 'desc';
     else {
@@ -317,8 +312,6 @@ export function mountLogs(root: HTMLElement): () => void {
     observer.disconnect();
   };
 }
-
-// ---- small markup helpers -------------------------------------------------
 
 function panel(title: string, body: HTMLElement, cls = ''): HTMLElement {
   return el('div', { class: `panel ${cls}`.trim() }, el('h2', {}, title), body);

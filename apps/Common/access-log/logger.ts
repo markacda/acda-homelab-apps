@@ -8,8 +8,6 @@ import type { RequestHandler } from 'express';
 
 export { DISCOVERY_UA } from './constants.ts';
 
-// ---- request correlation --------------------------------------------------
-
 // A per-request trace id, propagated through async work via AsyncLocalStorage so
 // the app-logs, dependencies and exceptions produced while handling a request can
 // be tied back to it. Work outside a request (startup, background polls) has none.
@@ -56,9 +54,8 @@ function appLogStream(): ReturnType<typeof createStream> {
   return appStream;
 }
 
-// Two further streams, kept in the same LOG_DIR so they ride the Log Viewer's
-// existing read-only volume mounts: first-class exception and outbound-dependency
-// records (Application-Insights style), separate from the request + console logs.
+// First-class exception and outbound-dependency records (Application-Insights
+// style), separate from the request + console logs; same LOG_DIR as the others.
 let excStream: ReturnType<typeof createStream> | undefined;
 function excLogStream(): ReturnType<typeof createStream> {
   if (!excStream) {
@@ -254,8 +251,6 @@ export function pageLoadLogger(app: string): RequestHandler {
   };
 }
 
-// ---- application (console) logging ----------------------------------------
-
 // The console methods we mirror into app.log. `erasableSyntaxOnly` forbids
 // enums, so this is a plain const tuple.
 export const LOG_LEVELS = ['log', 'info', 'warn', 'error', 'debug'] as const;
@@ -277,7 +272,7 @@ function safeParam(arg: unknown): unknown {
   if (arg instanceof Error) {
     return { name: arg.name, message: arg.message, stack: arg.stack };
   }
-  if (arg === null || typeof arg !== 'object') return arg; // primitives pass through
+  if (arg === null || typeof arg !== 'object') return arg;
   try {
     // Round-trip through JSON so only serializable data survives (drops
     // functions, handles nested structures, and surfaces any toJSON()).
@@ -331,8 +326,6 @@ export function installConsoleLogging(app: string): void {
     };
   }
 }
-
-// ---- exception records ------------------------------------------------------
 
 // Where an exception was caught. `express` = an unhandled route error; `uncaught`
 // / `unhandledRejection` = a process-level fault; `manual` = an explicit
@@ -403,8 +396,6 @@ export function logException(err: unknown, app: string, source: ExceptionSource,
     // Logging must never crash the app.
   }
 }
-
-// ---- dependency records -----------------------------------------------------
 
 // The kinds of outbound call we time. `http` = a global fetch; `postgres` = a
 // query through the shared pool.

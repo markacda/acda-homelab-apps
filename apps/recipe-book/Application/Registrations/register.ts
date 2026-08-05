@@ -45,14 +45,12 @@ export async function register(app: Express): Promise<Pool> {
   const recipeSource = new WebRecipeSource();
   const documentGenerator = new TectonicPdfRenderer();
 
-  // Application services.
   const recipeService = new RecipeService(recipeRepository, imageStore);
   const bookService = new BookService(bookRepository, recipeRepository);
   const categoryService = new CategoryService(categoryRepository);
   const importService = new RecipeImportService(recipeSource, recipeService);
   const generationService = new BookGenerationService(bookService, documentGenerator);
 
-  // Controllers.
   const recipeController = new RecipeController(recipeService, importService);
   const bookController = new BookController(bookService, generationService);
   const categoryController = new CategoryController(categoryService);

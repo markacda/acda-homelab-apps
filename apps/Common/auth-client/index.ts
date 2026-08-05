@@ -27,8 +27,6 @@ export function hasRole(me: PersonView, role: string): boolean {
   return me.roles.includes(role);
 }
 
-// ---- login redirect -------------------------------------------------------
-
 /**
  * Restrict a post-login redirect target to a same-origin root-relative path, so a
  * crafted `?redirect=` can't bounce the user off to another site (`//evil.com`,
@@ -90,8 +88,6 @@ export function installAuthRedirect(): void {
     return res;
   };
 }
-
-// ---- fetch helpers --------------------------------------------------------
 
 /**
  * Fetch the signed-in user via `GET api/me`, or `null` when signed out (401) or the

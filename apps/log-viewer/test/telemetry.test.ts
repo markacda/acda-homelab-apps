@@ -30,8 +30,6 @@ function dep(over: Partial<DependencyLogEntry>): DependencyLogEntry {
   };
 }
 
-// ---- parse: 4-way classification ------------------------------------------
-
 test('parseAll classifies all four record kinds by kind/shape', () => {
   const text = [
     JSON.stringify({ ts: '2026-07-06T10:00:00Z', app: 'a', status: 200, durationMs: 1 }), // request
@@ -50,8 +48,6 @@ test('parseAll classifies all four record kinds by kind/shape', () => {
   assert.equal(exceptions[0].kind, 'exception');
   assert.equal(dependencies[0].kind, 'dependency');
 });
-
-// ---- exceptions -----------------------------------------------------------
 
 const excSample: ExceptionLogEntry[] = [
   exc({ app: 'atc', name: 'TypeError', message: 'boom', source: 'express', ts: '2026-07-06T10:00:00Z' }),
@@ -93,8 +89,6 @@ test('computeExceptionStats: bySource, perApp and overTime totals', () => {
     3
   );
 });
-
-// ---- dependencies ---------------------------------------------------------
 
 const depSample: DependencyLogEntry[] = [
   dep({ type: 'http', target: 'a.com', name: 'GET /1', durationMs: 100, success: true, ts: '2026-07-06T10:00:00Z' }),

@@ -33,13 +33,11 @@ export async function register(app: Express): Promise<Pool> {
     dir: join(import.meta.dirname, '../../Adapters/Postgres/migrations'),
   });
 
-  // Adapters (infrastructure implementations of the domain/ports interfaces).
   const personRepository = new PostgresPersonRepository(pool);
   const sessionRepository = new PostgresSessionRepository(pool);
   const passwordHasher = new ScryptPasswordHasher();
   const tokenIssuer = new JoseTokenIssuer(loadOrCreateJwtSecret(), '7d');
 
-  // Application services + controllers.
   const authService = new AuthService(personRepository, sessionRepository, passwordHasher, tokenIssuer);
   const authController = new AuthController(authService, tokenIssuer);
   const userController = new UserController(new UserAdminService(personRepository));

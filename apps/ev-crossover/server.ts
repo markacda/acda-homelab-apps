@@ -3,15 +3,12 @@ import { createApp, startServer } from '../Common/server-kit/app.ts';
 import { createRoleGuards, ROLE_USER } from '../Common/auth/index.ts';
 
 // A static calculator page — no API routes and no server-side domain (the whole
-// crossover computation runs in the browser; see Web/client/crossover.ts). This
-// thin composition root just mounts the access logger (createApp), then serves
-// the built client from Web/public and adds /healthz (startServer). See
+// crossover computation runs in the browser; see Web/client/crossover.ts). See
 // ARCHITECTURE.md for why the server DDD layers are omitted here.
 const app = createApp('ev-crossover');
 
 // User-role gate (issue #174): the app has no API, so it needs only the page guard —
-// a logged-out browser is 302-redirected to the auth login before the static shell
-// (mounted next by startServer) is served. /healthz stays public (the guard skips it).
+// a logged-out browser is 302-redirected to the auth login. /healthz stays public.
 const { requirePage } = createRoleGuards({
   role: ROLE_USER,
   appHome: '/laden-of-tanken/',

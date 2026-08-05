@@ -61,7 +61,7 @@ export async function register(app: Express): Promise<Pool> {
   // `POST /send` keeps its own SEND_TOKEN check and is intentionally left ungated by
   // the User role (see auth-guards.ts). /healthz stays public.
   const { requireApiUser, requireUserPage } = createNotificationGuards();
-  app.use('/api', requireApiUser); // gate GET /api/notifications (not /send)
+  app.use('/api', requireApiUser);
 
   app.use(new NotificationController(service, sendToken).router);
   app.use(errorMapping());

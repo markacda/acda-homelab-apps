@@ -31,8 +31,6 @@ function unmount(): void {
   view.replaceChildren();
 }
 
-// ---- landing --------------------------------------------------------------
-
 async function fetchOverall(url: string): Promise<Record<string, number> | null> {
   try {
     const res = await fetch(url);
@@ -84,8 +82,6 @@ function mountLanding(root: HTMLElement): void {
     dependenciesTile.summary.textContent = o ? `${num(o, 'count')} calls · ${num(o, 'failureCount')} failures` : 'unavailable';
   });
 }
-
-// ---- routing --------------------------------------------------------------
 
 function currentRoute(): string {
   const hash = location.hash.replace(/^#/, '');

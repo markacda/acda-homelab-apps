@@ -83,10 +83,9 @@ function bucketKeyFor(entries: { ts: string }[]): (ts: string) => string {
   return spanMs <= twoDays ? (ts) => ts.slice(0, 13) : (ts) => ts.slice(0, 10);
 }
 
-/** Expand a sparse bucket map into a dense ascending series: one entry per day
- * (or hour) across the full range, filling gaps with an empty value so the chart
- * renders an evenly-spaced empty slot for periods with no entries. Bucket keys are
- * UTC-derived slices of the ISO timestamp, so UTC ms stepping round-trips exactly. */
+/** Expand a sparse bucket map into a dense ascending series (one entry per day or
+ * hour across the full range) so the chart renders evenly-spaced empty slots for
+ * periods with no entries. */
 function densifyBuckets<T>(byBucket: Map<string, T>, empty: () => T): [string, T][] {
   const keys = [...byBucket.keys()].sort();
   if (keys.length === 0) return [];
@@ -207,8 +206,6 @@ export function computeStats(entries: AccessLogEntry[], topN = 10): Stats {
   };
 }
 
-// ---- application (console) logs -------------------------------------------
-
 function bandFor(level: LogLevel): LogBand {
   if (level === 'error') return 'error';
   if (level === 'warn') return 'warn';
@@ -267,8 +264,6 @@ export function computeLogStats(logs: AppLogEntry[]): LogStats {
     overTime: densifyBuckets(byBucket, () => ({ error: 0, warn: 0, info: 0 })).map(([bucket, b]) => ({ bucket, ...b })),
   };
 }
-
-// ---- exceptions -----------------------------------------------------------
 
 /** Apply a filter to exception records. Order is preserved (caller sorts upstream). */
 export function filterExceptions(items: ExceptionLogEntry[], f: ExceptionFilter): ExceptionLogEntry[] {
@@ -329,8 +324,6 @@ export function computeExceptionStats(items: ExceptionLogEntry[], topN = 10): Ex
     overTime: densifyBuckets(byBucket, () => ({ count: 0 })).map(([bucket, b]) => ({ bucket, ...b })),
   };
 }
-
-// ---- dependencies ---------------------------------------------------------
 
 /** The p-th percentile of an ascending-sorted array (nearest-rank). 0 if empty. */
 function percentile(sortedAsc: number[], p: number): number {
@@ -434,8 +427,6 @@ export function computeDependencyStats(items: DependencyLogEntry[], topN = 10): 
     overTime: densifyBuckets(byBucket, () => ({ ok: 0, failed: 0 })).map(([bucket, b]) => ({ bucket, ...b })),
   };
 }
-
-// ---- trace timeline -------------------------------------------------------
 
 /** The four record kinds available to correlate under one trace id. */
 export interface TraceSources {

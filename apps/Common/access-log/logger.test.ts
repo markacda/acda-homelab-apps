@@ -116,8 +116,6 @@ test('buildAppLogEntry keeps plain objects and tolerates circular refs', () => {
   assert.equal(typeof entry.params[1], 'string'); // circular -> best-effort string
 });
 
-// ---- correlation ----------------------------------------------------------
-
 test('currentTraceId is undefined outside a request scope', () => {
   assert.equal(currentTraceId(), undefined);
 });
@@ -135,8 +133,6 @@ test('buildAppLogEntry attaches a traceId when given, and omits it otherwise', (
   const without = buildAppLogEntry('info', ['hi'], 'app', '2026-07-06T00:00:00.000Z');
   assert.equal('traceId' in without, false);
 });
-
-// ---- exceptions -----------------------------------------------------------
 
 test('buildException captures an Error name/message/stack + source', () => {
   const err = new TypeError('bad thing');
@@ -169,8 +165,6 @@ test('buildException records the request context and traceId', () => {
   assert.equal(e.status, 500);
   assert.equal(e.traceId, 't-1');
 });
-
-// ---- dependencies ---------------------------------------------------------
 
 test('buildDependency records a successful call', () => {
   const d = buildDependency(

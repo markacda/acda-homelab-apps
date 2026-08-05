@@ -93,7 +93,6 @@ export function calculate(usage: UsageData, prices: MarketPrices, params: CalcPa
     const monthKey = dt.toFormat('yyyy-MM');
     const b = bucket(monthKey);
 
-    // --- Electricity ---
     const kwh = iv.kwh || 0;
     totalKwh += kwh;
     b.kwh += kwh;
@@ -111,7 +110,6 @@ export function calculate(usage: UsageData, prices: MarketPrices, params: CalcPa
     }
     b.dynElecMarket += kwh * market;
 
-    // --- Gas ---
     if (p.includeGas) {
       const gasM3 = iv.gasM3 || 0;
       totalGasM3 += gasM3;
@@ -155,7 +153,6 @@ export function calculate(usage: UsageData, prices: MarketPrices, params: CalcPa
   const fixedTotal = fixedElec + fixedGas;
   const dynamicTotal = dynElec + dynGas;
 
-  // Annualize.
   const start = usage.periodStart;
   const end = usage.periodEnd;
   const spanDays = Math.max(end.diff(start, 'days').days, 1 / 24);
