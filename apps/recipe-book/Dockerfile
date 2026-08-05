@@ -33,6 +33,13 @@ COPY apps/Common/db/package.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm install --prefer-offline --no-audit --no-fund
 COPY apps/Common/db/ ./
+# Shared auth guards (requireRole/ROLE_*), imported by Registrations/auth-guards.ts.
+# Its runtime dep (jose) is listed in this app's package.json for the prod stage.
+WORKDIR /repo/apps/Common/auth
+COPY apps/Common/auth/package.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --prefer-offline --no-audit --no-fund
+COPY apps/Common/auth/ ./
 WORKDIR /repo/apps/recipe-book
 # Manifest first for dependency-layer caching.
 COPY apps/recipe-book/package.json ./

@@ -13,6 +13,7 @@ import { AirplanesController } from '../Controllers/airplanes-controller.ts';
 import { RunwayController } from '../Controllers/runway-controller.ts';
 import { RunwayConfigService } from '../Services/runway-config-service.ts';
 import { errorMapping } from '../Filters/error-mapping.ts';
+import { createAtcGuards } from './auth-guards.ts';
 
 // Subscribe to every topic by default; known topics are dispatched to their
 // handler and unknown ones are logged. Override with MQTT_TOPIC (comma-separated).
@@ -45,6 +46,13 @@ export interface Registrations {
 export function register(app: Express): Registrations {
   app.use(cors(corsOptions));
   app.use(compression());
+
+  // User-role gate (issue #154): the /api proxy answers JSON 401/403; the served
+  // static frontend bounces logged-out browsers to the auth login. /healthz stays
+  // public (both guards skip it). Mounted before static + the /api routers below.
+  const { requireApiUser, requireUserPage } = createAtcGuards();
+  app.use('/api', requireApiUser); // gates AirplanesController + RunwayController
+  app.use(requireUserPage); // gates the static index.html + assets (skips /api, /healthz)
 
   // Vendored browser frontend, served always-revalidate (maxAge 0 + ETag): the
   // browser revalidates every load so a redeploy is picked up immediately, while
