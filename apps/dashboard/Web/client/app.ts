@@ -1,7 +1,7 @@
 // User-role gated server-side (issue #174); a session that expires while the page is
 // open bounces to /auth/ via installAuthRedirect, whose window.fetch wrapper covers
 // the fetch('/api/apps') poll below. The header's "Log out" button ends the session.
-import { installAuthRedirect, logout } from '../../../Common/auth-client/index.ts';
+import { installAuthRedirect, logout, fetchCurrentUser, hasRole, ROLE_ADMINISTRATOR } from '../../../Common/auth-client/index.ts';
 
 installAuthRedirect();
 
@@ -43,6 +43,30 @@ logoutBtn.addEventListener('click', () => {
     .catch(() => {
       logoutBtn.disabled = false;
     });
+});
+
+// The header logs button links to the admin-only log-viewer, so only administrators
+// should see it. Resolve the role once on load — exactly like the auth app's
+// "admin-link" (fetchCurrentUser + hasRole) — but against auth's own /auth/api/me:
+// the dashboard is served at the proxy root, so a relative 'api/me' would hit its
+// own server, which has no such route. render() caches the logs tile from each poll;
+// whichever of the two settles last calls applyLogsButton, so the button ends up in
+// the correct state regardless of ordering.
+let isAdministrator = false;
+let logsApp: AppTile | undefined;
+
+function applyLogsButton(): void {
+  if (logsApp && isAdministrator) {
+    logsLinkEl.href = resolveHref(logsApp);
+    logsLinkEl.hidden = false;
+  } else {
+    logsLinkEl.hidden = true;
+  }
+}
+
+void fetchCurrentUser('/auth/api/me').then((me) => {
+  isAdministrator = me != null && hasRole(me, ROLE_ADMINISTRATOR);
+  applyLogsButton();
 });
 
 /** Build the click-through URL. Prefer an explicit url; otherwise use the
@@ -144,14 +168,10 @@ function render(data: ApiResponse): void {
 
   contentEl.innerHTML = '';
 
-  // Pull the logs app out of the grid into the header button.
-  const logsApp = apps?.find((a) => a.name === LOGS_APP_NAME);
-  if (logsApp) {
-    logsLinkEl.href = resolveHref(logsApp);
-    logsLinkEl.hidden = false;
-  } else {
-    logsLinkEl.hidden = true;
-  }
+  // Pull the logs app out of the grid into the header button (shown to admins only;
+  // see applyLogsButton). The log-viewer app enforces the same gate server-side.
+  logsApp = apps?.find((a) => a.name === LOGS_APP_NAME);
+  applyLogsButton();
   const visible = (apps ?? []).filter((a) => a.name !== LOGS_APP_NAME);
 
   if (visible.length === 0) {
