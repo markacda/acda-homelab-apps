@@ -22,6 +22,7 @@ export interface RequestEntry {
   referer: string | null;
   bytes: number | null;
   traceId?: string;
+  tags?: string[];
   // Present only on non-2xx entries (see @homelab/access-log buildEntry).
   resHeaders?: Record<string, string | number | string[]>;
   resBody?: string;
@@ -35,6 +36,7 @@ export interface AppLog {
   message: string;
   params: unknown[];
   traceId?: string;
+  tags?: string[];
 }
 
 export interface Exception {
@@ -45,6 +47,7 @@ export interface Exception {
   stack?: string;
   source: string;
   traceId?: string;
+  tags?: string[];
   method?: string;
   url?: string;
   status?: number;
@@ -61,6 +64,7 @@ export interface Dependency {
   status?: number;
   error?: string;
   traceId?: string;
+  tags?: string[];
   command?: string; // full SQL statement for postgres deps (name holds only the verb)
 }
 
@@ -81,6 +85,12 @@ function traceRow(traceId: string | undefined): SheetRow {
   return { label: 'Trace ID', value: traceId ? traceLink(traceId) : '—', mono: true };
 }
 
+/** The "Tags" sheet row: one pill per tag, or an em dash when the entry has none. */
+function tagsRow(tags: string[] | undefined): SheetRow {
+  const value = tags?.length ? el('span', { class: 'tags' }, ...tags.map((t) => pill(t, 'tag'))) : '—';
+  return { label: 'Tags', value };
+}
+
 export function showRequestDetail(e: RequestEntry): void {
   const rows: SheetRow[] = [
     { label: 'Time', value: fmtTs(e.ts) },
@@ -94,6 +104,7 @@ export function showRequestDetail(e: RequestEntry): void {
     { label: 'Referer', value: e.referer ?? '—', mono: true },
     { label: 'Bytes', value: e.bytes === null ? '—' : e.bytes.toLocaleString() },
     traceRow(e.traceId),
+    tagsRow(e.tags),
   ];
   // Response headers + body are captured only for non-2xx responses.
   if (e.resHeaders) {
@@ -113,6 +124,7 @@ export function showLogDetail(e: AppLog): void {
     { label: 'Level', value: pill(e.level, levelClass(e.level)) },
     { label: 'Message', value: e.message, mono: true },
     traceRow(e.traceId),
+    tagsRow(e.tags),
   ];
   e.params.forEach((p, i) => {
     const value = typeof p === 'string' ? p : JSON.stringify(p, null, 2);
@@ -132,6 +144,7 @@ export function showExceptionDetail(e: Exception): void {
   if (e.method || e.url) rows.push({ label: 'Request', value: `${e.method ?? ''} ${e.url ?? ''}`.trim(), mono: true });
   if (e.status !== undefined) rows.push({ label: 'Status', value: String(e.status) });
   rows.push(traceRow(e.traceId));
+  rows.push(tagsRow(e.tags));
   if (e.stack) rows.push({ label: 'Stack', value: e.stack, mono: true });
   openSheet(`${e.name}: ${e.message}`.trim() || 'Exception', rows);
 }
@@ -150,6 +163,7 @@ export function showDependencyDetail(e: Dependency): void {
   if (e.status !== undefined) rows.push({ label: 'Status', value: pill(String(e.status), statusClassName(e.status)) });
   if (e.error) rows.push({ label: 'Error', value: e.error, mono: true });
   rows.push(traceRow(e.traceId));
+  rows.push(tagsRow(e.tags));
   openSheet(`${e.type} · ${e.name}`.trim() || 'Dependency', rows);
 }
 

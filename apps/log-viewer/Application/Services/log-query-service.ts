@@ -62,17 +62,20 @@ export class LogQueryService {
   requestMeta(): RequestMeta {
     const apps = new Set<string>();
     const methods = new Set<string>();
+    const tags = new Set<string>();
     let min: string | null = null;
     let max: string | null = null;
     for (const e of this.ingest.getEntries()) {
       apps.add(e.app);
       if (e.method) methods.add(e.method);
+      e.tags?.forEach((t) => tags.add(t));
       if (min === null || e.ts < min) min = e.ts;
       if (max === null || e.ts > max) max = e.ts;
     }
     return {
       apps: [...apps].sort(),
       methods: [...methods].sort(),
+      tags: [...tags].sort(),
       count: this.ingest.getEntries().length,
       from: min,
       to: max,
@@ -100,17 +103,20 @@ export class LogQueryService {
   appLogMeta(): AppLogMeta {
     const apps = new Set<string>();
     const levels = new Set<AppLogEntry['level']>();
+    const tags = new Set<string>();
     let min: string | null = null;
     let max: string | null = null;
     for (const e of this.ingest.getLogs()) {
       apps.add(e.app);
       levels.add(e.level);
+      e.tags?.forEach((t) => tags.add(t));
       if (min === null || e.ts < min) min = e.ts;
       if (max === null || e.ts > max) max = e.ts;
     }
     return {
       apps: [...apps].sort(),
       levels: [...levels].sort(),
+      tags: [...tags].sort(),
       count: this.ingest.getLogs().length,
       from: min,
       to: max,
@@ -138,17 +144,20 @@ export class LogQueryService {
   exceptionMeta(): ExceptionMeta {
     const apps = new Set<string>();
     const sources = new Set<ExceptionLogEntry['source']>();
+    const tags = new Set<string>();
     let min: string | null = null;
     let max: string | null = null;
     for (const e of this.ingest.getExceptions()) {
       apps.add(e.app);
       sources.add(e.source);
+      e.tags?.forEach((t) => tags.add(t));
       if (min === null || e.ts < min) min = e.ts;
       if (max === null || e.ts > max) max = e.ts;
     }
     return {
       apps: [...apps].sort(),
       sources: [...sources].sort(),
+      tags: [...tags].sort(),
       count: this.ingest.getExceptions().length,
       from: min,
       to: max,
@@ -177,12 +186,14 @@ export class LogQueryService {
     const apps = new Set<string>();
     const types = new Set<DependencyLogEntry['type']>();
     const targets = new Set<string>();
+    const tags = new Set<string>();
     let min: string | null = null;
     let max: string | null = null;
     for (const e of this.ingest.getDependencies()) {
       apps.add(e.app);
       types.add(e.type);
       targets.add(e.target);
+      e.tags?.forEach((t) => tags.add(t));
       if (min === null || e.ts < min) min = e.ts;
       if (max === null || e.ts > max) max = e.ts;
     }
@@ -190,6 +201,7 @@ export class LogQueryService {
       apps: [...apps].sort(),
       types: [...types].sort(),
       targets: [...targets].sort(),
+      tags: [...tags].sort(),
       count: this.ingest.getDependencies().length,
       from: min,
       to: max,

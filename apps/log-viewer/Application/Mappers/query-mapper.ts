@@ -32,6 +32,7 @@ export function parseRequestFilter(query: Query): LogFilter {
     method: csvList(query.method).map((m) => m.toUpperCase()),
     statusClass: csvList(query.statusClass).filter((c): c is StatusClass => STATUS_CLASSES.has(c as StatusClass)),
     status: status !== undefined && Number.isFinite(Number(status)) ? Number(status) : undefined,
+    tags: csvList(query.tags),
     q: firstStr(query.q),
     from: firstStr(query.from),
     to: firstStr(query.to),
@@ -44,6 +45,7 @@ export function parseAppLogFilter(query: Query): AppLogFilter {
   return {
     app: csvList(query.app),
     level: csvList(query.level).filter((l): l is LogLevel => LOG_LEVELS.has(l as LogLevel)),
+    tags: csvList(query.tags),
     q: firstStr(query.q),
     from: firstStr(query.from),
     to: firstStr(query.to),
@@ -61,6 +63,7 @@ export function parseExceptionFilter(query: Query): ExceptionFilter {
   return {
     app: csvList(query.app),
     source: csvList(query.source).filter((s): s is ExceptionSource => EXCEPTION_SOURCES.has(s as ExceptionSource)),
+    tags: csvList(query.tags),
     q: firstStr(query.q),
     from: firstStr(query.from),
     to: firstStr(query.to),
@@ -75,6 +78,7 @@ export function parseDependencyFilter(query: Query): DependencyFilter {
     type: csvList(query.type).filter((t): t is DependencyType => DEPENDENCY_TYPES.has(t as DependencyType)),
     target: csvList(query.target),
     outcome: outcome === 'success' || outcome === 'failure' ? outcome : undefined,
+    tags: csvList(query.tags),
     q: firstStr(query.q),
     from: firstStr(query.from),
     to: firstStr(query.to),

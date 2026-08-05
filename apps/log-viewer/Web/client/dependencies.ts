@@ -4,6 +4,7 @@
 import { el, card, pill, table, checkboxDropdown, fmtTs, fmtMs, statusClassName, outcomePill } from './dom.ts';
 import { showDependencyDetail, type Dependency } from './details.ts';
 import { stackedBarChart } from './chart.ts';
+import { tagOptions, defaultTagSelection, tagsParam } from './tags.ts';
 
 interface DependenciesResponse {
   total: number;
@@ -31,6 +32,7 @@ interface DependencyMeta {
   apps: string[];
   types: string[];
   targets: string[];
+  tags: string[];
   count: number;
   from: string | null;
   to: string | null;
@@ -67,6 +69,7 @@ export function mountDependencies(root: HTMLElement): () => void {
   const qEl = el('input', { type: 'search', placeholder: 'Search name / target…' }) as HTMLInputElement;
   const appDropdownEl = el('div', { class: 'dropdown' });
   const typeDropdownEl = el('div', { class: 'dropdown' });
+  const tagDropdownEl = el('div', { class: 'dropdown' });
   const outcomeEl = outcomeSelect();
   const rangeEl = rangeSelect();
   const refreshBtn = el('button', { type: 'button' }, 'Refresh');
@@ -78,6 +81,7 @@ export function mountDependencies(root: HTMLElement): () => void {
     qEl,
     appDropdownEl,
     typeDropdownEl,
+    tagDropdownEl,
     outcomeEl,
     rangeEl,
     refreshBtn,
@@ -140,9 +144,13 @@ export function mountDependencies(root: HTMLElement): () => void {
   const appDropdown = checkboxDropdown(appDropdownEl, 'All apps', () => refresh());
   const typeDropdown = checkboxDropdown(typeDropdownEl, 'All types', () => refresh());
   typeDropdown.setOptions(ALL_TYPES);
+  const tagDropdown = checkboxDropdown(tagDropdownEl, 'All tags', () => refresh());
+  // The default selection (hiding Healthcheck) is applied on the first meta load,
+  // once the available tag options are known.
+  let tagsInit = false;
 
   function selectionEmpty(): boolean {
-    return appDropdown.isNone() || typeDropdown.isNone();
+    return appDropdown.isNone() || typeDropdown.isNone() || tagDropdown.isNone();
   }
 
   function rangeFrom(): string | null {
@@ -157,6 +165,8 @@ export function mountDependencies(root: HTMLElement): () => void {
     const types = typeDropdown.selected();
     if (apps.length) p.set('app', apps.join(','));
     if (types.length) p.set('type', types.join(','));
+    const tags = tagsParam(tagDropdown.selected());
+    if (tags) p.set('tags', tags);
     if (outcomeEl.value) p.set('outcome', outcomeEl.value);
     const from = rangeFrom();
     if (from) p.set('from', from);
@@ -285,6 +295,12 @@ export function mountDependencies(root: HTMLElement): () => void {
     if (!res.ok) return;
     const meta = (await res.json()) as DependencyMeta;
     appDropdown.setOptions(meta.apps);
+    const opts = tagOptions(meta.tags);
+    tagDropdown.setOptions(opts);
+    if (!tagsInit) {
+      tagDropdown.setSelected(defaultTagSelection(opts));
+      tagsInit = true;
+    }
     metaCount = meta.count;
     renderHeader(meta.lastRefresh);
   }

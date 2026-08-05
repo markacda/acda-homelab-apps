@@ -4,6 +4,7 @@
 import { el, card, table, pill, checkboxDropdown, statusClassName, fmtTs, fmtMs } from './dom.ts';
 import { showRequestDetail, type RequestEntry as Entry } from './details.ts';
 import { stackedBarChart } from './chart.ts';
+import { tagOptions, defaultTagSelection, tagsParam } from './tags.ts';
 
 interface LogsResponse {
   total: number;
@@ -56,6 +57,7 @@ interface Stats {
 interface Meta {
   apps: string[];
   methods: string[];
+  tags: string[];
   count: number;
   from: string | null;
   to: string | null;
@@ -112,6 +114,7 @@ export function mountRequests(root: HTMLElement): () => void {
   const appDropdownEl = el('div', { class: 'dropdown' });
   const methodDropdownEl = el('div', { class: 'dropdown' });
   const statusDropdownEl = el('div', { class: 'dropdown' });
+  const tagDropdownEl = el('div', { class: 'dropdown' });
   const rangeEl = rangeSelect();
   const refreshBtn = el('button', { type: 'button' }, 'Refresh');
   const autoEl = el('input', { type: 'checkbox' }) as HTMLInputElement;
@@ -124,6 +127,7 @@ export function mountRequests(root: HTMLElement): () => void {
     appDropdownEl,
     methodDropdownEl,
     statusDropdownEl,
+    tagDropdownEl,
     rangeEl,
     refreshBtn,
     el('label', { class: 'toggle' }, autoEl, 'Auto-refresh'),
@@ -189,11 +193,15 @@ export function mountRequests(root: HTMLElement): () => void {
   const methodDropdown = checkboxDropdown(methodDropdownEl, 'All methods', () => refresh());
   const statusDropdown = checkboxDropdown(statusDropdownEl, 'All status', () => refresh());
   statusDropdown.setOptions(['2xx', '3xx', '4xx', '5xx']);
+  const tagDropdown = checkboxDropdown(tagDropdownEl, 'All tags', () => refresh());
+  // The default selection (hiding Healthcheck) is applied on the first meta load,
+  // once the available tag options are known.
+  let tagsInit = false;
 
   // Deselecting every option in any filter means "match nothing" — short-circuit
   // to an empty view rather than falling back to the server's "empty = all".
   function selectionEmpty(): boolean {
-    return appDropdown.isNone() || methodDropdown.isNone() || statusDropdown.isNone();
+    return appDropdown.isNone() || methodDropdown.isNone() || statusDropdown.isNone() || tagDropdown.isNone();
   }
 
   function rangeFrom(): string | null {
@@ -215,6 +223,8 @@ export function mountRequests(root: HTMLElement): () => void {
     if (apps.length) p.set('app', apps.join(','));
     if (methods.length) p.set('method', methods.join(','));
     if (statuses.length) p.set('statusClass', statuses.join(','));
+    const tags = tagsParam(tagDropdown.selected());
+    if (tags) p.set('tags', tags);
     if (statusFilter !== null) p.set('status', String(statusFilter));
     const from = rangeFrom();
     if (from) p.set('from', from);
@@ -392,6 +402,12 @@ export function mountRequests(root: HTMLElement): () => void {
     const meta = (await res.json()) as Meta;
     appDropdown.setOptions(meta.apps);
     methodDropdown.setOptions(meta.methods);
+    const opts = tagOptions(meta.tags);
+    tagDropdown.setOptions(opts);
+    if (!tagsInit) {
+      tagDropdown.setSelected(defaultTagSelection(opts));
+      tagsInit = true;
+    }
     metaCount = meta.count;
     renderHeader(meta.lastRefresh);
   }

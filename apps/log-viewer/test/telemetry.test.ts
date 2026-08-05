@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseAll } from '../Adapters/FileLogStore/parse.ts';
 import { filterExceptions, computeExceptionStats, filterDependencies, computeDependencyStats } from '../Domain/Services/log-analytics.ts';
+import { UNTAGGED } from '../Domain/ValueObjects/log-filter.ts';
 import type { ExceptionLogEntry, DependencyLogEntry } from '../Domain/ValueObjects/log-entry.ts';
 
 function exc(over: Partial<ExceptionLogEntry>): ExceptionLogEntry {
@@ -103,6 +104,26 @@ test('filterDependencies: by type / target / outcome / q', () => {
   assert.equal(filterDependencies(depSample, { outcome: 'failure' }).length, 1);
   assert.equal(filterDependencies(depSample, { outcome: 'success' }).length, 3);
   assert.equal(filterDependencies(depSample, { q: 'select' }).length, 1); // matches name
+});
+
+const taggedSample: DependencyLogEntry[] = [
+  dep({ name: 'GET /1' }), // untagged
+  dep({ name: 'SELECT', tags: ['Healthcheck'] }),
+  dep({ name: 'GET /2', tags: ['Other'] }),
+];
+
+test('filterDependencies: by tags, including the untagged sentinel', () => {
+  // No tag filter matches everything.
+  assert.equal(filterDependencies(taggedSample, {}).length, 3);
+  assert.equal(filterDependencies(taggedSample, { tags: [] }).length, 3);
+  // A specific tag matches only entries carrying it.
+  assert.equal(filterDependencies(taggedSample, { tags: ['Healthcheck'] }).length, 1);
+  // UNTAGGED matches only entries with no tags.
+  assert.equal(filterDependencies(taggedSample, { tags: [UNTAGGED] }).length, 1);
+  assert.equal(filterDependencies(taggedSample, { tags: [UNTAGGED] })[0].name, 'GET /1');
+  // The default "everything except Healthcheck" selection: untagged + Other, not Healthcheck.
+  const kept = filterDependencies(taggedSample, { tags: [UNTAGGED, 'Other'] });
+  assert.deepEqual(kept.map((d) => d.name).sort(), ['GET /1', 'GET /2']);
 });
 
 test('computeDependencyStats: overall count, failure rate, avg and p95', () => {

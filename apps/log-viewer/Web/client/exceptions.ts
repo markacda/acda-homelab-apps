@@ -4,6 +4,7 @@
 import { el, card, pill, table, checkboxDropdown, fmtTs, sourceClass } from './dom.ts';
 import { showExceptionDetail, type Exception } from './details.ts';
 import { stackedBarChart } from './chart.ts';
+import { tagOptions, defaultTagSelection, tagsParam } from './tags.ts';
 
 interface ExceptionsResponse {
   total: number;
@@ -29,6 +30,7 @@ interface ExceptionStats {
 interface ExceptionMeta {
   apps: string[];
   sources: string[];
+  tags: string[];
   count: number;
   from: string | null;
   to: string | null;
@@ -65,6 +67,7 @@ export function mountExceptions(root: HTMLElement): () => void {
   const qEl = el('input', { type: 'search', placeholder: 'Search name / message…' }) as HTMLInputElement;
   const appDropdownEl = el('div', { class: 'dropdown' });
   const sourceDropdownEl = el('div', { class: 'dropdown' });
+  const tagDropdownEl = el('div', { class: 'dropdown' });
   const rangeEl = rangeSelect();
   const refreshBtn = el('button', { type: 'button' }, 'Refresh');
   const autoEl = el('input', { type: 'checkbox' }) as HTMLInputElement;
@@ -75,6 +78,7 @@ export function mountExceptions(root: HTMLElement): () => void {
     qEl,
     appDropdownEl,
     sourceDropdownEl,
+    tagDropdownEl,
     rangeEl,
     refreshBtn,
     el('label', { class: 'toggle' }, autoEl, 'Auto-refresh'),
@@ -133,9 +137,13 @@ export function mountExceptions(root: HTMLElement): () => void {
   const appDropdown = checkboxDropdown(appDropdownEl, 'All apps', () => refresh());
   const sourceDropdown = checkboxDropdown(sourceDropdownEl, 'All sources', () => refresh());
   sourceDropdown.setOptions(ALL_SOURCES);
+  const tagDropdown = checkboxDropdown(tagDropdownEl, 'All tags', () => refresh());
+  // The default selection (hiding Healthcheck) is applied on the first meta load,
+  // once the available tag options are known.
+  let tagsInit = false;
 
   function selectionEmpty(): boolean {
-    return appDropdown.isNone() || sourceDropdown.isNone();
+    return appDropdown.isNone() || sourceDropdown.isNone() || tagDropdown.isNone();
   }
 
   function rangeFrom(): string | null {
@@ -150,6 +158,8 @@ export function mountExceptions(root: HTMLElement): () => void {
     const sources = sourceDropdown.selected();
     if (apps.length) p.set('app', apps.join(','));
     if (sources.length) p.set('source', sources.join(','));
+    const tags = tagsParam(tagDropdown.selected());
+    if (tags) p.set('tags', tags);
     const from = rangeFrom();
     if (from) p.set('from', from);
     if (!showSelfEl.checked) p.set('excludeApp', 'log-viewer');
@@ -263,6 +273,12 @@ export function mountExceptions(root: HTMLElement): () => void {
     if (!res.ok) return;
     const meta = (await res.json()) as ExceptionMeta;
     appDropdown.setOptions(meta.apps);
+    const opts = tagOptions(meta.tags);
+    tagDropdown.setOptions(opts);
+    if (!tagsInit) {
+      tagDropdown.setSelected(defaultTagSelection(opts));
+      tagsInit = true;
+    }
     metaCount = meta.count;
     renderHeader(meta.lastRefresh);
   }
