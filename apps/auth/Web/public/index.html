@@ -18,6 +18,8 @@
       <h1>🔐 Authenticatie</h1>
       <!-- Shown only when the signed-in user is an Administrator (see app.ts). -->
       <a class="admin-link" id="admin-link" href="users.html" hidden>Gebruikers</a>
+      <!-- Shown only when a session exists; POSTs api/logout then reloads (see app.ts). -->
+      <button class="logout-btn" id="logout-btn" type="button" hidden>Log out</button>
     </header>
     <main>
       <div class="card">

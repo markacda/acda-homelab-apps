@@ -7,7 +7,7 @@
 // (issue #177), compiled in via tsconfig.client.json. This page installs NO fetch
 // redirect guard: a 401 here means "signed out / bad credentials", surfaced inline.
 
-import { apiJson, fetchCurrentUser, hasRole, safeRedirect, ROLE_ADMINISTRATOR, type PersonView } from '../../../Common/auth-client/index.ts';
+import { apiJson, fetchCurrentUser, hasRole, logout, safeRedirect, ROLE_ADMINISTRATOR, type PersonView } from '../../../Common/auth-client/index.ts';
 import { $, setStatus as webSetStatus } from '../../../Common/web-kit/index.ts';
 
 /** Server-side minimum (auth-service MIN_PASSWORD_LENGTH); mirrored for early feedback. */
@@ -24,14 +24,25 @@ function setStatus(msg: string, kind: '' | 'error' = ''): void {
 const redirectTarget = safeRedirect(new URLSearchParams(location.search).get('redirect'));
 
 /**
- * Reveal the Administrator-only "Gebruikers" link if an already-signed-in visitor
- * holds that role. Best-effort: a missing session just leaves it hidden.
+ * Reflect the current session in the topbar: reveal the "Log out" button whenever a
+ * visitor is signed in, and the Administrator-only "Gebruikers" link when they also
+ * hold that role. Best-effort: a missing session just leaves both hidden.
  */
-async function revealAdminLink(): Promise<void> {
+async function initSession(): Promise<void> {
   const me = await fetchCurrentUser();
-  if (me && hasRole(me, ROLE_ADMINISTRATOR)) $('admin-link').hidden = false;
+  if (!me) return;
+  if (hasRole(me, ROLE_ADMINISTRATOR)) $('admin-link').hidden = false;
+
+  const logoutBtn = $<HTMLButtonElement>('logout-btn');
+  logoutBtn.hidden = false;
+  logoutBtn.addEventListener('click', () => {
+    void withButton(logoutBtn, async () => {
+      await logout();
+      location.reload();
+    });
+  });
 }
-void revealAdminLink();
+void initSession();
 
 /** Client mirror of the server's credential rules (the server stays the source of truth). */
 function validate(email: string, password: string): string | null {
