@@ -98,10 +98,15 @@ export function installAuthRedirect(): void {
  * request fails. Bypasses the redirect guard's intent by design: the auth pages call
  * this to *decide* what to show for a logged-out visitor, so a 401 must resolve to
  * `null` rather than navigate. (The auth pages don't install `installAuthRedirect`.)
+ *
+ * `path` defaults to the RELATIVE `api/me`, which resolves against the auth app when
+ * the caller is served under `/auth/`. An app served elsewhere (e.g. the dashboard at
+ * the proxy root, where a relative `api/me` would hit its own server) passes the
+ * ABSOLUTE `/auth/api/me` to reach the auth app directly — same trick as `logout`.
  */
-export async function fetchCurrentUser(): Promise<PersonView | null> {
+export async function fetchCurrentUser(path = 'api/me'): Promise<PersonView | null> {
   try {
-    const res = await fetch('api/me');
+    const res = await fetch(path);
     if (!res.ok) return null;
     return (await res.json()) as PersonView;
   } catch {
