@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { safeRedirect, buildLoginRedirectUrl, hasRole, ROLE_ADMINISTRATOR, ROLE_USER } from '../index.ts';
+import { safeRedirect, buildLoginRedirectUrl, hasRole, logout, ROLE_ADMINISTRATOR, ROLE_USER } from '../index.ts';
 
 test('safeRedirect keeps a same-origin root-relative path', () => {
   assert.equal(safeRedirect('/logs/#/requests'), '/logs/#/requests');
@@ -23,6 +23,24 @@ test('safeRedirect falls back to root for empty/missing input', () => {
 test('buildLoginRedirectUrl round-trips the current location, encoded', () => {
   assert.equal(buildLoginRedirectUrl('/logs/#/requests'), '/auth/?redirect=%2Flogs%2F%23%2Frequests');
   assert.equal(buildLoginRedirectUrl('/recepten?q=a&b=c'), '/auth/?redirect=%2Frecepten%3Fq%3Da%26b%3Dc');
+});
+
+test('logout posts to the auth app absolutely, so it works from any app (e.g. dashboard at /)', async () => {
+  const calls: { url: unknown; method?: string }[] = [];
+  const originalFetch = globalThis.fetch;
+  // Stand in for the browser fetch; a relative 'api/logout' would 404 on a non-auth app.
+  globalThis.fetch = ((url: unknown, init?: { method?: string }) => {
+    calls.push({ url, method: init?.method });
+    return Promise.resolve(new Response(null, { status: 204 }));
+  }) as typeof fetch;
+  try {
+    await logout();
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, '/auth/api/logout');
+  assert.equal(calls[0].method, 'POST');
 });
 
 test('hasRole checks membership against the role list', () => {
