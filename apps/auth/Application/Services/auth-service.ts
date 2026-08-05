@@ -10,6 +10,7 @@ import { ConflictError } from '../../Domain/Exceptions/conflict-error.ts';
 import { UnauthorizedError } from '../../Domain/Exceptions/unauthorized-error.ts';
 import { toPersonView } from '../Mappers/auth-mapper.ts';
 import type { PersonView } from '../Mappers/auth-mapper.ts';
+import { ROLE_USER } from '../../../Common/auth/index.ts';
 
 // Orchestrates the authentication flows over the persons + sessions stores. It
 // hashes passwords via a PasswordHasher port, issues short-lived access tokens via
@@ -17,8 +18,6 @@ import type { PersonView } from '../Mappers/auth-mapper.ts';
 // opaque random string handed to the client, persisted only as a SHA-256 hash and
 // rotated on every refresh. New accounts get the default `User` role.
 
-/** The default role every self-registered account receives. */
-export const DEFAULT_ROLE = 'User';
 /** Minimum acceptable password length at registration. */
 export const MIN_PASSWORD_LENGTH = 8;
 /** Default refresh-token lifetime: 30 days. */
@@ -76,7 +75,7 @@ export class AuthService {
       throw new ConflictError('An account with that email already exists.');
     }
     const passwordHash = await this.hasher.hash(password);
-    const person = Person.create({ email: normalizedEmail, passwordHash, roles: [DEFAULT_ROLE] });
+    const person = Person.create({ email: normalizedEmail, passwordHash, roles: [ROLE_USER] });
     await this.persons.save(person);
     return toPersonView(person);
   }

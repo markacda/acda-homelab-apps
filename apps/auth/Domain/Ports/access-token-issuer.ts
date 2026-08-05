@@ -1,8 +1,11 @@
-/** The identity claims carried by an access token: the person id + their roles. */
-export interface AccessTokenClaims {
-  sub: string;
-  roles: string[];
-}
+import type { AuthClaims } from '../../../Common/auth/index.ts';
+
+/**
+ * The identity claims carried by an access token: the person id + their roles.
+ * Aliased to @homelab/auth's AuthClaims (an identical shape) so the issuer here and
+ * the verifiers in every consuming app share a single definition.
+ */
+export type AccessTokenClaims = AuthClaims;
 
 /**
  * Port for the short-lived access token (a signed JWT in the default adapter).

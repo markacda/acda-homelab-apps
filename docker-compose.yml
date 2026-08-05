@@ -4,6 +4,14 @@
 # dashboard at <ip>/). The per-app 600x ports stay published for direct access.
 # To add an app: create apps/<name> with a Dockerfile, add a service below on the
 # next free port, and add an nginx `location` block in proxy/nginx.conf.
+
+# Shared auth wiring, referenced by every app that verifies the access-token cookie
+# (see @homelab/auth). The auth app self-provisions the signing key onto the
+# auth-secrets volume; consumers mount it read-only. Anchored here so the secret
+# path and the read-only mount live in exactly one place.
+x-jwt-secret-file-env: &jwt-secret-file JWT_SECRET_FILE=/auth-secrets/jwt.key
+x-auth-secrets-ro: &auth-secrets-ro auth-secrets:/auth-secrets:ro
+
 services:
   # Shared PostgreSQL database. One container fronts all data-owning apps; each
   # app gets its own role + schema, provisioned on first boot (see db/init).
@@ -104,7 +112,7 @@ services:
       - LOG_DIR=/app/logs
       # Same signing key the auth app self-provisions on the shared auth-secrets
       # volume — verifies the User-role access token (issue #154).
-      - JWT_SECRET_FILE=/auth-secrets/jwt.key
+      - *jwt-secret-file
       # MQTT: connect to the host broker and subscribe to MQTT_TOPIC (default "#",
       # all topics). Known topics are parsed (the EHAM runway config, exposed at
       # /api/runways); unknown topics are logged. Unset MQTT_URL to disable.
@@ -115,7 +123,7 @@ services:
       # - MQTT_PASSWORD=
     volumes:
       - atc-logs:/app/logs
-      - auth-secrets:/auth-secrets:ro
+      - *auth-secrets-ro
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'node', '-e', "fetch('http://localhost:6001/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -196,7 +204,7 @@ services:
       - SEND_TOKEN=${SEND_TOKEN:-}
       # Verifies the auth app's access-token cookie (Administrator gate, issue #153).
       # Same signing key the auth app self-provisions on the shared auth-secrets volume.
-      - JWT_SECRET_FILE=/auth-secrets/jwt.key
+      - *jwt-secret-file
     volumes:
       # Read-only mounts of every app's access-log volume (incl. its own), so
       # the viewer can read the full daily-rotated, gzipped 1-month history.
@@ -212,7 +220,7 @@ services:
       - log-viewer-logs:/app/logs
       # Read-only JWT signing key (auth self-provisions it on first boot); the guard
       # loads it lazily on the first request, but requests will fail auth until the key exists.
-      - auth-secrets:/auth-secrets:ro
+      - *auth-secrets-ro
     depends_on:
       - notification
       - auth
@@ -245,7 +253,7 @@ services:
       - DATABASE_URL_FILE=/secrets/recipe_book.url
       # Same signing key the auth app self-provisions on the shared auth-secrets
       # volume — verifies the User-role access token (issue #154).
-      - JWT_SECRET_FILE=/auth-secrets/jwt.key
+      - *jwt-secret-file
       # Tectonic caches downloaded LaTeX support files here (on the data volume).
       - TECTONIC_CACHE_DIR=/app/data/.tectonic-cache
     volumes:
@@ -253,7 +261,7 @@ services:
       - recipe-book-data:/app/data
       - recipe-book-logs:/app/logs
       - db-secrets:/secrets:ro
-      - auth-secrets:/auth-secrets:ro
+      - *auth-secrets-ro
     depends_on:
       db:
         condition: service_healthy
@@ -327,7 +335,7 @@ services:
       # Connection string read from the shared secrets volume (self-provisioned).
       - DATABASE_URL_FILE=/secrets/auth.url
       # JWT signing secret, self-provisioned on the auth-secrets volume at first boot.
-      - JWT_SECRET_FILE=/auth-secrets/jwt.key
+      - *jwt-secret-file
     volumes:
       - auth-logs:/app/logs
       - db-secrets:/secrets:ro

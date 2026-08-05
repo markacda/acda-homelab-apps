@@ -1,22 +1,27 @@
-import { SignJWT, jwtVerify } from 'jose';
+import { SignJWT } from 'jose';
+import { joseVerifier, type TokenVerifier } from '../../../Common/auth/index.ts';
 import type { AccessTokenClaims, AccessTokenIssuer } from '../../Domain/Ports/access-token-issuer.ts';
 import { UnauthorizedError } from '../../Domain/Exceptions/unauthorized-error.ts';
 
 // AccessTokenIssuer backed by `jose` (pure-ESM, no native build). Access tokens are
 // HS256 JWTs carrying the person id as `sub` and their `roles`, signed with the
-// self-provisioned secret. `verify` maps any jose failure (bad signature, expired,
-// malformed) to an UnauthorizedError so the error filter answers 401.
+// self-provisioned secret. Verification delegates to @homelab/auth's shared
+// joseVerifier (the same code every consuming app runs), and any failure (bad
+// signature, expired, malformed, missing subject) becomes an UnauthorizedError so
+// the error filter answers 401.
 
 const ALG = 'HS256';
 
 export class JoseTokenIssuer implements AccessTokenIssuer {
   private readonly secret: Uint8Array;
   private readonly ttl: string;
+  private readonly verifier: TokenVerifier;
 
   /** @param ttl expiry as a jose duration string (e.g. '7d'). */
   constructor(secret: Uint8Array, ttl = '7d') {
     this.secret = secret;
     this.ttl = ttl;
+    this.verifier = joseVerifier(secret);
   }
 
   async issue(claims: AccessTokenClaims): Promise<string> {
@@ -29,19 +34,10 @@ export class JoseTokenIssuer implements AccessTokenIssuer {
   }
 
   async verify(token: string): Promise<AccessTokenClaims> {
-    let sub: string | undefined;
-    let roles: unknown;
     try {
-      const { payload } = await jwtVerify(token, this.secret, { algorithms: [ALG] });
-      sub = payload.sub;
-      roles = (payload as { roles?: unknown }).roles;
+      return await this.verifier(token);
     } catch {
       throw new UnauthorizedError('Invalid or expired token.');
     }
-    if (!sub) throw new UnauthorizedError('Invalid or expired token.');
-    return {
-      sub,
-      roles: Array.isArray(roles) ? roles.filter((r): r is string => typeof r === 'string') : [],
-    };
   }
 }
