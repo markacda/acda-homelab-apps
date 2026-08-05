@@ -110,12 +110,16 @@ export async function fetchCurrentUser(): Promise<PersonView | null> {
 }
 
 /**
- * End the current session via `POST api/logout`. The session cookies are httpOnly,
- * so the browser can't clear them itself — the server invalidates the refresh
- * session and clears both cookies (returning 204). Callers reload/redirect afterwards.
+ * End the current session via the auth app's `POST /auth/api/logout`. The path is
+ * ABSOLUTE (like `buildLoginRedirectUrl`'s `/auth/`) because the logout button may
+ * live on any app behind the proxy — e.g. the dashboard at '/', where a relative
+ * 'api/logout' would hit the dashboard's own server and 404. The session cookies are
+ * httpOnly and Path=/ (shared across every app), so the auth server invalidates the
+ * refresh session and clears both cookies (returning 204). Callers reload/redirect
+ * afterwards.
  */
 export async function logout(): Promise<void> {
-  await apiJson('api/logout', { method: 'POST' });
+  await apiJson('/auth/api/logout', { method: 'POST' });
 }
 
 /**
