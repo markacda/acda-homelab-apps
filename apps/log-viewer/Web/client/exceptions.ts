@@ -118,7 +118,6 @@ export function mountExceptions(root: HTMLElement): () => void {
     logsSection
   );
 
-  // ---- state --------------------------------------------------------------
   let sortField = 'ts';
   let sortDir: 'asc' | 'desc' = 'desc';
   // Last known total count, so the header can re-render its "updated" timestamp
@@ -139,7 +138,6 @@ export function mountExceptions(root: HTMLElement): () => void {
     return appDropdown.isNone() || sourceDropdown.isNone();
   }
 
-  // ---- query building -----------------------------------------------------
   function rangeFrom(): string | null {
     const map: Record<string, number> = { '1h': 3600e3, '24h': 24 * 3600e3, '7d': 7 * 24 * 3600e3, '30d': 30 * 24 * 3600e3 };
     const ms = map[rangeEl.value];
@@ -158,7 +156,6 @@ export function mountExceptions(root: HTMLElement): () => void {
     return p;
   }
 
-  // ---- rendering ----------------------------------------------------------
   function renderCards(s: ExceptionStats): void {
     cardsEl.replaceChildren(
       card('Total exceptions', s.overall.count.toLocaleString(), s.overall.count ? 'bad' : ''),
@@ -203,7 +200,6 @@ export function mountExceptions(root: HTMLElement): () => void {
     return row;
   }
 
-  // ---- data loading -------------------------------------------------------
   async function loadStats(): Promise<void> {
     if (selectionEmpty()) {
       renderCards(EMPTY_STATS);
@@ -271,7 +267,6 @@ export function mountExceptions(root: HTMLElement): () => void {
     renderHeader(meta.lastRefresh);
   }
 
-  // ---- wiring -------------------------------------------------------------
   function setSort(field: string): void {
     if (sortField === field) sortDir = sortDir === 'desc' ? 'asc' : 'desc';
     else {
@@ -329,8 +324,6 @@ export function mountExceptions(root: HTMLElement): () => void {
     observer.disconnect();
   };
 }
-
-// ---- small markup helpers -------------------------------------------------
 
 function panel(title: string, body: HTMLElement, cls = ''): HTMLElement {
   return el('div', { class: `panel ${cls}`.trim() }, el('h2', {}, title), body);

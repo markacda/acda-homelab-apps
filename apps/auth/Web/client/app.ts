@@ -51,8 +51,6 @@ function validate(email: string, password: string): string | null {
   return null;
 }
 
-// ---- mode toggle ----------------------------------------------------------
-
 const loginForm = $<HTMLFormElement>('login-form');
 const registerForm = $<HTMLFormElement>('register-form');
 const formTitle = $('form-title');
@@ -80,8 +78,6 @@ $('show-login').addEventListener('click', (e) => {
   e.preventDefault();
   showMode('login');
 });
-
-// ---- submit handlers ------------------------------------------------------
 
 /** Run an in-flight submit with the button disabled, surfacing any error inline. */
 async function withButton(button: HTMLButtonElement, run: () => Promise<void>): Promise<void> {

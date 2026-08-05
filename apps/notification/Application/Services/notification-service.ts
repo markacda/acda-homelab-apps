@@ -37,7 +37,6 @@ export class NotificationService {
       return channel;
     });
 
-    // The feed is always written, regardless of delivery channels.
     await this.store.add(notification);
 
     const results = await Promise.allSettled(targets.map((c) => c.deliver(notification)));

@@ -61,7 +61,6 @@ export class YamlConfigSource implements ConfigSource {
     const settings: Settings = { ...DEFAULTS.settings, ...(raw.settings || {}) };
     const discovery: DiscoveryConfig = { ...DEFAULTS.discovery, ...(raw.discovery || {}) };
 
-    // Environment overrides
     if (process.env.HOST_ADDRESS) settings.hostAddress = process.env.HOST_ADDRESS;
     if (process.env.TITLE) settings.title = process.env.TITLE;
     if (process.env.HEALTH_INTERVAL) {
@@ -69,7 +68,6 @@ export class YamlConfigSource implements ConfigSource {
       if (Number.isFinite(n) && n > 0) settings.healthCheckIntervalSeconds = n;
     }
 
-    // Normalize types
     settings.healthCheckIntervalSeconds = Number(settings.healthCheckIntervalSeconds) || 30;
     settings.autoDiscover = settings.autoDiscover !== false;
     discovery.requireLabel = discovery.requireLabel === true;

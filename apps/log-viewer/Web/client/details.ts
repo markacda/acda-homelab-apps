@@ -7,8 +7,8 @@
 import { el, pill, fmtTs, fmtMs, statusClassName, levelClass, sourceClass, outcomePill } from './dom.ts';
 import { openSheet, type SheetRow } from './sheet.ts';
 
-// ---- record shapes (mirror the server @homelab/access-log record types; the
-// bundler-less client build cannot import them from apps/Common) --------------
+// Record shapes mirror the server @homelab/access-log record types; the
+// bundler-less client build cannot import them from apps/Common.
 
 export interface RequestEntry {
   ts: string;
@@ -71,8 +71,6 @@ export type TraceItem =
   | { kind: 'exception'; entry: Exception }
   | { kind: 'dependency'; entry: Dependency };
 
-// ---- trace-id link --------------------------------------------------------
-
 /** A link to the trace view for `traceId` (used in place of plain trace-id text). */
 export function traceLink(traceId: string): HTMLAnchorElement {
   return el('a', { href: `#/trace/${encodeURIComponent(traceId)}`, class: 'trace-link' }, traceId);
@@ -82,8 +80,6 @@ export function traceLink(traceId: string): HTMLAnchorElement {
 function traceRow(traceId: string | undefined): SheetRow {
   return { label: 'Trace ID', value: traceId ? traceLink(traceId) : '—', mono: true };
 }
-
-// ---- per-kind detail sheets -----------------------------------------------
 
 export function showRequestDetail(e: RequestEntry): void {
   const rows: SheetRow[] = [
@@ -170,8 +166,6 @@ export function openDetail(item: TraceItem): void {
       return showDependencyDetail(item.entry);
   }
 }
-
-// ---- request-body formatting (request detail only) ------------------------
 
 /** Render a captured response header map as one `key: value` line per header. */
 function fmtHeaders(headers: Record<string, string | number | string[]>): string {

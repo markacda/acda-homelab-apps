@@ -6,8 +6,6 @@
 import { $, el } from '../../../Common/web-kit/index.ts';
 export { $, el };
 
-// ---- formatting -----------------------------------------------------------
-
 export function statusClassName(status: number): string {
   if (status >= 500) return 's5';
   if (status >= 400) return 's4';
@@ -49,8 +47,6 @@ export function outcomePill(success: boolean): HTMLElement {
   return pill(success ? 'ok' : 'fail', success ? 's2' : 's5');
 }
 
-// ---- summary card ---------------------------------------------------------
-
 export function card(label: string, value: string, cls = '', title = '', onClick?: () => void): HTMLElement {
   const attrs: Record<string, string> = { class: `card ${cls}${onClick ? ' clickable' : ''}` };
   if (title) attrs.title = title;
@@ -58,8 +54,6 @@ export function card(label: string, value: string, cls = '', title = '', onClick
   if (onClick) node.addEventListener('click', onClick);
   return node;
 }
-
-// ---- stat table -----------------------------------------------------------
 
 /** Build a stat table. `colClasses[i]` (if given) is applied to column i's cells. */
 export function table(headers: string[], rows: (string | Node)[][], colClasses: string[] = []): HTMLElement {
@@ -84,8 +78,6 @@ export function table(headers: string[], rows: (string | Node)[][], colClasses: 
   );
   return el('table', { class: 'stat-table' }, thead, tbody);
 }
-
-// ---- checkbox multi-select dropdown --------------------------------------
 
 export interface CheckboxDropdown {
   /** Replace the option list, preserving selection (see below for "all"). */

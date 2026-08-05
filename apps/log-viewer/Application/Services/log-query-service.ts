@@ -118,8 +118,6 @@ export class LogQueryService {
     };
   }
 
-  // ---- exceptions ---------------------------------------------------------
-
   listExceptions(filter: ExceptionFilter, sort: SortSpec<ExceptionSortField>, page: Pagination): LogListResponse<ExceptionLogEntry> {
     const filtered = filterExceptions(this.ingest.getExceptions(), filter);
     const sorted = sortByField(filtered, sort.field, sort.dir);
@@ -157,8 +155,6 @@ export class LogQueryService {
       lastRefresh: this.ingest.getLastRefresh(),
     };
   }
-
-  // ---- dependencies -------------------------------------------------------
 
   listDependencies(filter: DependencyFilter, sort: SortSpec<DependencySortField>, page: Pagination): LogListResponse<DependencyLogEntry> {
     const filtered = filterDependencies(this.ingest.getDependencies(), filter);
@@ -200,8 +196,6 @@ export class LogQueryService {
       lastRefresh: this.ingest.getLastRefresh(),
     };
   }
-
-  // ---- trace timeline -----------------------------------------------------
 
   /** Every record (requests/logs/exceptions/dependencies) sharing `traceId`,
    *  merged into one ts-ascending timeline. Unknown trace → empty items. */

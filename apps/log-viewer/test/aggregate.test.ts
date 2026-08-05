@@ -147,8 +147,6 @@ test('computeStats: slowestRequests are individual entries sorted by duration de
   assert.equal(s.slowestRequests[0].url, '/planes');
 });
 
-// ---- application logs -----------------------------------------------------
-
 function logEntry(over: Partial<AppLogEntry>): AppLogEntry {
   return {
     ts: '2026-07-06T10:00:00.000Z',

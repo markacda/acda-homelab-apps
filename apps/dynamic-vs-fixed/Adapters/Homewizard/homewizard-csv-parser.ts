@@ -66,7 +66,6 @@ function parseNumber(raw: string | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-// Classify each header into a logical role.
 function classifyColumns(headers: string[]): ColumnIndices {
   const map: ColumnIndices = {
     time: -1,
@@ -130,7 +129,6 @@ export class HomewizardCsvParser implements UsageParser {
     }
     const hasGas = map.gas !== -1;
 
-    // Parse cumulative rows.
     const rows: Row[] = [];
     let skippedRows = 0;
     for (let i = 1; i < lines.length; i++) {

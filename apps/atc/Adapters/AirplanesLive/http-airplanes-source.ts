@@ -2,7 +2,7 @@ import type { AirplanesSource } from '../../Ports/AirplanesLive/airplanes-source
 import type { PointQuery } from '../../Domain/ValueObjects/point-query.ts';
 import { ProxyError } from '../../Domain/Exceptions/proxy-error.ts';
 
-const TIMEOUT_MS = 10000; // 10-second upstream timeout
+const TIMEOUT_MS = 10000;
 
 /**
  * AirplanesSource over HTTP. Adds a 10s timeout, forwards upstream error codes,

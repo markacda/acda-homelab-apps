@@ -203,6 +203,15 @@ channel failing never fails the request or the feed). The feed is always written
 and is not itself a channel. `email` is a wired-but-stubbed skeleton showing how to
 add a real channel.
 
+## Code style
+
+**Comments.** Prefer self-explanatory code (clear naming and structure) over narration.
+Add a comment only when it carries something the code cannot: a non-obvious _why_, a
+constraint or workaround (e.g. the proxy/build/runtime notes throughout this repo), an
+external/issue reference, or a subtle gotcha. Avoid comments that restate the adjacent
+code and decorative `// ---- section ----` divider banners. JSDoc on exported APIs,
+`// eslint-disable` directives, and the occasional `TODO`/`NOTE` are fine.
+
 ## Lint scope
 
 ESLint lints `.ts` sources only. `dist/`, `data/`, compiled client bundles

@@ -48,8 +48,6 @@ interface Category {
   updatedAt: string;
 }
 
-// ---- tiny helpers ---------------------------------------------------------
-
 function esc(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 }
@@ -64,8 +62,6 @@ function imgSrc(recipe: Recipe): string | null {
   return recipe.images.length ? fileSrc(recipe.images[0]) : null;
 }
 
-// ---- state ----------------------------------------------------------------
-
 let recipes: Recipe[] = [];
 let librarySearch = ''; // current library filter query (lower-cased when matched)
 let books: Book[] = [];
@@ -76,8 +72,6 @@ let activeCategoryId: string | null = null;
 let editingId: string | null = null; // null => creating a new recipe
 let editingImages: string[] = []; // gallery of the recipe currently in the editor
 let pickerRecipeId: string | null = null; // recipe awaiting a book choice in the picker
-
-// ---- library --------------------------------------------------------------
 
 async function loadRecipes(): Promise<void> {
   const loaded = await api<Recipe[]>('api/recipes');
@@ -144,8 +138,6 @@ function renderLibrary(): void {
     })
     .join('');
 }
-
-// ---- books ----------------------------------------------------------------
 
 async function loadBooks(): Promise<void> {
   books = await api<Book[]>('api/books');
@@ -214,8 +206,6 @@ async function saveBookOrder(recipeIds: string[]): Promise<void> {
   await refreshActiveBook();
 }
 
-// ---- categories -----------------------------------------------------------
-
 async function loadCategories(): Promise<void> {
   categories = await api<Category[]>('api/categories');
   if (activeCategoryId && !categories.some((c) => c.id === activeCategoryId)) activeCategoryId = null;
@@ -270,8 +260,6 @@ async function deleteCategory(): Promise<void> {
   activeCategoryId = null;
   await loadCategories();
 }
-
-// ---- recipe editor --------------------------------------------------------
 
 /** Fill the editor's category <select> with the managed list, keeping `selected` choosable. */
 function renderEditorCategoryOptions(selected: string): void {
@@ -450,8 +438,6 @@ async function saveGallery(): Promise<void> {
   }
 }
 
-// ---- top-level actions ----------------------------------------------------
-
 // Pending auto-hide timer for the import status line (so a new import/error
 // cancels the previous one instead of clearing the wrong message).
 let importStatusTimer: ReturnType<typeof setTimeout> | null = null;
@@ -489,7 +475,7 @@ async function importRecipe(): Promise<void> {
   }
 }
 
-// ---- AI-prompt fallback (for URLs we can't parse) -------------------------
+// AI-prompt fallback for URLs we can't parse.
 
 /**
  * Build a copy-paste prompt that asks a generative AI to return the recipe on
@@ -661,7 +647,6 @@ async function removePage(recipeId: string): Promise<void> {
   await saveBookOrder(activeBook.recipeIds.filter((id) => id !== recipeId));
 }
 
-// ---- drag-and-drop reordering of book pages -------------------------------
 // The ↑/↓ buttons stay as an accessible fallback; this adds native HTML5 drag
 // of a whole page (grab the ⠿ handle) and persists via the same saveBookOrder.
 let dragPageId: string | null = null;
@@ -713,8 +698,6 @@ async function generate(format: 'tex' | 'pdf'): Promise<void> {
     btns.forEach((b) => (b.disabled = false));
   }
 }
-
-// ---- event wiring ---------------------------------------------------------
 
 $('importBtn').addEventListener('click', () => void importRecipe());
 $('importUrl').addEventListener('input', (e) => {
@@ -859,8 +842,6 @@ $('edGallery').addEventListener('click', (e) => {
   renderGallery();
   void saveGallery();
 });
-
-// ---- init -----------------------------------------------------------------
 
 void (async () => {
   try {

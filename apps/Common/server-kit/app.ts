@@ -22,9 +22,7 @@ import {
  * routes on the returned app, then hand it to startServer().
  */
 export function createApp(name: string): Express {
-  // Mirror console.* output into the structured app.log (see log-viewer), time
-  // outbound fetches as dependencies, and record process-level faults as
-  // first-class exceptions. All idempotent.
+  // All idempotent; these feed the structured app.log / dependencies / exceptions the log-viewer reads.
   installConsoleLogging(name);
   installFetchLogging(name);
   installProcessExceptionHandlers(name);

@@ -13,11 +13,9 @@ import { createDynamicVsFixedGuards } from './auth-guards.ts';
  * createApp() and before startServer().
  */
 export function register(app: Express): void {
-  // Adapters (external ports).
   const usageParser = new HomewizardCsvParser();
   const priceProvider = new EnergyZeroPriceProvider();
 
-  // Application service + controller.
   const comparisonService = new ComparisonService(usageParser, priceProvider);
   const calculationController = new CalculationController(comparisonService);
 

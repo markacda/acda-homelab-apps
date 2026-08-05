@@ -24,7 +24,7 @@ function setStatus(msg: string, kind: '' | 'error' = ''): void {
   webSetStatus(statusEl, msg, kind);
 }
 
-// ---- icons (no icon library in the repo; small inline SVGs, currentColor) -----
+// icons: no icon library in the repo; small inline SVGs, currentColor
 
 function icon(kind: 'pen' | 'bin'): SVGSVGElement {
   const paths: Record<typeof kind, string> = {
@@ -47,14 +47,10 @@ function icon(kind: 'pen' | 'bin'): SVGSVGElement {
   return svg;
 }
 
-// ---- state ----------------------------------------------------------------
-
 let users: PersonView[] = [];
 let searchTerm = '';
 
 const usersEl = $('users');
-
-// ---- table ----------------------------------------------------------------
 
 function renderTable(): void {
   if (users.length === 0) {
@@ -83,8 +79,6 @@ async function loadUsers(): Promise<void> {
   renderTable();
   refreshOpenModal();
 }
-
-// ---- modal ----------------------------------------------------------------
 
 let overlay: HTMLElement | undefined;
 let editingId: string | undefined;
@@ -191,8 +185,6 @@ async function mutate(run: () => Promise<PersonView>): Promise<void> {
   }
 }
 
-// ---- search ---------------------------------------------------------------
-
 let searchTimer: number | undefined;
 $<HTMLInputElement>('search').addEventListener('input', (e) => {
   const value = (e.target as HTMLInputElement).value.trim();
@@ -202,8 +194,6 @@ $<HTMLInputElement>('search').addEventListener('input', (e) => {
     void loadUsers().catch((err) => setStatus(err instanceof Error ? err.message : String(err), 'error'));
   }, 200);
 });
-
-// ---- bootstrap: admin gating ---------------------------------------------
 
 async function init(): Promise<void> {
   const me = await fetchCurrentUser();

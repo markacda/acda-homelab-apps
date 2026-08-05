@@ -73,7 +73,6 @@ export class DockerodeContainerDiscovery implements ContainerDiscovery {
       const labels = container.Labels || {};
       const containerName = stripName(container.Names?.[0]);
 
-      // Filtering rules
       if (config.discovery.ignore.includes(containerName)) continue;
       const enable = label(labels, 'enable');
       if (enable === 'false') continue;

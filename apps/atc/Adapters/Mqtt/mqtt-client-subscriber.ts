@@ -47,7 +47,6 @@ export class MqttClientSubscriber implements MqttSubscriber {
         handler(topic, text);
         return;
       }
-      // Unknown topic: no handler registered, so just log it.
       console.debug(`[atc-mqtt] ${topic} ${text}`);
     });
 

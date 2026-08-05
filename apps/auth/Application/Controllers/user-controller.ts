@@ -16,19 +16,16 @@ export class UserController {
     this.users = users;
     const router = Router();
 
-    // List users (email + roles); ?search= filters by email substring.
     router.get('/', async (req, res) => {
       res.json(await this.users.listUsers(firstStr(req.query.search)));
     });
 
-    // Grant a role to the user; returns the updated PersonView.
     router.post('/:id/roles', async (req, res) => {
       const role = optStr((req.body as Record<string, unknown> | undefined)?.role);
       if (!role) throw new ValidationError('A role is required.');
       res.json(await this.users.addRole(req.params.id, role));
     });
 
-    // Revoke a role from the user; returns the updated PersonView.
     router.delete('/:id/roles/:role', async (req, res) => {
       res.json(await this.users.removeRole(req.params.id, req.params.role));
     });

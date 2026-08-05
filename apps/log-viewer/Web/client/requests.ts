@@ -85,7 +85,6 @@ const DISCOVERY_UA = 'homelab-dashboard-discovery-agent';
 
 /** Mount the Requests view into `root`. Returns a teardown to stop its timer. */
 export function mountRequests(root: HTMLElement): () => void {
-  // ---- build the view markup ---------------------------------------------
   const cardsEl = el('section', { class: 'cards' });
 
   const chartEl = el('div', { class: 'chart-wrap' });
@@ -172,7 +171,6 @@ export function mountRequests(root: HTMLElement): () => void {
     logsSection
   );
 
-  // ---- state --------------------------------------------------------------
   let sortField = 'ts';
   let sortDir: 'asc' | 'desc' = 'desc';
   // An exact status-code filter toggled by clicking a Status codes row (null = off).
@@ -198,7 +196,6 @@ export function mountRequests(root: HTMLElement): () => void {
     return appDropdown.isNone() || methodDropdown.isNone() || statusDropdown.isNone();
   }
 
-  // ---- query building -----------------------------------------------------
   function rangeFrom(): string | null {
     const map: Record<string, number> = {
       '1h': 3600e3,
@@ -227,7 +224,6 @@ export function mountRequests(root: HTMLElement): () => void {
     return p;
   }
 
-  // ---- rendering ----------------------------------------------------------
   function renderCards(s: Stats): void {
     const failing = `${s.overall.errorCount.toLocaleString()} of ${s.overall.count.toLocaleString()} requests failed`;
     cardsEl.replaceChildren(
@@ -329,7 +325,6 @@ export function mountRequests(root: HTMLElement): () => void {
     return row;
   }
 
-  // ---- data loading -------------------------------------------------------
   async function loadStats(): Promise<void> {
     if (selectionEmpty()) {
       renderCards(EMPTY_STATS);
@@ -401,7 +396,6 @@ export function mountRequests(root: HTMLElement): () => void {
     renderHeader(meta.lastRefresh);
   }
 
-  // ---- wiring -------------------------------------------------------------
   function setSort(field: string): void {
     if (sortField === field) sortDir = sortDir === 'desc' ? 'asc' : 'desc';
     else {
@@ -454,7 +448,6 @@ export function mountRequests(root: HTMLElement): () => void {
     th.addEventListener('click', () => setSort(th.dataset.sort!));
   }
 
-  // initial load
   loadMeta();
   refresh();
 
@@ -463,8 +456,6 @@ export function mountRequests(root: HTMLElement): () => void {
     observer.disconnect();
   };
 }
-
-// ---- small markup helpers -------------------------------------------------
 
 function panel(title: string, body: HTMLElement, cls = ''): HTMLElement {
   return el('div', { class: `panel ${cls}`.trim() }, el('h2', {}, title), body);
