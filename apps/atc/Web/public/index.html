@@ -1106,6 +1106,8 @@
     <script src="libs/ol-custom-10.7.0.js"></script>
 
     <!-- JS_ANCHOR2 -->
+    <!-- Auth 401 chokepoint (issue #154) — must run before any app request. -->
+    <script src="js/core/auth-guard.js"></script>
     <!-- js/core: globals, storage, toggle, polyfills -->
     <script src="js/core/globals.js"></script>
     <script src="js/core/toggle.js"></script>

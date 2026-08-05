@@ -102,6 +102,9 @@ services:
       - NODE_ENV=production
       - PORT=6001
       - LOG_DIR=/app/logs
+      # Same signing key the auth app self-provisions on the shared auth-secrets
+      # volume — verifies the User-role access token (issue #154).
+      - JWT_SECRET_FILE=/auth-secrets/jwt.key
       # MQTT: connect to the host broker and subscribe to MQTT_TOPIC (default "#",
       # all topics). Known topics are parsed (the EHAM runway config, exposed at
       # /api/runways); unknown topics are logged. Unset MQTT_URL to disable.
@@ -112,6 +115,7 @@ services:
       # - MQTT_PASSWORD=
     volumes:
       - atc-logs:/app/logs
+      - auth-secrets:/auth-secrets:ro
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'node', '-e', "fetch('http://localhost:6001/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -239,6 +243,9 @@ services:
       - LOG_DIR=/app/logs
       # Connection string read from the shared secrets volume (self-provisioned).
       - DATABASE_URL_FILE=/secrets/recipe_book.url
+      # Same signing key the auth app self-provisions on the shared auth-secrets
+      # volume — verifies the User-role access token (issue #154).
+      - JWT_SECRET_FILE=/auth-secrets/jwt.key
       # Tectonic caches downloaded LaTeX support files here (on the data volume).
       - TECTONIC_CACHE_DIR=/app/data/.tectonic-cache
     volumes:
@@ -246,6 +253,7 @@ services:
       - recipe-book-data:/app/data
       - recipe-book-logs:/app/logs
       - db-secrets:/secrets:ro
+      - auth-secrets:/auth-secrets:ro
     depends_on:
       db:
         condition: service_healthy

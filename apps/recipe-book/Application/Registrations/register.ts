@@ -19,6 +19,7 @@ import { RecipeController } from '../Controllers/recipe-controller.ts';
 import { BookController } from '../Controllers/book-controller.ts';
 import { CategoryController } from '../Controllers/category-controller.ts';
 import { errorMapping } from '../Filters/error-mapping.ts';
+import { createRecipeBookGuards } from './auth-guards.ts';
 
 /**
  * Composition root: connect the shared Postgres pool, run migrations, then
@@ -57,6 +58,14 @@ export async function register(app: Express): Promise<Pool> {
   const categoryController = new CategoryController(categoryService);
 
   app.use(express.json({ limit: '1mb' }));
+
+  // User-role gate (issue #154): /api and the /images sub-resources answer JSON
+  // 401/403; the served SPA shell (mounted next by startServer) bounces logged-out
+  // browsers to the auth login. /healthz stays public (both guards skip it).
+  const { requireApiUser, requireUserPage } = createRecipeBookGuards();
+  app.use('/api', requireApiUser);
+  app.use('/images', requireApiUser);
+
   app.use('/api/recipes', recipeController.router);
   app.use('/api/books', bookController.router);
   app.use('/api/categories', categoryController.router);
@@ -65,6 +74,9 @@ export async function register(app: Express): Promise<Pool> {
   app.use('/images', express.static(IMAGES_DIR));
   // Map domain errors to HTTP; unknown errors fall through to server-kit's handler.
   app.use(errorMapping());
+
+  // Gate the static SPA shell (served next by startServer) behind the same role.
+  app.use(requireUserPage);
 
   return pool;
 }

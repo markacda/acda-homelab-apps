@@ -55,12 +55,27 @@ function setStatus(el: HTMLElement, msg: string, kind: '' | 'error' | 'ok' | 'in
   el.className = `status ${kind}`.trim();
 }
 
+// Receptenboek is User-role gated server-side (issue #154). The logged-out case is
+// handled by a server 302, but if the session expires while the SPA is open its API
+// calls start returning 401 — bounce to the auth login, returning here afterwards.
+let redirecting = false;
+function redirectToLogin(): never {
+  if (!redirecting) {
+    redirecting = true;
+    const here = location.pathname + location.search + location.hash;
+    location.assign(`/auth/?redirect=${encodeURIComponent(here)}`);
+  }
+  // Never resolve: the navigation is underway, so callers should not proceed.
+  throw new Error('Session expired — redirecting to login.');
+}
+
 /** JSON API call that throws the server's { error } message on failure. */
 async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(path, {
     ...options,
     headers: options.body ? { 'Content-Type': 'application/json', ...options.headers } : options.headers,
   });
+  if (res.status === 401) redirectToLogin();
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((data as { error?: string }).error || `Request failed (${res.status}).`);
