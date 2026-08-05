@@ -275,9 +275,9 @@ export function mountRequests(root: HTMLElement): () => void {
     );
     slowestReqEl.replaceChildren(
       table(
-        ['App', 'Method', 'URL', 'Status', 'ms', 'Time'],
-        s.slowestRequests.map((r) => [r.app, r.method, r.url, pill(String(r.status), statusClassName(r.status)), String(r.durationMs), fmtTs(r.ts)]),
-        ['', '', 'cell-url', '', '', '']
+        ['App', 'Method', 'URL', 'Status', 'ms'],
+        s.slowestRequests.map((r) => [r.app, r.method, r.url, pill(String(r.status), statusClassName(r.status)), String(r.durationMs)]),
+        ['', '', 'cell-url', '', '']
       )
     );
     renderStatusTable(s.statusDistribution);

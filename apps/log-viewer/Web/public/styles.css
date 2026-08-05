@@ -269,10 +269,11 @@ h1 {
   color: var(--text);
 }
 
-/* Aggregate tables grow to fit their rows (capped at 10 rows in the render) rather
-   than scrolling vertically. Overflow-x stays hidden — long URL cells ellipsize. */
+/* Aggregate tables scroll horizontally inside their panel when too wide for the
+   viewport (e.g. on mobile) rather than clipping columns — same treatment as the
+   main logs table (.logs). Long URL cells still ellipsize (see td.cell-url). */
 .table-wrap {
-  overflow-x: hidden;
+  overflow-x: auto;
 }
 
 .stat-table {
