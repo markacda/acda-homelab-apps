@@ -582,6 +582,18 @@ h1 {
   background: rgba(148, 163, 184, 0.18);
   color: var(--muted);
 }
+.pill.tag {
+  min-width: 0;
+  background: rgba(167, 139, 250, 0.18);
+  color: #a78bfa;
+}
+
+/* Tag pills in the detail sheet wrap and keep a small gap between them. */
+.tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
 
 .panel.panel-wide {
   grid-column: 1 / -1;

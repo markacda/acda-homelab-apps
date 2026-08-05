@@ -4,6 +4,7 @@
 import { el, card, pill, table, checkboxDropdown, fmtTs, levelClass } from './dom.ts';
 import { showLogDetail, type AppLog } from './details.ts';
 import { stackedBarChart } from './chart.ts';
+import { tagOptions, defaultTagSelection, tagsParam } from './tags.ts';
 
 interface AppLogsResponse {
   total: number;
@@ -21,6 +22,7 @@ interface LogStats {
 interface LogMeta {
   apps: string[];
   levels: string[];
+  tags: string[];
   count: number;
   from: string | null;
   to: string | null;
@@ -58,6 +60,7 @@ export function mountLogs(root: HTMLElement): () => void {
   const qEl = el('input', { type: 'search', placeholder: 'Search message…' }) as HTMLInputElement;
   const appDropdownEl = el('div', { class: 'dropdown' });
   const levelDropdownEl = el('div', { class: 'dropdown' });
+  const tagDropdownEl = el('div', { class: 'dropdown' });
   const rangeEl = rangeSelect();
   const refreshBtn = el('button', { type: 'button' }, 'Refresh');
   const autoEl = el('input', { type: 'checkbox' }) as HTMLInputElement;
@@ -68,6 +71,7 @@ export function mountLogs(root: HTMLElement): () => void {
     qEl,
     appDropdownEl,
     levelDropdownEl,
+    tagDropdownEl,
     rangeEl,
     refreshBtn,
     el('label', { class: 'toggle' }, autoEl, 'Auto-refresh'),
@@ -109,11 +113,15 @@ export function mountLogs(root: HTMLElement): () => void {
   const levelDropdown = checkboxDropdown(levelDropdownEl, 'All levels', () => refresh());
   levelDropdown.setOptions(ALL_LEVELS);
   levelDropdown.setSelected(DEFAULT_LEVELS);
+  const tagDropdown = checkboxDropdown(tagDropdownEl, 'All tags', () => refresh());
+  // The default selection (hiding Healthcheck) is applied on the first meta load,
+  // once the available tag options are known.
+  let tagsInit = false;
 
   // Deselecting every option in any filter means "match nothing" — short-circuit
   // to an empty view rather than falling back to the server's "empty = all".
   function selectionEmpty(): boolean {
-    return appDropdown.isNone() || levelDropdown.isNone();
+    return appDropdown.isNone() || levelDropdown.isNone() || tagDropdown.isNone();
   }
 
   function rangeFrom(): string | null {
@@ -133,6 +141,8 @@ export function mountLogs(root: HTMLElement): () => void {
     const levels = levelDropdown.selected();
     if (apps.length) p.set('app', apps.join(','));
     if (levels.length) p.set('level', levels.join(','));
+    const tags = tagsParam(tagDropdown.selected());
+    if (tags) p.set('tags', tags);
     const from = rangeFrom();
     if (from) p.set('from', from);
     if (!showSelfEl.checked) p.set('excludeApp', 'log-viewer');
@@ -248,6 +258,12 @@ export function mountLogs(root: HTMLElement): () => void {
     if (!res.ok) return;
     const meta = (await res.json()) as LogMeta;
     appDropdown.setOptions(meta.apps);
+    const opts = tagOptions(meta.tags);
+    tagDropdown.setOptions(opts);
+    if (!tagsInit) {
+      tagDropdown.setSelected(defaultTagSelection(opts));
+      tagsInit = true;
+    }
     metaCount = meta.count;
     renderHeader(meta.lastRefresh);
   }

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildEntry, buildAppLogEntry, buildException, buildDependency, currentTraceId } from './logger.ts';
+import { buildEntry, buildAppLogEntry, buildException, buildDependency, currentTraceId, currentTags, withTags } from './logger.ts';
 
 // Minimal req/res doubles — buildEntry only reads these fields.
 function fakeReq(overrides = {}) {
@@ -211,4 +211,41 @@ test('buildDependency carries the full command when supplied and omits it otherw
     '2026-07-06T00:00:00.000Z'
   );
   assert.equal('command' in withoutCommand, false);
+});
+
+test('currentTags is undefined outside a withTags scope', () => {
+  assert.equal(currentTags(), undefined);
+});
+
+test('withTags exposes its tags to currentTags and merges nested scopes', () => {
+  withTags(['Healthcheck'], () => {
+    assert.deepEqual(currentTags(), ['Healthcheck']);
+    withTags(['Extra'], () => {
+      assert.deepEqual(currentTags(), ['Healthcheck', 'Extra']);
+    });
+  });
+  assert.equal(currentTags(), undefined); // scope is exited
+});
+
+test('the four builders stamp the ambient tags, and omit the field otherwise', () => {
+  const iso = '2026-07-06T00:00:00.000Z';
+  withTags(['Healthcheck'], () => {
+    assert.deepEqual(buildEntry(fakeReq(), fakeRes(), 1, 'app', iso).tags, ['Healthcheck']);
+    assert.deepEqual(buildAppLogEntry('info', ['hi'], 'app', iso).tags, ['Healthcheck']);
+    assert.deepEqual(buildException(new Error('x'), 'app', 'manual', {}, iso).tags, ['Healthcheck']);
+    assert.deepEqual(buildDependency({ type: 'postgres', target: 'db', name: 'SELECT', durationMs: 1, success: true }, 'app', iso).tags, [
+      'Healthcheck',
+    ]);
+  });
+  // No scope: no tags field on any record.
+  assert.equal('tags' in buildEntry(fakeReq(), fakeRes(), 1, 'app', iso), false);
+  assert.equal('tags' in buildDependency({ type: 'postgres', target: 'db', name: 'SELECT', durationMs: 1, success: true }, 'app', iso), false);
+});
+
+test('buildDependency merges explicit field tags with the ambient scope, de-duplicated', () => {
+  const iso = '2026-07-06T00:00:00.000Z';
+  const d = withTags(['Healthcheck'], () =>
+    buildDependency({ type: 'postgres', target: 'db', name: 'SELECT', durationMs: 1, success: true, tags: ['Healthcheck', 'Manual'] }, 'app', iso)
+  );
+  assert.deepEqual(d.tags, ['Healthcheck', 'Manual']);
 });

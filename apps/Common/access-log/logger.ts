@@ -21,6 +21,24 @@ export function currentTraceId(): string | undefined {
   return traceStore.getStore()?.traceId;
 }
 
+// Ambient tags applied to every telemetry record built within a withTags scope.
+// A general mechanism for labelling telemetry (e.g. "Healthcheck"): wrap a unit of
+// work in withTags and the requests/logs/exceptions/dependencies it produces carry
+// those tags. Propagates across async work like traceStore, so a tagged pool.query
+// still stamps its dependency record when the wrapped promise settles.
+const tagStore = new AsyncLocalStorage<readonly string[]>();
+
+/** The tags in scope for the current work, or undefined outside a withTags scope. */
+export function currentTags(): readonly string[] | undefined {
+  return tagStore.getStore();
+}
+
+/** Run `fn` with `tags` added to the ambient tag scope (merged with any parent). */
+export function withTags<T>(tags: string[], fn: () => T): T {
+  const merged = [...(tagStore.getStore() ?? []), ...tags];
+  return tagStore.run(merged, fn);
+}
+
 // Structured per-request access log. One JSON object per line, written to a
 // daily-rotated file. Old files are gzipped and only ~30 are kept, giving a
 // ~1-month retention window. LOG_DIR is a persistent volume in Docker.
@@ -85,6 +103,14 @@ export function closeLogStreams(): Promise<void> {
 // Health-check polls hit every 30s; keep them out of the page-load log.
 const SKIP_PATHS = new Set(['/healthz', '/health']);
 
+// Merge the ambient tag scope with any explicitly-supplied tags, de-duplicated.
+// Returns undefined when there are none so the field is omitted from the record.
+function resolveTags(explicit?: readonly string[]): string[] | undefined {
+  const tags = [...(currentTags() ?? []), ...(explicit ?? [])];
+  if (tags.length === 0) return undefined;
+  return [...new Set(tags)];
+}
+
 // buildEntry only reads these fields, so it accepts anything structurally
 // compatible: a real Express req/res and the lightweight test doubles alike.
 interface LoggableRequest {
@@ -116,6 +142,8 @@ export interface AccessLogEntry {
   // Correlation id shared with the app-logs/dependencies/exceptions this request
   // produced. Omitted for entries written before correlation was introduced.
   traceId?: string;
+  // Labels applied via a withTags scope (e.g. "Healthcheck"). Omitted when none.
+  tags?: string[];
   // Present only for non-2xx responses: the full response header map (with
   // sensitive values redacted) and a size-bounded copy of the response body.
   // Omitted entirely on 2xx to keep the common case's log lines small.
@@ -179,6 +207,8 @@ export function buildEntry(
     bytes: Number(res.getHeader?.('content-length')) || null,
   };
   if (traceId !== undefined) entry.traceId = traceId;
+  const tags = resolveTags();
+  if (tags) entry.tags = tags;
   if (isNon2xx(res.statusCode)) {
     const headers = res.getHeaders?.();
     if (headers) entry.resHeaders = redactHeaders(headers);
@@ -265,6 +295,7 @@ export interface AppLogEntry {
   message: string; // human-readable, util.format(...args)
   params: unknown[]; // JSON-safe per-argument values, for structured display
   traceId?: string; // correlation id when logged while handling a request
+  tags?: string[]; // labels applied via a withTags scope; omitted when none
 }
 
 /** Make a single console argument JSON-safe for the `params` array. */
@@ -301,6 +332,8 @@ export function buildAppLogEntry(
     params: args.map(safeParam),
   };
   if (traceId !== undefined) entry.traceId = traceId;
+  const tags = resolveTags();
+  if (tags) entry.tags = tags;
   return entry;
 }
 
@@ -345,6 +378,7 @@ export interface ExceptionLogEntry {
   stack?: string;
   source: ExceptionSource;
   traceId?: string; // the request this happened under, when applicable
+  tags?: string[]; // labels applied via a withTags scope; omitted when none
   method?: string; // request context, when caught in a route
   url?: string;
   status?: number;
@@ -382,6 +416,8 @@ export function buildException(
   if (isError && err.stack) entry.stack = err.stack;
   const traceId = ctx.traceId ?? currentTraceId();
   if (traceId !== undefined) entry.traceId = traceId;
+  const tags = resolveTags();
+  if (tags) entry.tags = tags;
   if (ctx.method !== undefined) entry.method = ctx.method;
   if (ctx.url !== undefined) entry.url = ctx.url;
   if (ctx.status !== undefined) entry.status = ctx.status;
@@ -416,6 +452,7 @@ export interface DependencyLogEntry {
   status?: number; // HTTP status, when applicable
   error?: string; // failure message, when !success
   traceId?: string; // the request this call was made under, when applicable
+  tags?: string[]; // labels applied via a withTags scope; omitted when none
   command?: string; // full statement text (postgres) — name keeps only the verb
 }
 
@@ -429,6 +466,7 @@ export interface DependencyFields {
   status?: number;
   error?: string;
   traceId?: string;
+  tags?: string[];
   command?: string;
 }
 
@@ -449,6 +487,8 @@ export function buildDependency(f: DependencyFields, app: string, nowIso: string
   if (f.command !== undefined) entry.command = f.command;
   const traceId = f.traceId ?? currentTraceId();
   if (traceId !== undefined) entry.traceId = traceId;
+  const tags = resolveTags(f.tags);
+  if (tags) entry.tags = tags;
   return entry;
 }
 

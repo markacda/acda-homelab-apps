@@ -10,6 +10,7 @@ import type {
   TraceItem,
 } from '../ValueObjects/log-entry.ts';
 import type { LogFilter, AppLogFilter, ExceptionFilter, DependencyFilter } from '../ValueObjects/log-filter.ts';
+import { UNTAGGED } from '../ValueObjects/log-filter.ts';
 import type {
   Stats,
   LogStats,
@@ -31,6 +32,15 @@ function inStatusClass(status: number, cls: StatusClass): boolean {
   return status >= base && status < base + 100;
 }
 
+// A `tags` filter keeps an entry when it carries any of the requested tags, or
+// when it has no tags and UNTAGGED ("No tag") was requested. Absent/empty filter
+// matches everything. Shared by all four record kinds (each has an optional tags).
+function matchesTags(entryTags: string[] | undefined, filterTags: string[] | undefined): boolean {
+  if (!filterTags?.length) return true;
+  if (entryTags?.length) return entryTags.some((t) => filterTags.includes(t));
+  return filterTags.includes(UNTAGGED);
+}
+
 function matchesQuery(e: AccessLogEntry, needle: string): boolean {
   const hay = `${e.url ?? ''} ${e.ip ?? ''} ${e.ua ?? ''} ${e.referer ?? ''}`.toLowerCase();
   return hay.includes(needle);
@@ -44,6 +54,7 @@ export function filterEntries(entries: AccessLogEntry[], f: LogFilter): AccessLo
     if (f.method?.length && !(e.method !== undefined && f.method.includes(e.method))) return false;
     if (f.status !== undefined && e.status !== f.status) return false;
     if (f.statusClass?.length && !f.statusClass.some((c) => inStatusClass(e.status, c))) return false;
+    if (!matchesTags(e.tags, f.tags)) return false;
     if (f.from && e.ts < f.from) return false;
     if (f.to && e.ts > f.to) return false;
     if (f.excludeApp?.length && f.excludeApp.includes(e.app)) return false;
@@ -218,6 +229,7 @@ export function filterAppLogs(logs: AppLogEntry[], f: AppLogFilter): AppLogEntry
   return logs.filter((e) => {
     if (f.app?.length && !f.app.includes(e.app)) return false;
     if (f.level?.length && !f.level.includes(e.level)) return false;
+    if (!matchesTags(e.tags, f.tags)) return false;
     if (f.from && e.ts < f.from) return false;
     if (f.to && e.ts > f.to) return false;
     if (f.excludeApp?.length && f.excludeApp.includes(e.app)) return false;
@@ -271,6 +283,7 @@ export function filterExceptions(items: ExceptionLogEntry[], f: ExceptionFilter)
   return items.filter((e) => {
     if (f.app?.length && !f.app.includes(e.app)) return false;
     if (f.source?.length && !f.source.includes(e.source)) return false;
+    if (!matchesTags(e.tags, f.tags)) return false;
     if (f.from && e.ts < f.from) return false;
     if (f.to && e.ts > f.to) return false;
     if (f.excludeApp?.length && f.excludeApp.includes(e.app)) return false;
@@ -342,6 +355,7 @@ export function filterDependencies(items: DependencyLogEntry[], f: DependencyFil
     if (f.target?.length && !f.target.includes(e.target)) return false;
     if (f.outcome === 'success' && !e.success) return false;
     if (f.outcome === 'failure' && e.success) return false;
+    if (!matchesTags(e.tags, f.tags)) return false;
     if (f.from && e.ts < f.from) return false;
     if (f.to && e.ts > f.to) return false;
     if (f.excludeApp?.length && f.excludeApp.includes(e.app)) return false;

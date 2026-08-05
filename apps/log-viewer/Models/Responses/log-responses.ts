@@ -20,6 +20,7 @@ export interface TraceResponse {
 export interface RequestMeta {
   apps: string[];
   methods: string[];
+  tags: string[];
   count: number;
   from: string | null;
   to: string | null;
@@ -30,6 +31,7 @@ export interface RequestMeta {
 export interface AppLogMeta {
   apps: string[];
   levels: LogLevel[];
+  tags: string[];
   count: number;
   from: string | null;
   to: string | null;
@@ -40,6 +42,7 @@ export interface AppLogMeta {
 export interface ExceptionMeta {
   apps: string[];
   sources: ExceptionSource[];
+  tags: string[];
   count: number;
   from: string | null;
   to: string | null;
@@ -51,6 +54,7 @@ export interface DependencyMeta {
   apps: string[];
   types: DependencyType[];
   targets: string[];
+  tags: string[];
   count: number;
   from: string | null;
   to: string | null;
