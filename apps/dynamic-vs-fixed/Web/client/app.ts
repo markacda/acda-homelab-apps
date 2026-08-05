@@ -1,3 +1,10 @@
+// User-role gated server-side (issue #174); a session that expires while the page is
+// open bounces to /auth/ via installAuthRedirect, whose window.fetch wrapper covers
+// the api('api/calculate') call below.
+import { installAuthRedirect } from '../../../Common/auth-client/index.ts';
+
+installAuthRedirect();
+
 const STORAGE_KEY = 'dynamic-vs-fixed:v1';
 
 // Editable numeric/boolean inputs persisted to localStorage (the CSV is not).

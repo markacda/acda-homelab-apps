@@ -1,6 +1,13 @@
 // Notification feed: polls the server for recent notifications and renders them.
 // Served under the /notificaties/ proxy prefix, so all fetches use RELATIVE URLs
 // (the prefix is stripped before it reaches the app).
+//
+// User-role gated server-side (issue #174); a session that expires while the page is
+// open bounces to /auth/ via installAuthRedirect, whose window.fetch wrapper covers
+// the fetch('api/notifications') poll below.
+import { installAuthRedirect } from '../../../Common/auth-client/index.ts';
+
+installAuthRedirect();
 
 interface NotificationItem {
   id: string;

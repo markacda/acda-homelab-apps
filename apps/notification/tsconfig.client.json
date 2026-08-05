@@ -1,14 +1,19 @@
 {
-  // Browser side: compiles Web/client/*.ts -> Web/public/*.js (served static by
-  // express.static). DOM libs only, no Node types. tsc rewrites the ".ts"
-  // relative imports to ".js" so the emitted modules load over HTTP.
+  // Browser side: compiles Web/client/*.ts -> the served Web/public. DOM libs only,
+  // no Node types. rootDir is pinned at the repo root (like each app's server build)
+  // so this app's client code can import the shared browser packages under
+  // apps/Common/* by relative ".ts" path. tsc rewrites the ".ts" imports to ".js"
+  // (loaded as ES modules over HTTP) and nests the emit under Web/public/apps/... —
+  // the app's own bundle and the shared code land co-located, keeping the relative
+  // import valid at runtime. The app's entry <script src> points at the nested path
+  // (see index.html). See CLAUDE.md for the shared-frontend build model.
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "outDir": "./Web/public",
-    "rootDir": "./Web/client",
+    "rootDir": "../..",
     "types": [],
     "sourceMap": false
   },
-  "include": ["Web/client/**/*.ts"]
+  "include": ["Web/client/**/*.ts", "../Common/auth-client/*.ts"]
 }

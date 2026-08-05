@@ -6,6 +6,7 @@ import { DashboardService } from '../Services/dashboard-service.ts';
 import { HealthMonitor } from '../Services/Background/health-monitor.ts';
 import { DashboardController } from '../Controllers/dashboard-controller.ts';
 import type { Config } from '../../Domain/ValueObjects/dashboard-config.ts';
+import { createDashboardGuards } from './auth-guards.ts';
 
 export interface DashboardRuntime {
   config: Config;
@@ -27,7 +28,16 @@ export function register(app: Express): DashboardRuntime {
   const healthMonitor = new HealthMonitor(healthProbe);
   const controller = new DashboardController(config, dashboardService, healthMonitor);
 
+  // User-role gate (issue #174): /api/apps answers JSON 401/403; the served shell
+  // (mounted next by startServer) bounces logged-out browsers to the auth login.
+  // /healthz stays public (both guards skip it).
+  const { requireApiUser, requireUserPage } = createDashboardGuards();
+  app.use('/api', requireApiUser);
+
   app.use(controller.router);
+
+  // Gate the static shell (served next by startServer) behind the same role.
+  app.use(requireUserPage);
 
   const intervalMs = config.settings.healthCheckIntervalSeconds * 1000;
   // Consider a client "present" if it polled within 2x the probe interval (min

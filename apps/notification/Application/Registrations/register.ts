@@ -9,6 +9,7 @@ import type { NotificationChannel } from '../../Ports/Channels/notification-chan
 import { NotificationService } from '../Services/notification-service.ts';
 import { NotificationController } from '../Controllers/notification-controller.ts';
 import { errorMapping } from '../Filters/error-mapping.ts';
+import { createNotificationGuards } from './auth-guards.ts';
 
 /**
  * Composition root: connect the shared Postgres pool, run migrations, build the
@@ -54,8 +55,19 @@ export async function register(app: Express): Promise<Pool> {
   const sendToken = process.env.SEND_TOKEN || undefined;
 
   app.use(express.json({ limit: '256kb' }));
+
+  // User-role gate (issue #174): the feed API answers JSON 401/403 and the served
+  // frontend bounces logged-out browsers to the auth login. The container-to-container
+  // `POST /send` keeps its own SEND_TOKEN check and is intentionally left ungated by
+  // the User role (see auth-guards.ts). /healthz stays public.
+  const { requireApiUser, requireUserPage } = createNotificationGuards();
+  app.use('/api', requireApiUser); // gate GET /api/notifications (not /send)
+
   app.use(new NotificationController(service, sendToken).router);
   app.use(errorMapping());
+
+  // Gate the static shell (served next by startServer) behind the same role.
+  app.use(requireUserPage);
 
   return pool;
 }

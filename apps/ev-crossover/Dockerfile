@@ -21,6 +21,13 @@ COPY apps/Common/server-kit/package.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm install --prefer-offline --no-audit --no-fund
 COPY apps/Common/server-kit/ ./
+# Shared auth guards (createRoleGuards/ROLE_*), imported by server.ts for the page gate.
+# Its runtime dep (jose) is listed in this app's package.json for the prod stage.
+WORKDIR /repo/apps/Common/auth
+COPY apps/Common/auth/package.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --prefer-offline --no-audit --no-fund
+COPY apps/Common/auth/ ./
 WORKDIR /repo/apps/ev-crossover
 # Manifest first for dependency-layer caching.
 COPY apps/ev-crossover/package.json ./

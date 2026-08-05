@@ -1,3 +1,10 @@
+// User-role gated server-side (issue #174); a session that expires while the page is
+// open bounces to /auth/ via installAuthRedirect, whose window.fetch wrapper covers
+// the fetch('/api/apps') poll below. The header's "Log out" button ends the session.
+import { installAuthRedirect, logout } from '../../../Common/auth-client/index.ts';
+
+installAuthRedirect();
+
 interface AppTile {
   name?: string;
   url?: string | null;
@@ -25,6 +32,18 @@ const titleEl = document.getElementById('title') as HTMLElement;
 const metaEl = document.getElementById('meta') as HTMLElement;
 const contentEl = document.getElementById('content') as HTMLElement;
 const logsLinkEl = document.getElementById('logs-link') as HTMLAnchorElement;
+const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement;
+
+// End the session, then reload — the now-cookieless load re-hits the server page
+// guard, which 302-redirects to the auth login. Disabled while the call is in flight.
+logoutBtn.addEventListener('click', () => {
+  logoutBtn.disabled = true;
+  void logout()
+    .then(() => location.reload())
+    .catch(() => {
+      logoutBtn.disabled = false;
+    });
+});
 
 /** Build the click-through URL. Prefer an explicit url; otherwise use the
  * browser's current hostname + the published port so links work from any

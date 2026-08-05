@@ -49,8 +49,31 @@ body {
   font-size: 0.85rem;
 }
 
-.logs-btn {
+/* Log out button in the topbar — a link-styled text button (mirrors the auth app).
+   It claims `margin-left: auto` so it and the logs (bug) button to its right sit
+   together at the far edge, with the bug icon rightmost. */
+.logout-btn {
   margin-left: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  text-decoration: underline;
+}
+
+.logout-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.logs-btn {
   font-size: 1.4rem;
   line-height: 1;
   text-decoration: none;

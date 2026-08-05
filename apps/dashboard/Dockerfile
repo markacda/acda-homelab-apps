@@ -20,6 +20,17 @@ COPY apps/Common/server-kit/package.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm install --prefer-offline --no-audit --no-fund
 COPY apps/Common/server-kit/ ./
+# Shared auth guards (createRoleGuards/ROLE_*), imported by Registrations/auth-guards.ts.
+# Its runtime dep (jose) is listed in this app's package.json for the prod stage.
+WORKDIR /repo/apps/Common/auth
+COPY apps/Common/auth/package.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --prefer-offline --no-audit --no-fund
+COPY apps/Common/auth/ ./
+# Shared browser auth-client (issue #177) — the client build (tsconfig.client.json)
+# compiles it into Web/public by relative path (installAuthRedirect + logout); no deps.
+WORKDIR /repo/apps/Common/auth-client
+COPY apps/Common/auth-client/ ./
 WORKDIR /repo/apps/dashboard
 COPY apps/dashboard/package.json ./
 RUN --mount=type=cache,target=/root/.npm \
