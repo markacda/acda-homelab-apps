@@ -1,5 +1,15 @@
 // Vanilla-TS UI for the recipe book. Talks to the /api/recipes and /api/books
 // endpoints. Mirrors the server-side Recipe/Book shapes (kept in sync by hand).
+//
+// Shared auth + DOM helpers come from @homelab/auth-client and @homelab/web-kit
+// (issue #177). Recipe-book is User-role gated server-side (issue #154); the
+// logged-out page load is handled by a server 302, and a session that expires while
+// the SPA is open bounces to /auth/ via installAuthRedirect, whose window.fetch
+// wrapper covers every api() call below.
+import { apiJson as api, installAuthRedirect } from '../../../Common/auth-client/index.ts';
+import { $, setStatus } from '../../../Common/web-kit/index.ts';
+
+installAuthRedirect();
 
 interface Recipe {
   id: string;
@@ -40,46 +50,8 @@ interface Category {
 
 // ---- tiny helpers ---------------------------------------------------------
 
-function $<T extends HTMLElement = HTMLElement>(id: string): T {
-  const el = document.getElementById(id);
-  if (!el) throw new Error(`Missing element #${id}`);
-  return el as T;
-}
-
 function esc(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
-}
-
-function setStatus(el: HTMLElement, msg: string, kind: '' | 'error' | 'ok' | 'info' = ''): void {
-  el.textContent = msg;
-  el.className = `status ${kind}`.trim();
-}
-
-// Receptenboek is User-role gated server-side (issue #154). The logged-out case is
-// handled by a server 302, but if the session expires while the SPA is open its API
-// calls start returning 401 — bounce to the auth login, returning here afterwards.
-let redirecting = false;
-function redirectToLogin(): never {
-  if (!redirecting) {
-    redirecting = true;
-    const here = location.pathname + location.search + location.hash;
-    location.assign(`/auth/?redirect=${encodeURIComponent(here)}`);
-  }
-  // Never resolve: the navigation is underway, so callers should not proceed.
-  throw new Error('Session expired — redirecting to login.');
-}
-
-/** JSON API call that throws the server's { error } message on failure. */
-async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(path, {
-    ...options,
-    headers: options.body ? { 'Content-Type': 'application/json', ...options.headers } : options.headers,
-  });
-  if (res.status === 401) redirectToLogin();
-  if (res.status === 204) return undefined as T;
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data as { error?: string }).error || `Request failed (${res.status}).`);
-  return data as T;
 }
 
 /** URL for one stored image filename. */

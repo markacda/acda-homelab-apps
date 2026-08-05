@@ -11,6 +11,8 @@ apps/*/public/*.js
 apps/*/public/*.js.map
 apps/*/Web/public/*.js
 apps/*/Web/public/*.js.map
+# Nested client output for apps that import shared browser code (issue #177).
+apps/*/Web/public/apps
 
 .git
 .github

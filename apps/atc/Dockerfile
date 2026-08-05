@@ -27,12 +27,17 @@ COPY apps/Common/auth/package.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm install --prefer-offline --no-audit --no-fund
 COPY apps/Common/auth/ ./
+# Shared browser auth-client (issue #177) — the client build (tsconfig.client.json)
+# compiles the auth-guard module + this package into Web/public by relative path.
+WORKDIR /repo/apps/Common/auth-client
+COPY apps/Common/auth-client/ ./
 WORKDIR /repo/apps/atc
 COPY apps/atc/package.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm install --prefer-offline --no-audit --no-fund
-# server.ts + the DDD layers (compiled) + tsconfig; Web/public is the vendored
-# static frontend, not compiled.
+# server.ts + the DDD layers (compiled) + the vendored Web/public + Web/client (the
+# auth-guard module) + tsconfig. `npm run build` now also runs the client tsc pass,
+# emitting the compiled guard under Web/public/apps/ (served alongside the vendored JS).
 COPY apps/atc/ ./
 RUN npm run build
 
@@ -42,9 +47,11 @@ WORKDIR /app
 COPY apps/atc/package.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm install --prefer-offline --no-audit --no-fund --omit=dev
-# Compiled backend and the vendored static frontend it serves (resolved at ./Web/public).
+# Compiled backend and the static frontend it serves (resolved at ./Web/public). The
+# frontend comes from the builder now, so it includes the compiled client (auth-guard)
+# under Web/public/apps/ as well as the vendored tar1090 assets.
 COPY --from=builder /repo/apps/atc/dist ./dist
-COPY apps/atc/Web/public ./Web/public
+COPY --from=builder /repo/apps/atc/Web/public ./Web/public
 # Cached upstream DB snapshots served when the proxied backend is unreachable.
 COPY apps/atc/proxy-fallback ./proxy-fallback
 

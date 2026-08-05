@@ -6,6 +6,10 @@ dist
 
 # Compiled client output (generated from client/*.ts)
 apps/*/public/*.js
+apps/*/Web/public/*.js
+# Nested client output for apps that import shared browser code (build with rootDir
+# at the repo root — see CLAUDE.md)
+apps/*/Web/public/apps
 
 # atc: vendored third-party libs (minified) and static assets stay unformatted;
 # our own client code (js/**, index.html, style.css) is formatted like every app.

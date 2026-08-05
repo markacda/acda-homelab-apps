@@ -1,22 +1,10 @@
-// Shared DOM helpers used by both the Requests and Logs views.
-
-export const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
-
-/** Tiny createElement helper: el(tag, attrs, ...children). */
-export function el<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  attrs: Record<string, string> = {},
-  ...children: (Node | string)[]
-): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === 'class') node.className = v;
-    else if (k === 'title') node.title = v;
-    else node.setAttribute(k, v);
-  }
-  for (const c of children) node.append(typeof c === 'string' ? document.createTextNode(c) : c);
-  return node;
-}
+// Shared DOM helpers for the LogViewer views. The generic `$`/`el` now come from
+// @homelab/web-kit (issue #177); the log-specific formatting / summary-card / table /
+// dropdown helpers below stay here. `$`/`el` are re-exported so the many
+// `import { $, el } from './dom.ts'` call sites keep working, and imported so `el` is
+// in scope for pill/card/table in this file.
+import { $, el } from '../../../Common/web-kit/index.ts';
+export { $, el };
 
 // ---- formatting -----------------------------------------------------------
 

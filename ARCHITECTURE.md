@@ -110,11 +110,15 @@ types; `Registrations` is the only place that knows every concrete class.
 
 ## Shared code
 
-`apps/Common/*` holds the shared libraries (`@homelab/access-log`, `@homelab/server-kit`,
-`@homelab/http-utils`, `@homelab/db`), imported by relative `.ts` path (e.g.
-`../Common/server-kit/app.ts` from an app root) and compiled into each app's `dist/`. See
-`CLAUDE.md` for the build model (each app pins `rootDir: "../.."` so its output stays at
-`dist/apps/<name>/server.js`).
+`apps/Common/*` holds the shared libraries. Four are **server** libraries
+(`@homelab/access-log`, `@homelab/server-kit`, `@homelab/http-utils`, `@homelab/db`),
+imported by relative `.ts` path (e.g. `../Common/server-kit/app.ts` from an app root) and
+compiled into each app's `dist/` — each app pins `rootDir: "../.."` so its output stays at
+`dist/apps/<name>/server.js`. Two are **browser** libraries (`@homelab/auth-client`,
+`@homelab/web-kit`), imported the same way from `Web/client` code and compiled into the
+app's `Web/public` by its `tsconfig.client.json` (which pins `rootDir` at the repo root too,
+so the shared source compiles in and the output nests under `Web/public/apps/…`). See
+`CLAUDE.md` for the full build model.
 
 ## Reference: `apps/recipe-book`
 

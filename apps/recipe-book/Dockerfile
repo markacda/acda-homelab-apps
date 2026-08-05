@@ -40,6 +40,12 @@ COPY apps/Common/auth/package.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm install --prefer-offline --no-audit --no-fund
 COPY apps/Common/auth/ ./
+# Shared browser packages (issue #177) — the client build (tsconfig.client.json)
+# compiles them into Web/public by relative path; no deps to install.
+WORKDIR /repo/apps/Common/auth-client
+COPY apps/Common/auth-client/ ./
+WORKDIR /repo/apps/Common/web-kit
+COPY apps/Common/web-kit/ ./
 WORKDIR /repo/apps/recipe-book
 # Manifest first for dependency-layer caching.
 COPY apps/recipe-book/package.json ./

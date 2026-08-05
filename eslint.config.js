@@ -14,8 +14,10 @@ export default [
       '**/data/**',
       '**/dist/**',
       // Compiled browser bundles emitted from Web/client/*.ts — lint the .ts
-      // source, not the generated output.
+      // source, not the generated output. The second glob covers apps that import
+      // shared browser code and so nest their client output under Web/public/apps/.
       'apps/*/Web/public/*.js',
+      'apps/*/Web/public/apps/**',
       'apps/atc/Web/public/**',
       // Cached upstream JSON snapshots served on proxy failure — data, not code.
       'apps/atc/proxy-fallback/**',
@@ -50,8 +52,11 @@ export default [
     languageOptions: { globals: { ...globals.node } },
   },
   {
-    // Browser code under Web/client compiles to Web/public/.
-    files: ['apps/*/Web/client/**/*.ts'],
+    // Browser code under Web/client compiles to Web/public/. The shared browser
+    // packages (@homelab/auth-client, @homelab/web-kit) are browser code too — their
+    // *.ts source (not their node:test test/ files) gets DOM globals. They're also
+    // matched by the Node block above (apps/Common/*), which is harmless.
+    files: ['apps/*/Web/client/**/*.ts', 'apps/Common/auth-client/*.ts', 'apps/Common/web-kit/*.ts'],
     languageOptions: { globals: { ...globals.browser } },
   },
   {

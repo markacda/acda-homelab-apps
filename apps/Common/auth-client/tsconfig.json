@@ -1,0 +1,14 @@
+{
+  // Standalone type-check + test target for the shared browser auth helpers. The
+  // apps compile index.ts into their own Web/public (they import it by relative
+  // path via tsconfig.client.json), so this project never emits — it only
+  // type-checks the source and its tests. DOM libs for the browser globals the
+  // source uses; the "node" types are for the node:test test files only.
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["*.ts", "test/**/*.ts"]
+}

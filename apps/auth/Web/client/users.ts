@@ -3,15 +3,11 @@
 // stay RELATIVE (`fetch('api/users')`, never `/api/users`). The session cookie is
 // httpOnly and sent automatically; this client never stores or reads a token.
 //
-// Vanilla TS compiled by tsconfig.client.json — it cannot import from apps/Common
-// or other apps, so the small helpers below mirror (not import) the ones in
-// recipe-book/log-viewer clients.
+// The shared auth + DOM helpers come from @homelab/auth-client and @homelab/web-kit
+// (issue #177), compiled in via tsconfig.client.json.
 
-interface PersonView {
-  id: string;
-  email: string;
-  roles: string[];
-}
+import { apiJson as api, fetchCurrentUser, hasRole, ROLE_ADMINISTRATOR, type PersonView } from '../../../Common/auth-client/index.ts';
+import { $, el, setStatus as webSetStatus } from '../../../Common/web-kit/index.ts';
 
 /** The roles assignable via the admin API — mirrors the server's ASSIGNABLE_ROLES. */
 const ASSIGNABLE_ROLES = ['User', 'Administrator'];
@@ -21,49 +17,11 @@ function sortedRoles(roles: string[]): string[] {
   return [...roles].sort((a, b) => a.localeCompare(b));
 }
 
-/** Throwing element getter (mirrors the login page helper). */
-function $<T extends HTMLElement = HTMLElement>(id: string): T {
-  const el = document.getElementById(id);
-  if (!el) throw new Error(`Missing element #${id}`);
-  return el as T;
-}
-
-/** Tiny createElement helper: el(tag, attrs, ...children). */
-function el<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  attrs: Record<string, string> = {},
-  ...children: (Node | string)[]
-): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === 'class') node.className = v;
-    else node.setAttribute(k, v);
-  }
-  for (const c of children) node.append(typeof c === 'string' ? document.createTextNode(c) : c);
-  return node;
-}
-
-/**
- * Fetch JSON and return the parsed body, throwing the server's `{ error }` message
- * on a non-2xx response. Cookies are same-origin, so the browser sends the session
- * cookie automatically. A 204 (no content) resolves to undefined.
- */
-async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(path, {
-    ...options,
-    headers: options.body ? { 'Content-Type': 'application/json', ...options.headers } : options.headers,
-  });
-  if (res.status === 204) return undefined as T;
-  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status}).`);
-  return data as T;
-}
-
 const statusEl = $('status');
+/** Set the status banner, hiding it when empty. */
 function setStatus(msg: string, kind: '' | 'error' = ''): void {
   statusEl.hidden = !msg;
-  statusEl.textContent = msg;
-  statusEl.className = `status ${kind}`.trim();
+  webSetStatus(statusEl, msg, kind);
 }
 
 // ---- icons (no icon library in the repo; small inline SVGs, currentColor) -----
@@ -248,15 +206,13 @@ $<HTMLInputElement>('search').addEventListener('input', (e) => {
 // ---- bootstrap: admin gating ---------------------------------------------
 
 async function init(): Promise<void> {
-  let me: PersonView;
-  try {
-    me = await api<PersonView>('api/me');
-  } catch {
+  const me = await fetchCurrentUser();
+  if (!me) {
     // Not signed in — bounce to the login page and return here afterwards.
     location.assign(`index.html?redirect=${encodeURIComponent('/auth/users.html')}`);
     return;
   }
-  if (!me.roles.includes('Administrator')) {
+  if (!hasRole(me, ROLE_ADMINISTRATOR)) {
     usersEl.replaceChildren(el('p', { class: 'placeholder' }, 'Access denied — this page is for Administrators only.'));
     $<HTMLInputElement>('search').disabled = true;
     return;

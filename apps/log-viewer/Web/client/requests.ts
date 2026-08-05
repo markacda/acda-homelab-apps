@@ -78,8 +78,9 @@ const EMPTY_STATS: Stats = {
 };
 // The dashboard tags its health probes with this UA; we hide those rows unless
 // "Show discovery agent". Canonical source: @homelab/access-log constants.ts
-// (DISCOVERY_UA). This is a synced copy — the client build is bundler-less and
-// cannot import from apps/Common/, so keep the two in step if the value changes.
+// (DISCOVERY_UA). This is a synced copy: the client build can now import shared
+// *browser* packages under apps/Common (see @homelab/web-kit / @homelab/auth-client),
+// but @homelab/access-log is a Node/server package, so keep the two in step by hand.
 const DISCOVERY_UA = 'homelab-dashboard-discovery-agent';
 
 /** Mount the Requests view into `root`. Returns a teardown to stop its timer. */

@@ -1,6 +1,7 @@
 // Entry point: a tiny hash router that swaps between the landing page, the
 // Requests view and the Logs view, all mounted into <main id="view">.
 
+import { installAuthRedirect } from '../../../Common/auth-client/index.ts';
 import { $, el } from './dom.ts';
 import { closeSheet } from './sheet.ts';
 import { mountRequests } from './requests.ts';
@@ -10,21 +11,11 @@ import { mountDependencies } from './dependencies.ts';
 import { mountTrace } from './trace.ts';
 
 // LogViewer is Administrator-gated server-side (issue #153). If a session expires
-// while the SPA is open, its API calls start returning 401 — bounce to the auth
-// login and return to the exact view afterwards. The browser knows our true
-// /logs/…#/view path, which the prefix-stripping proxy hides from the server, so
-// the redirect target is precise. Wrapping window.fetch once covers every call site.
-const originalFetch = window.fetch.bind(window);
-let redirecting = false;
-window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-  const res = await originalFetch(input, init);
-  if (res.status === 401 && !redirecting) {
-    redirecting = true;
-    const here = location.pathname + location.search + location.hash;
-    location.assign(`/auth/?redirect=${encodeURIComponent(here)}`);
-  }
-  return res;
-};
+// while the SPA is open, its API calls start returning 401 — installAuthRedirect
+// wraps window.fetch once to bounce to the auth login and return to the exact view
+// afterwards. The browser knows our true /logs/…#/view path, which the
+// prefix-stripping proxy hides from the server, so the redirect target is precise.
+installAuthRedirect();
 
 const view = $('view');
 

@@ -12,6 +12,10 @@ apps/*/public/*.js.map
 # Same, for apps on the DDD layout that serve from Web/public/
 apps/*/Web/public/*.js
 apps/*/Web/public/*.js.map
+# Apps that import shared browser code (@homelab/auth-client, @homelab/web-kit) build
+# with rootDir at the repo root, so their client output nests under Web/public/apps/
+# (the app's own bundle + the shared code). See CLAUDE.md — shared-frontend build.
+apps/*/Web/public/apps/
 
 # Local price-cache written by dynamic-vs-fixed in dev (DATA_DIR)
 data/
