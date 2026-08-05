@@ -1,10 +1,10 @@
 import { jwtVerify } from 'jose';
 
-// Access-token verification, mirroring the auth app's JoseTokenIssuer.verify
-// (apps/auth/Adapters/Jwt/jose-token-issuer.ts): access tokens are HS256 JWTs
-// carrying the person id as `sub` and their `roles`. Pinning the algorithm to
-// HS256 rejects alg-confusion attacks; a bad signature, expiry, or malformed
-// token throws so the middleware answers 401.
+// Access-token verification — the single implementation the whole homelab shares:
+// the auth app's JoseTokenIssuer.verify (apps/auth/Adapters/Jwt/jose-token-issuer.ts)
+// delegates here too. Access tokens are HS256 JWTs carrying the person id as `sub`
+// and their `roles`. Pinning the algorithm to HS256 rejects alg-confusion attacks; a
+// bad signature, expiry, or malformed token throws so the middleware answers 401.
 
 const ALG = 'HS256';
 

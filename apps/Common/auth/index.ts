@@ -12,6 +12,8 @@ export type { AuthClaims, TokenVerifier } from './verify.ts';
 export { joseVerifier } from './verify.ts';
 export { loadJwtSecret } from './secret.ts';
 export { ACCESS_COOKIE, parseCookies, readCookie } from './cookies.ts';
+export { createRoleGuards } from './page-guard.ts';
+export type { RoleGuards, RoleGuardsOptions } from './page-guard.ts';
 
 /** The two roles the auth app models. New accounts default to ROLE_USER. */
 export const ROLE_USER = 'User';
