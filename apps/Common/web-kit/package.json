@@ -1,0 +1,14 @@
+{
+  "name": "@homelab/web-kit",
+  "version": "1.0.0",
+  "description": "Shared browser DOM micro-helpers for the homelab frontends ($, el, setStatus)",
+  "private": true,
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

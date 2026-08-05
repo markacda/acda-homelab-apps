@@ -1,0 +1,13 @@
+{
+  // Standalone type-check target for the shared browser DOM helpers. The apps compile
+  // index.ts into their own Web/public (they import it by relative path via
+  // tsconfig.client.json), so this project never emits — it only type-checks the
+  // source. Browser-only: DOM libs, no Node types (matches the app client build).
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": [],
+    "noEmit": true
+  },
+  "include": ["*.ts"]
+}

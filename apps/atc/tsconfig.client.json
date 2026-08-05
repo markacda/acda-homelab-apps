@@ -1,0 +1,19 @@
+{
+  // Browser side: compiles the small Web/client/*.ts (the auth-guard bootstrap) ->
+  // the served Web/public. atc's main frontend is vendored plain JS under Web/public;
+  // this is its only compiled client code. DOM libs only, no Node types. rootDir is
+  // pinned at the repo root so the guard can import @homelab/auth-client by relative
+  // ".ts" path; tsc rewrites ".ts" -> ".js" and nests the emit under
+  // Web/public/apps/... (the compiled guard + the shared code land co-located,
+  // keeping the relative import valid at runtime). index.html loads the nested
+  // module. See CLAUDE.md for the shared-frontend build model.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "outDir": "./Web/public",
+    "rootDir": "../..",
+    "types": [],
+    "sourceMap": false
+  },
+  "include": ["Web/client/**/*.ts", "../Common/auth-client/*.ts"]
+}

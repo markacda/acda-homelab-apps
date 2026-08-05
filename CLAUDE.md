@@ -77,20 +77,30 @@ Each app only creates the layers it needs. By example:
   `.js` on emit (`rewriteRelativeImportExtensions`), keeping dist/ valid ESM.
 - Each app has **three tsconfigs**: `tsconfig.json` (typecheck: `server.ts` + the DDD
   layers + test), `tsconfig.build.json` (emit runtime code only to `dist/`, no tests), and
-  `tsconfig.client.json` (compile `Web/client/*.ts` → `Web/public/*.js`, DOM libs, no Node
-  types). `npm run build` runs the build + client configs; typecheck runs both.
-  `apps/atc` is the exception — it has no `Web/client/*.ts` (its `Web/public` is vendored),
-  so no `tsconfig.client.json` and its `build`/`typecheck` are single-step.
+  `tsconfig.client.json` (compile `Web/client/*.ts` → the served `Web/public`, DOM libs, no
+  Node types). `npm run build` runs the build + client configs; typecheck runs both.
+- **Shared frontend build.** An app whose browser code imports a shared **browser** package
+  (`@homelab/auth-client`, `@homelab/web-kit`) pins its client `rootDir` at the repo root —
+  the same trick the server build uses — so the shared source compiles in too. The client
+  output then nests under `Web/public/apps/…` (the app's own bundle beside `apps/Common/…`),
+  which keeps the emitted relative import (`../../../Common/<pkg>/index.js`) valid at runtime;
+  the app's entry `<script src>` points at the nested path. Apps with no shared-frontend
+  imports keep the flat `rootDir: Web/client` (output straight in `Web/public`). `apps/atc`'s
+  `Web/public` is otherwise vendored (tar1090); its only compiled client code is the shared
+  auth-guard module, so it gained a `tsconfig.client.json` (backend emit still single-step).
 - `server.ts` imports the shared kit from `../Common/` (a sibling under `apps/`).
   Each app's `tsconfig.json` pins **`rootDir: "../.."`** (the repo root) so the emit
   nests as `dist/apps/<name>/server.js` (matching each `package.json` `main`/`start`)
   and the shared code as `dist/apps/Common/...`. Without the pin, tsc would infer
   `apps/` as the root and flatten the output.
 
-**Shared packages.** Four libraries under `apps/Common/*`, all imported by relative
-`.ts` path (not by workspace name) and compiled into each app's `dist/` — so each
-app's Dockerfile stages the packages it uses in the builder (`COPY apps/Common/<x>/...`),
-and lists their runtime deps in its own `package.json`:
+**Shared packages.** Six libraries under `apps/Common/*`, all imported by relative
+`.ts` path (not by workspace name). The four **server** libraries below compile into each
+app's `dist/`; the two **browser** libraries (`@homelab/auth-client`, `@homelab/web-kit`)
+compile into the app's `Web/public` via `tsconfig.client.json` (see the shared-frontend
+build above). Either way each app's Dockerfile stages the packages it uses in the builder
+(`COPY apps/Common/<x>/...`), and the server packages list their runtime deps in the app's
+own `package.json`:
 
 - **`@homelab/access-log`** — the structured-logging kit. Four JSON-Lines record
   kinds, all daily-rotated + gzipped under `LOG_DIR` (~30-day retention): per-request
@@ -123,6 +133,14 @@ and lists their runtime deps in its own `package.json`:
   wraps `pool.query` to time each query as a postgres dependency (see
   `@homelab/access-log`); queries via an explicit `pool.connect()` client aren't
   captured. Used by the data-owning apps; `startServer`'s `onShutdown` closes the pool.
+- **`@homelab/auth-client`** — the shared **browser** auth helpers (client-side counterpart
+  of `@homelab/auth`): the same-origin `installAuthRedirect` fetch guard that bounces a 401
+  to `/auth/?redirect=…`, the `fetchCurrentUser`/`hasRole` "who am I" call over `GET api/me`
+  (the `PersonView` shape + `ROLE_*` names), and `apiJson` (a `{ error }`/204-aware JSON
+  fetch). Used by recipe-book, log-viewer and atc (the guard) and the auth pages (the
+  me/role helpers). Browser-only (DOM libs, no Node types); no runtime deps.
+- **`@homelab/web-kit`** — shared **browser** DOM micro-helpers (`$` throwing getter, `el`
+  createElement, `setStatus` banner) that were copy-pasted across the clients. No deps.
 
 **Database.** A single `db` service (`postgres:17-alpine`) backs the data-owning apps
 (**notification**, **recipe-book**); the stateless apps and dynamic-vs-fixed's
