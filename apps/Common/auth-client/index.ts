@@ -110,6 +110,15 @@ export async function fetchCurrentUser(): Promise<PersonView | null> {
 }
 
 /**
+ * End the current session via `POST api/logout`. The session cookies are httpOnly,
+ * so the browser can't clear them itself — the server invalidates the refresh
+ * session and clears both cookies (returning 204). Callers reload/redirect afterwards.
+ */
+export async function logout(): Promise<void> {
+  await apiJson('api/logout', { method: 'POST' });
+}
+
+/**
  * JSON API call that returns the parsed body and throws the server's `{ error }`
  * message on a non-2xx response. Sends `Content-Type: application/json` only when
  * there's a body; a 204 resolves to `undefined`. Cookies are same-origin, so the

@@ -195,6 +195,36 @@ button[type='submit']:disabled {
   text-decoration: underline;
 }
 
+/* Logout button in the topbar — a link-styled button shown when a session exists.
+   `.admin-link` already claims `margin-left: auto`; when the admin link is hidden
+   this pushes the logout button to the right instead so it stays aligned. */
+.logout-btn {
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* When the admin link is also shown it takes the `margin-left: auto`, so the logout
+   button just needs a small gap after it instead of claiming the auto margin too. */
+.admin-link:not([hidden]) + .logout-btn {
+  margin-left: 0.75rem;
+}
+
+.logout-btn:hover {
+  text-decoration: underline;
+}
+
+.logout-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 /* ---- user roles admin page ---------------------------------------------- */
 
 .search-label {
