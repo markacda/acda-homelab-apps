@@ -11,7 +11,7 @@
     "start": "node dist/apps/dashboard/server.js",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.client.json --noEmit",
     "test": "node --test",
-    "clean": "rm -rf dist Web/public/*.js"
+    "clean": "rm -rf dist Web/public/apps"
   },
   "engines": {
     "node": ">=24"
@@ -19,6 +19,7 @@
   "dependencies": {
     "dockerode": "^4.0.2",
     "express": "^5.1.0",
+    "jose": "^5.9.6",
     "js-yaml": "^4.1.0",
     "rotating-file-stream": "^3.2.6"
   },

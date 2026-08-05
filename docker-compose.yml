@@ -146,8 +146,12 @@ services:
       - NODE_ENV=production
       - PORT=6002
       - LOG_DIR=/app/logs
+      # Same signing key the auth app self-provisions on the shared auth-secrets
+      # volume — verifies the User-role access token (issue #174).
+      - *jwt-secret-file
     volumes:
       - ev-crossover-logs:/app/logs
+      - *auth-secrets-ro
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'node', '-e', "fetch('http://localhost:6002/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -171,9 +175,13 @@ services:
       - PORT=6003
       - DATA_DIR=/app/data
       - LOG_DIR=/app/logs
+      # Same signing key the auth app self-provisions on the shared auth-secrets
+      # volume — verifies the User-role access token (issue #174).
+      - *jwt-secret-file
     volumes:
       - dynamic-vs-fixed-data:/app/data
       - dynamic-vs-fixed-logs:/app/logs
+      - *auth-secrets-ro
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'node', '-e', "fetch('http://localhost:6003/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -291,6 +299,10 @@ services:
       - DATABASE_URL_FILE=/secrets/notification.url
       # Optional shared secret required on POST /send (defence-in-depth).
       - SEND_TOKEN=${SEND_TOKEN:-}
+      # Same signing key the auth app self-provisions on the shared auth-secrets
+      # volume — verifies the User-role access token gating the feed/UI (issue #174).
+      # POST /send stays on SEND_TOKEN (container-to-container), not this cookie.
+      - *jwt-secret-file
       # Email delivery channel (SKELETON — deliver() not implemented yet). Set
       # SMTP_HOST to register the "email" channel; the rest tune the transport.
       # - SMTP_HOST=smtp.example.com
@@ -302,6 +314,7 @@ services:
     volumes:
       - notification-logs:/app/logs
       - db-secrets:/secrets:ro
+      - *auth-secrets-ro
     depends_on:
       db:
         condition: service_healthy
@@ -369,6 +382,7 @@ services:
       - ./apps/dashboard/config:/app/config:ro
       # Persistent structured access logs.
       - dashboard-logs:/app/logs
+      - *auth-secrets-ro
     extra_hosts:
       # Lets the container reach services published on the host by name,
       # used for server-side health checks.
@@ -378,6 +392,9 @@ services:
       - HOST_ADDRESS=host.docker.internal
       - PORT=6000
       - LOG_DIR=/app/logs
+      # Same signing key the auth app self-provisions on the shared auth-secrets
+      # volume — verifies the User-role access token (issue #174).
+      - *jwt-secret-file
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'node', '-e', "fetch('http://localhost:6000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
