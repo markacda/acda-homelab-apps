@@ -169,6 +169,8 @@ function cookiePair(setCookie: string | undefined): string {
   return (setCookie ?? '').split(';')[0];
 }
 
+const EMBED_TOKEN = 'embed-token-for-tests';
+
 /** A guard set that opts into the embed bypass, as ATC does (role User, appHome /atc/). */
 async function startEmbedServer(): Promise<{ url: string; close: () => Promise<void> }> {
   const { requireApi, requirePage } = createRoleGuards({
@@ -176,6 +178,7 @@ async function startEmbedServer(): Promise<{ url: string; close: () => Promise<v
     appHome: '/atc/',
     forbiddenMessage: 'not allowed',
     trustedEmbedOrigins: [TRUSTED_ORIGIN],
+    embedToken: EMBED_TOKEN,
     secret: SECRET,
   });
   const app = express();
@@ -208,6 +211,25 @@ test('embed — the issued grant cookie then authorizes page + api without a tru
   const api = await req(`${url}/api/thing`, { cookie: grant });
   assert.equal(api.status, 200);
   assert.deepEqual(JSON.parse(api.body), { ok: true });
+});
+
+test('embed — ?embed_token authorizes the entry request with no Referer at all', async (t) => {
+  const { url, close } = await startEmbedServer();
+  t.after(close);
+  // This is the HA case: an iframe that sends no Referer, only the token in its URL.
+  const res = await req(`${url}/?embed_token=${EMBED_TOKEN}`);
+  assert.equal(res.status, 200);
+  assert.equal(res.body, 'PAGE');
+  assert.match(res.setCookie ?? '', /^embed_grant=/);
+  // The grant then covers the relative asset/API requests, which carry no token.
+  const grant = cookiePair(res.setCookie);
+  assert.equal((await req(`${url}/api/thing`, { cookie: grant })).status, 200);
+});
+
+test('embed — a wrong ?embed_token is gated', async (t) => {
+  const { url, close } = await startEmbedServer();
+  t.after(close);
+  assert.equal((await req(`${url}/?embed_token=wrong`)).status, 302);
 });
 
 test('embed — an untrusted request is still gated (page 302, api 401)', async (t) => {

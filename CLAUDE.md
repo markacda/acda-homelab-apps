@@ -183,6 +183,11 @@ state — `dynamic-vs-fixed` price cache; `recipe-book` images/PDFs), `DATABASE_
 (path to the self-provisioned connection string on the `db-secrets` volume —
 `recipe-book`, `notification`), plus app-specific
 ones (dashboard: `HOST_ADDRESS` + read-only Docker socket for container auto-discovery;
+atc: optional `ATC_EMBED_TOKEN` / `ATC_TRUSTED_EMBED_ORIGINS` letting a Home Assistant
+iframe view load ATC without a login — the token is passed as `?embed_token=…` on the
+embed URL and is the reliable route since an HA iframe usually sends no `Referer`; either
+one hands the embed a short-lived scoped grant cookie (`@homelab/auth`'s `embed-grant`),
+and with both unset ATC stays fully gated;
 recipe-book: `TECTONIC_CACHE_DIR` for the LaTeX toolchain; notification: optional
 `SEND_TOKEN` guarding `POST /send`, plus optional `SMTP_HOST`/`SMTP_PORT`/
 `SMTP_USER`/`SMTP_PASS`/`SMTP_FROM`/`SMTP_TO` that register the email channel

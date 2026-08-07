@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { timingSafeEqual } from 'node:crypto';
 import { SignJWT, jwtVerify } from 'jose';
 import { readCookie } from './cookies.ts';
 
@@ -6,21 +7,35 @@ import { readCookie } from './cookies.ts';
 // e.g. ATC shown inside a Home Assistant iframe (issue #186). HA and the app are the
 // SAME site (same scheme + host, only the port differs), so a normal SameSite=Lax
 // cookie the app sets rides along on every request the iframe makes. The flow:
-//   1. The first (iframe) request carries a Referer/Origin of the trusted HA origin
-//      but no valid session cookie → the guard issues a short-lived signed grant.
+//   1. The first (iframe) request proves it is the trusted embed (see below) but has
+//      no valid session cookie → the guard issues a short-lived signed grant.
 //   2. Every later asset/API request from the iframe carries that cookie → allowed.
-// A direct visit from any other origin has no trusted Referer and no grant, so it
-// stays gated. The grant is an HS256 JWT (same shared secret as access tokens) scoped
-// to one app, so an ATC grant can't authorize another app.
+// Anything without that proof and without a grant stays gated. The grant is an HS256
+// JWT (same shared secret as access tokens) scoped to one app, so an ATC grant can't
+// authorize another app.
 //
-// Trade-off: a non-browser client could forge the Referer to obtain a grant. Browsers
-// cannot forge a cross-origin Referer, so real browser traffic from other origins
-// stays gated — acceptable for this low-sensitivity, opt-in-per-app view.
+// Two ways to prove it, because a browser's Referer is not something the embedder can
+// rely on:
+//   - A SHARED TOKEN in the iframe URL (?embed_token=…) — the deterministic one, and
+//     the one to prefer. HA's Webpage card exposes no referrerpolicy knob, and Chrome's
+//     default strict-origin-when-cross-origin drops the Referer entirely on an
+//     HTTPS→HTTP downgrade, so the header is often absent.
+//   - A TRUSTED ORIGIN (Origin, else the Referer's origin) — zero extra URL config
+//     when the header does survive. Note a plain GET navigation never sends Origin.
+//
+// Trade-offs: the token rides in a URL, so it lands in this app's access log and in
+// the HA dashboard config (both already privileged); and a non-browser client could
+// forge a Referer to obtain a grant. Browsers cannot forge a cross-origin Referer, so
+// real browser traffic from other origins stays gated — acceptable for this
+// low-sensitivity, opt-in-per-app view.
 
 const ALG = 'HS256';
 
 /** Name of the trusted-embed grant cookie. */
 export const EMBED_COOKIE = 'embed_grant';
+
+/** Query parameter carrying the shared embed token. */
+export const EMBED_TOKEN_PARAM = 'embed_token';
 
 /** Grant lifetime once issued, unless overridden. */
 export const DEFAULT_EMBED_MAX_AGE_MS = 24 * 60 * 60 * 1000;
@@ -46,6 +61,24 @@ export function matchesTrustedOrigin(req: Request, trustedOrigins: string[]): bo
   if (requestOrigin === undefined) return false;
   const wanted = requestOrigin.toLowerCase();
   return trustedOrigins.some((o) => o.toLowerCase() === wanted);
+}
+
+/** Constant-time string compare, so a wrong token can't be guessed byte-by-byte. */
+function secretEquals(a: string, b: string): boolean {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  return left.length === right.length && timingSafeEqual(left, right);
+}
+
+/**
+ * Whether the request carries the shared embed token as `?embed_token=…`. An
+ * unset/empty `expected` disables the check. Unlike the Referer, this is fully under
+ * the embedder's control, so it is the reliable way to authorize an iframe.
+ */
+export function matchesEmbedToken(req: Request, expected: string | undefined): boolean {
+  if (!expected) return false;
+  const provided = (req.query as Record<string, unknown> | undefined)?.[EMBED_TOKEN_PARAM];
+  return typeof provided === 'string' && secretEquals(provided, expected);
 }
 
 /** Sign a scoped grant and set it as the embed cookie. `secure` should mirror the request scheme. */

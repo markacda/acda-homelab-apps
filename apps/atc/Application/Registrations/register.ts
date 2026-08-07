@@ -50,13 +50,16 @@ export function register(app: Express): Registrations {
   // User-role gate (issue #154): the /api proxy answers JSON 401/403; the served
   // static frontend bounces logged-out browsers to the auth login. /healthz stays
   // public (both guards skip it). Mounted before static + the /api routers below.
-  // ATC_TRUSTED_EMBED_ORIGINS opts into the Home Assistant embed bypass (issue #186):
-  // requests from a listed origin (e.g. http://<pi>:8123) are served without a login.
+  // Home Assistant embed bypass (issue #186): ATC_EMBED_TOKEN authorizes an iframe whose
+  // URL carries ?embed_token=<token> (the reliable route — an HA iframe often sends no
+  // Referer), and ATC_TRUSTED_EMBED_ORIGINS authorizes by Origin/Referer when it does
+  // survive. Either one grants the embed a short-lived cookie; both unset = fully gated.
   const trustedEmbedOrigins = (process.env.ATC_TRUSTED_EMBED_ORIGINS ?? '')
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean);
-  const { requireApiUser, requireUserPage } = createAtcGuards({ trustedEmbedOrigins });
+  const embedToken = process.env.ATC_EMBED_TOKEN?.trim() || undefined;
+  const { requireApiUser, requireUserPage } = createAtcGuards({ trustedEmbedOrigins, embedToken });
   app.use('/api', requireApiUser); // gates AirplanesController + RunwayController
   app.use(requireUserPage); // gates the static index.html + assets (skips /api, /healthz)
 
