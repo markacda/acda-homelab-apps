@@ -22,7 +22,9 @@
       <button class="logout-btn" id="logout-btn" type="button" hidden>Log out</button>
     </header>
     <main>
-      <div class="card">
+      <!-- Sign-in / create-account. Hidden by app.ts as soon as api/me confirms a session,
+           which reveals #account-card instead (issue #187). -->
+      <div class="card" id="auth-card">
         <h2 id="form-title">Sign in</h2>
         <p id="form-subtitle" class="subtitle">Sign in to your homelab account.</p>
 
@@ -40,6 +42,14 @@
 
         <form id="register-form" novalidate hidden>
           <label
+            >First name
+            <input id="register-first-name" type="text" name="firstName" autocomplete="given-name" maxlength="100" required />
+          </label>
+          <label
+            >Last name
+            <input id="register-last-name" type="text" name="lastName" autocomplete="family-name" maxlength="100" required />
+          </label>
+          <label
             >Email
             <input id="register-email" type="email" name="email" autocomplete="username" required />
           </label>
@@ -55,13 +65,47 @@
           <button id="register-submit" type="submit">Create account</button>
         </form>
 
-        <div id="status" class="status" role="alert" hidden></div>
-
         <p class="toggle">
           <span id="to-register">No account? <a href="#" id="show-register">Create one</a></span>
           <span id="to-login" hidden>Already have an account? <a href="#" id="show-login">Sign in</a></span>
         </p>
       </div>
+
+      <!-- Your own account page, shown in place of the forms when signed in. app.ts fills
+           every value as text (never markup) and prefills the rename form. -->
+      <div class="card" id="account-card" hidden>
+        <h2 id="account-name">Your account</h2>
+        <p class="subtitle">Your homelab account details.</p>
+
+        <dl class="account-details">
+          <dt>First name</dt>
+          <dd id="account-first-name"></dd>
+          <dt>Last name</dt>
+          <dd id="account-last-name"></dd>
+          <dt>Email</dt>
+          <dd id="account-email" class="cell-email"></dd>
+          <dt>Roles</dt>
+          <dd id="account-roles" class="tags"></dd>
+        </dl>
+
+        <h3 class="account-form-title">Change your name</h3>
+        <!-- Unhidden only for an account created before names were required. -->
+        <p id="profile-hint" class="hint" hidden>Complete your name to finish setting up your account.</p>
+        <form id="profile-form" novalidate>
+          <label
+            >First name
+            <input id="profile-first-name" type="text" name="firstName" autocomplete="given-name" maxlength="100" required />
+          </label>
+          <label
+            >Last name
+            <input id="profile-last-name" type="text" name="lastName" autocomplete="family-name" maxlength="100" required />
+          </label>
+          <button id="profile-submit" type="submit">Save changes</button>
+        </form>
+      </div>
+
+      <!-- One banner for both cards. -->
+      <div id="status" class="status" role="alert" hidden></div>
     </main>
     <script type="module" src="apps/auth/Web/client/app.js"></script>
   </body>

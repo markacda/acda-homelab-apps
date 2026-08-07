@@ -2,7 +2,7 @@ import { Router } from 'express';
 import type { Response } from 'express';
 import { AuthService } from '../Services/auth-service.ts';
 import type { AccessTokenIssuer, AccessTokenClaims } from '../../Domain/Ports/access-token-issuer.ts';
-import { toCredentials } from '../Mappers/auth-mapper.ts';
+import { toCredentials, toPersonName, toRegistration } from '../Mappers/auth-mapper.ts';
 import { authenticate } from '../Filters/authenticate.ts';
 import {
   ACCESS_COOKIE,
@@ -28,8 +28,8 @@ export class AuthController {
     const router = Router();
 
     router.post('/register', async (req, res) => {
-      const { email, password } = toCredentials(req.body);
-      res.status(201).json(await this.auth.register(email, password));
+      const { email, password, firstName, lastName } = toRegistration(req.body);
+      res.status(201).json(await this.auth.register(email, password, { firstName, lastName }));
     });
 
     router.post('/login', async (req, res) => {
@@ -54,6 +54,14 @@ export class AuthController {
     router.get('/me', authenticate(tokens), async (_req, res) => {
       const claims = res.locals.auth as AccessTokenClaims;
       res.json(await this.auth.currentPerson(claims.sub));
+    });
+
+    // Self-service rename (issue #187). PATCH, not PUT: this updates part of the account
+    // and never touches the email, password or roles. The subject comes from the verified
+    // token, so the path needs no id and nobody can rename someone else.
+    router.patch('/me', authenticate(tokens), async (req, res) => {
+      const claims = res.locals.auth as AccessTokenClaims;
+      res.json(await this.auth.updateName(claims.sub, toPersonName(req.body)));
     });
 
     this.router = router;

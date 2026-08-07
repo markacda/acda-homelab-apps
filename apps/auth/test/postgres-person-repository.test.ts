@@ -8,12 +8,16 @@ test('rowToPerson maps a joined persons row into the aggregate', () => {
   const p = rowToPerson({
     id: 'p1',
     email: 'alice@example.com',
+    first_name: 'Ada',
+    last_name: 'Lovelace',
     password_hash: 'hash',
     created_at: new Date('2026-08-03T00:00:00.000Z'),
     roles: ['User', 'Administrator'],
   });
   assert.equal(p.id, 'p1');
   assert.equal(p.email, 'alice@example.com');
+  assert.equal(p.firstName, 'Ada');
+  assert.equal(p.lastName, 'Lovelace');
   assert.equal(p.passwordHash, 'hash');
   assert.deepEqual(p.roles, ['User', 'Administrator']);
   assert.equal(p.createdAt, '2026-08-03T00:00:00.000Z');
@@ -23,11 +27,28 @@ test('rowToPerson defaults a null roles column to an empty set', () => {
   const p = rowToPerson({
     id: 'p2',
     email: 'bob@example.com',
+    first_name: 'Grace',
+    last_name: 'Hopper',
     password_hash: 'h',
     created_at: '2026-08-03T00:00:00.000Z',
     roles: null,
   });
   assert.deepEqual(p.roles, []);
+});
+
+test('rowToPerson reads a pre-#187 row (null names) back as blank, not null', () => {
+  const p = rowToPerson({
+    id: 'p3',
+    email: 'legacy@example.com',
+    first_name: null,
+    last_name: null,
+    password_hash: 'h',
+    created_at: '2026-08-03T00:00:00.000Z',
+    roles: ['User'],
+  });
+  assert.equal(p.firstName, '');
+  assert.equal(p.lastName, '');
+  assert.equal(p.hasName(), false);
 });
 
 test('save upserts the person then replaces its role set in one transaction', async () => {
@@ -49,6 +70,8 @@ test('save upserts the person then replaces its role set in one transaction', as
   const person = Person.fromJSON({
     id: 'p1',
     email: 'alice@example.com',
+    firstName: 'Ada',
+    lastName: 'Lovelace',
     passwordHash: 'hash',
     roles: ['User', 'Administrator'],
     createdAt: '2026-08-03T00:00:00.000Z',
@@ -59,11 +82,14 @@ test('save upserts the person then replaces its role set in one transaction', as
   assert.equal(texts[0], 'BEGIN');
   assert.match(texts[1], /INSERT INTO persons/);
   assert.match(texts[1], /ON CONFLICT \(id\) DO UPDATE/);
+  // A rename goes through the same upsert, so the name columns must be in the SET clause.
+  assert.match(texts[1], /first_name = EXCLUDED\.first_name/);
+  assert.match(texts[1], /last_name = EXCLUDED\.last_name/);
   assert.match(texts[2], /DELETE FROM person_roles WHERE person_id = \$1/);
   assert.match(texts[3], /INSERT INTO person_roles/);
   assert.match(texts[4], /INSERT INTO person_roles/);
   assert.equal(texts[texts.length - 1], 'COMMIT');
-  assert.deepEqual(queries[1].params, ['p1', 'alice@example.com', 'hash', '2026-08-03T00:00:00.000Z']);
+  assert.deepEqual(queries[1].params, ['p1', 'alice@example.com', 'Ada', 'Lovelace', 'hash', '2026-08-03T00:00:00.000Z']);
   assert.deepEqual(queries[3].params, ['p1', 'User']);
   assert.deepEqual(queries[4].params, ['p1', 'Administrator']);
 });

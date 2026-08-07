@@ -136,7 +136,7 @@ own `package.json`:
 - **`@homelab/auth-client`** — the shared **browser** auth helpers (client-side counterpart
   of `@homelab/auth`): the same-origin `installAuthRedirect` fetch guard that bounces a 401
   to `/auth/?redirect=…`, the `fetchCurrentUser`/`hasRole` "who am I" call over `GET api/me`
-  (the `PersonView` shape + `ROLE_*` names), and `apiJson` (a `{ error }`/204-aware JSON
+  (the `PersonView` shape + `ROLE_*` names + `displayName`), and `apiJson` (a `{ error }`/204-aware JSON
   fetch). Used by recipe-book, log-viewer and atc (the guard) and the auth pages (the
   me/role helpers). Browser-only (DOM libs, no Node types); no runtime deps.
 - **`@homelab/web-kit`** — shared **browser** DOM micro-helpers (`$` throwing getter, `el`

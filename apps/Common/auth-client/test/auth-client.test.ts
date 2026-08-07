@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { safeRedirect, buildLoginRedirectUrl, hasRole, logout, ROLE_ADMINISTRATOR, ROLE_USER } from '../index.ts';
+import { safeRedirect, buildLoginRedirectUrl, displayName, hasRole, logout, ROLE_ADMINISTRATOR, ROLE_USER } from '../index.ts';
 
 test('safeRedirect keeps a same-origin root-relative path', () => {
   assert.equal(safeRedirect('/logs/#/requests'), '/logs/#/requests');
@@ -44,9 +44,16 @@ test('logout posts to the auth app absolutely, so it works from any app (e.g. da
 });
 
 test('hasRole checks membership against the role list', () => {
-  const admin = { id: '1', email: 'a@b.c', roles: [ROLE_USER, ROLE_ADMINISTRATOR] };
-  const user = { id: '2', email: 'd@e.f', roles: [ROLE_USER] };
+  const admin = { id: '1', email: 'a@b.c', firstName: 'Ada', lastName: 'Lovelace', roles: [ROLE_USER, ROLE_ADMINISTRATOR] };
+  const user = { id: '2', email: 'd@e.f', firstName: 'Grace', lastName: 'Hopper', roles: [ROLE_USER] };
   assert.equal(hasRole(admin, ROLE_ADMINISTRATOR), true);
   assert.equal(hasRole(user, ROLE_ADMINISTRATOR), false);
   assert.equal(hasRole(user, ROLE_USER), true);
+});
+
+test('displayName joins the name, falling back to the email for a pre-#187 account', () => {
+  const named = { id: '1', email: 'a@b.c', firstName: 'Ada', lastName: 'Lovelace', roles: [] };
+  assert.equal(displayName(named), 'Ada Lovelace');
+  assert.equal(displayName({ ...named, lastName: '' }), 'Ada');
+  assert.equal(displayName({ ...named, firstName: '', lastName: '' }), 'a@b.c');
 });

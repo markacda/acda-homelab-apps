@@ -5,21 +5,20 @@ import type { PersonRepository } from '../../Domain/Ports/Repositories/person-re
 import type { SessionRepository } from '../../Domain/Ports/Repositories/session-repository.ts';
 import type { PasswordHasher } from '../../Domain/Ports/password-hasher.ts';
 import type { AccessTokenIssuer } from '../../Domain/Ports/access-token-issuer.ts';
-import { ValidationError } from '../../Domain/Exceptions/validation-error.ts';
 import { ConflictError } from '../../Domain/Exceptions/conflict-error.ts';
 import { UnauthorizedError } from '../../Domain/Exceptions/unauthorized-error.ts';
+import { requireEmail, requirePassword, requireText } from '../../Domain/Values/person-text.ts';
 import { toPersonView } from '../Mappers/auth-mapper.ts';
-import type { PersonView } from '../Mappers/auth-mapper.ts';
+import type { PersonName, PersonView } from '../Mappers/auth-mapper.ts';
 import { ROLE_USER } from '../../../Common/auth/index.ts';
 
 // Orchestrates the authentication flows over the persons + sessions stores. It
 // hashes passwords via a PasswordHasher port, issues short-lived access tokens via
 // an AccessTokenIssuer port, and manages long-lived refresh tokens itself: an
 // opaque random string handed to the client, persisted only as a SHA-256 hash and
-// rotated on every refresh. New accounts get the default `User` role.
+// rotated on every refresh. New accounts get the default `User` role. It also owns
+// the self-service profile rename behind `PATCH /me` (issue #187).
 
-/** Minimum acceptable password length at registration. */
-export const MIN_PASSWORD_LENGTH = 8;
 /** Default refresh-token lifetime: 30 days. */
 const DEFAULT_REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -65,17 +64,16 @@ export class AuthService {
   }
 
   /** Register a new person with the default role. Duplicate email → 409, weak input → 400. */
-  async register(email: string, password: string): Promise<PersonView> {
-    const normalizedEmail = email.trim().toLowerCase();
-    if (!normalizedEmail.includes('@')) throw new ValidationError('A valid email address is required.');
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      throw new ValidationError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-    }
+  async register(email: string, password: string, name: PersonName): Promise<PersonView> {
+    const normalizedEmail = requireEmail(email);
+    requirePassword(password);
+    const firstName = requireText(name.firstName, 'First name');
+    const lastName = requireText(name.lastName, 'Last name');
     if (await this.persons.findByEmail(normalizedEmail)) {
       throw new ConflictError('An account with that email already exists.');
     }
     const passwordHash = await this.hasher.hash(password);
-    const person = Person.create({ email: normalizedEmail, passwordHash, roles: [ROLE_USER] });
+    const person = Person.create({ email: normalizedEmail, firstName, lastName, passwordHash, roles: [ROLE_USER] });
     await this.persons.save(person);
     return toPersonView(person);
   }
@@ -123,6 +121,20 @@ export class AuthService {
   async currentPerson(personId: string): Promise<PersonView> {
     const person = await this.persons.findById(personId);
     if (!person) throw new UnauthorizedError('Not authenticated.');
+    return toPersonView(person);
+  }
+
+  /**
+   * Change the signed-in person's first and last name (issue #187). The subject comes
+   * from the verified access token, so a caller can only ever rename themselves. Both
+   * names are required — this is also how an account predating #187 fills in its blank
+   * name. Unknown id → 401, blank/over-long name → 400 (the aggregate enforces both).
+   */
+  async updateName(personId: string, name: PersonName): Promise<PersonView> {
+    const person = await this.persons.findById(personId);
+    if (!person) throw new UnauthorizedError('Not authenticated.');
+    person.rename(name.firstName, name.lastName);
+    await this.persons.save(person);
     return toPersonView(person);
   }
 

@@ -8,12 +8,19 @@ import type { AccessTokenIssuer } from '../Domain/Ports/access-token-issuer.ts';
 import { errorMapping } from '../Application/Filters/error-mapping.ts';
 import { UnauthorizedError } from '../Domain/Exceptions/unauthorized-error.ts';
 
-const aliceView = { id: 'p1', email: 'alice@example.com', roles: ['User'] };
+const aliceView = { id: 'p1', email: 'alice@example.com', firstName: 'Ada', lastName: 'Lovelace', roles: ['User'] };
+const renamedView = { ...aliceView, firstName: 'Grace', lastName: 'Hopper' };
+
+/** A valid register body; individual tests drop or override fields. */
+const registerBody = { email: 'alice@example.com', password: 'password123', firstName: 'Ada', lastName: 'Lovelace' };
 
 // A fake AuthService that returns canned results — the controller is what's under test.
 const fakeAuth = {
   async register() {
     return aliceView;
+  },
+  async updateName() {
+    return renamedView;
   },
   async login() {
     return { person: aliceView, accessToken: 'access-jwt', refreshToken: 'refresh-token' };
@@ -59,7 +66,7 @@ test('POST /api/register returns 201 with the person view', async (t) => {
   const res = await fetch(`${url}/api/register`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email: 'alice@example.com', password: 'password123' }),
+    body: JSON.stringify(registerBody),
   });
   assert.equal(res.status, 201);
   assert.deepEqual(await res.json(), aliceView);
@@ -74,6 +81,21 @@ test('POST /api/register without credentials is a 400', async (t) => {
     body: JSON.stringify({}),
   });
   assert.equal(res.status, 400);
+});
+
+test('POST /api/register without a first or last name is a 400', async (t) => {
+  const { url, close } = await startTestServer();
+  t.after(close);
+  for (const missing of ['firstName', 'lastName'] as const) {
+    const body: Record<string, unknown> = { ...registerBody };
+    delete body[missing];
+    const res = await fetch(`${url}/api/register`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    assert.equal(res.status, 400, `expected a 400 without ${missing}`);
+  }
 });
 
 test('POST /api/login sets Secure, httpOnly, root-path session cookies', async (t) => {
@@ -112,6 +134,42 @@ test('GET /api/me with a valid access cookie returns the person', async (t) => {
   const res = await fetch(`${url}/api/me`, { headers: { cookie: 'access_token=good-access' } });
   assert.equal(res.status, 200);
   assert.deepEqual(await res.json(), aliceView);
+});
+
+test('PATCH /api/me without a cookie is 401', async (t) => {
+  const { url, close } = await startTestServer();
+  t.after(close);
+  const res = await fetch(`${url}/api/me`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ firstName: 'Grace', lastName: 'Hopper' }),
+  });
+  assert.equal(res.status, 401);
+});
+
+test('PATCH /api/me with a valid access cookie returns the renamed person', async (t) => {
+  const { url, close } = await startTestServer();
+  t.after(close);
+  const res = await fetch(`${url}/api/me`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json', cookie: 'access_token=good-access' },
+    body: JSON.stringify({ firstName: 'Grace', lastName: 'Hopper' }),
+  });
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), renamedView);
+});
+
+test('PATCH /api/me with a blank or over-long name is a 400', async (t) => {
+  const { url, close } = await startTestServer();
+  t.after(close);
+  for (const body of [{ lastName: 'Hopper' }, { firstName: '   ', lastName: 'Hopper' }, { firstName: 'x'.repeat(101), lastName: 'Hopper' }]) {
+    const res = await fetch(`${url}/api/me`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', cookie: 'access_token=good-access' },
+      body: JSON.stringify(body),
+    });
+    assert.equal(res.status, 400, `expected a 400 for ${JSON.stringify(body)}`);
+  }
 });
 
 test('POST /api/logout is 204 and clears both cookies', async (t) => {
