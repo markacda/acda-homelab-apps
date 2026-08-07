@@ -7,8 +7,8 @@ import type { PasswordHasher } from '../../Domain/Ports/password-hasher.ts';
 import type { AccessTokenIssuer } from '../../Domain/Ports/access-token-issuer.ts';
 import { ConflictError } from '../../Domain/Exceptions/conflict-error.ts';
 import { UnauthorizedError } from '../../Domain/Exceptions/unauthorized-error.ts';
-import { requireEmail, requirePassword, requireText } from '../../Domain/Values/person-text.ts';
-import { toPersonView } from '../Mappers/auth-mapper.ts';
+import { EmailAddress } from '../../Domain/ValueObjects/email-address.ts';
+import { requirePassword, toPersonView } from '../Mappers/auth-mapper.ts';
 import type { PersonName, PersonView } from '../Mappers/auth-mapper.ts';
 import { ROLE_USER } from '../../../Common/auth/index.ts';
 
@@ -65,22 +65,21 @@ export class AuthService {
 
   /** Register a new person with the default role. Duplicate email → 409, weak input → 400. */
   async register(email: string, password: string, name: PersonName): Promise<PersonView> {
-    const normalizedEmail = requireEmail(email);
+    const address = new EmailAddress(email);
     requirePassword(password);
-    const firstName = requireText(name.firstName, 'First name');
-    const lastName = requireText(name.lastName, 'Last name');
-    if (await this.persons.findByEmail(normalizedEmail)) {
+    if (await this.persons.findByEmail(address.value)) {
       throw new ConflictError('An account with that email already exists.');
     }
     const passwordHash = await this.hasher.hash(password);
-    const person = Person.create({ email: normalizedEmail, firstName, lastName, passwordHash, roles: [ROLE_USER] });
+    // Person.create owns the name rules, so they are not pre-checked here.
+    const person = Person.create({ email: address.value, ...name, passwordHash, roles: [ROLE_USER] });
     await this.persons.save(person);
     return toPersonView(person);
   }
 
   /** Verify credentials and start a session. Bad credentials → 401. */
   async login(email: string, password: string): Promise<LoginResult> {
-    const person = await this.persons.findByEmail(email.trim().toLowerCase());
+    const person = await this.persons.findByEmail(EmailAddress.normalize(email));
     // Verify even when the person is missing to keep timing uniform, then reject.
     const ok = person ? await this.hasher.verify(password, person.passwordHash) : false;
     if (!person || !ok) throw new UnauthorizedError('Invalid email or password.');

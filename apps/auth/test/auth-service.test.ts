@@ -20,7 +20,7 @@ const ADA = { firstName: 'Ada', lastName: 'Lovelace' };
 class FakePersonRepository implements PersonRepository {
   readonly byId = new Map<string, Person>();
   async findByEmail(email: string): Promise<Person | null> {
-    for (const p of this.byId.values()) if (p.email === email) return p;
+    for (const p of this.byId.values()) if (p.email.value === email) return p;
     return null;
   }
   async findById(id: string): Promise<Person | null> {
@@ -218,7 +218,7 @@ test('updateName persists the new name and returns the updated view', async () =
   // Unchanged fields survive the rename.
   assert.equal(updated.email, 'alice@example.com');
   assert.deepEqual(updated.roles, ['User']);
-  assert.equal((await persons.findById(view.id))?.firstName, 'Grace');
+  assert.equal((await persons.findById(view.id))?.firstName?.value, 'Grace');
 });
 
 test('updateName rejects a blank name and an unknown id', async () => {

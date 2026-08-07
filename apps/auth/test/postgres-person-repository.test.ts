@@ -15,9 +15,9 @@ test('rowToPerson maps a joined persons row into the aggregate', () => {
     roles: ['User', 'Administrator'],
   });
   assert.equal(p.id, 'p1');
-  assert.equal(p.email, 'alice@example.com');
-  assert.equal(p.firstName, 'Ada');
-  assert.equal(p.lastName, 'Lovelace');
+  assert.equal(p.email.value, 'alice@example.com');
+  assert.equal(p.firstName?.value, 'Ada');
+  assert.equal(p.lastName?.value, 'Lovelace');
   assert.equal(p.passwordHash, 'hash');
   assert.deepEqual(p.roles, ['User', 'Administrator']);
   assert.equal(p.createdAt, '2026-08-03T00:00:00.000Z');
@@ -36,7 +36,7 @@ test('rowToPerson defaults a null roles column to an empty set', () => {
   assert.deepEqual(p.roles, []);
 });
 
-test('rowToPerson reads a pre-#187 row (null names) back as blank, not null', () => {
+test('rowToPerson reads a pre-#187 row (null names) back as a person with no name', () => {
   const p = rowToPerson({
     id: 'p3',
     email: 'legacy@example.com',
@@ -46,8 +46,8 @@ test('rowToPerson reads a pre-#187 row (null names) back as blank, not null', ()
     created_at: '2026-08-03T00:00:00.000Z',
     roles: ['User'],
   });
-  assert.equal(p.firstName, '');
-  assert.equal(p.lastName, '');
+  assert.equal(p.firstName, null);
+  assert.equal(p.lastName, null);
   assert.equal(p.hasName(), false);
 });
 

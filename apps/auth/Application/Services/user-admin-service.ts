@@ -19,7 +19,8 @@ const ASSIGNABLE_ROLES: readonly string[] = [ROLE_USER, ROLE_ADMINISTRATOR];
 // Matching the full name as one string means "ada lov" finds "Ada Lovelace", which a
 // per-field check would miss.
 function matches(person: Person, needle: string): boolean {
-  return `${person.firstName} ${person.lastName} ${person.email}`.toLowerCase().includes(needle);
+  const name = `${person.firstName?.value ?? ''} ${person.lastName?.value ?? ''}`;
+  return `${name} ${person.email.value}`.toLowerCase().includes(needle);
 }
 
 export class UserAdminService {
