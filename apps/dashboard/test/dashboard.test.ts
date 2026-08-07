@@ -57,8 +57,19 @@ test('mergeApps orders apps alphabetically by name', () => {
 test('healthTarget prefers absolute url, then the public /healthz on host+port', () => {
   assert.equal(healthTarget({ url: 'http://x.local' }, 'host.docker.internal'), 'http://x.local');
   // Port-derived targets probe /healthz (public), not the auth-gated shell (issue #186).
-  assert.equal(healthTarget({ port: 8123 }, 'host.docker.internal'), 'http://host.docker.internal:8123/healthz');
+  assert.equal(healthTarget({ port: 6001 }, 'host.docker.internal'), 'http://host.docker.internal:6001/healthz');
   assert.equal(healthTarget({}, 'host.docker.internal'), null);
+});
+
+test('healthTarget honours healthPath for services without /healthz', () => {
+  // Home Assistant has no /healthz, so the default path would 404 on every probe.
+  assert.equal(healthTarget({ port: 8123, healthPath: '/manifest.json' }, 'host.docker.internal'), 'http://host.docker.internal:8123/manifest.json');
+  // A missing leading slash is tolerated.
+  assert.equal(healthTarget({ port: 8123, healthPath: 'manifest.json' }, 'host.docker.internal'), 'http://host.docker.internal:8123/manifest.json');
+  // Blank falls back to the default.
+  assert.equal(healthTarget({ port: 8123, healthPath: '  ' }, 'host.docker.internal'), 'http://host.docker.internal:8123/healthz');
+  // An absolute url is probed verbatim, so healthPath doesn't apply.
+  assert.equal(healthTarget({ url: 'http://x.local', healthPath: '/manifest.json' }, 'host.docker.internal'), 'http://x.local');
 });
 
 test('healthTarget probes the port for relative (reverse-proxy) urls', () => {
