@@ -50,7 +50,13 @@ export function register(app: Express): Registrations {
   // User-role gate (issue #154): the /api proxy answers JSON 401/403; the served
   // static frontend bounces logged-out browsers to the auth login. /healthz stays
   // public (both guards skip it). Mounted before static + the /api routers below.
-  const { requireApiUser, requireUserPage } = createAtcGuards();
+  // ATC_TRUSTED_EMBED_ORIGINS opts into the Home Assistant embed bypass (issue #186):
+  // requests from a listed origin (e.g. http://<pi>:8123) are served without a login.
+  const trustedEmbedOrigins = (process.env.ATC_TRUSTED_EMBED_ORIGINS ?? '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+  const { requireApiUser, requireUserPage } = createAtcGuards({ trustedEmbedOrigins });
   app.use('/api', requireApiUser); // gates AirplanesController + RunwayController
   app.use(requireUserPage); // gates the static index.html + assets (skips /api, /healthz)
 

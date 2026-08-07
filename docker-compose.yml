@@ -113,6 +113,12 @@ services:
       # Same signing key the auth app self-provisions on the shared auth-secrets
       # volume — verifies the User-role access token (issue #154).
       - *jwt-secret-file
+      # Home Assistant embed bypass (issue #186): comma-separated origin(s) HA is
+      # reached at. A request from one of these (Origin/Referer) is served without a
+      # login and handed a short-lived embed-grant cookie, so the ATC view works
+      # inside an HA iframe while every other origin stays gated. Uncomment and set
+      # to your HA origin(s), e.g. the Pi's LAN IP/hostname on port 8123.
+      - ATC_TRUSTED_EMBED_ORIGINS=http://192.168.1.142:8123,http://homeassistant.local:8123
       # MQTT: connect to the host broker and subscribe to MQTT_TOPIC (default "#",
       # all topics). Known topics are parsed (the EHAM runway config, exposed at
       # /api/runways); unknown topics are logged. Unset MQTT_URL to disable.
