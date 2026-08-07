@@ -17,12 +17,9 @@ export interface AtcGuards {
  * Build the ATC guards. Passing an explicit `verify` or `secret` is for tests;
  * otherwise the shared HMAC secret is read from the environment (JWT_SECRET_FILE /
  * JWT_SECRET) lazily on first request, so importing this module never touches the env.
- * `embedToken` / `trustedEmbedOrigins` opt ATC into the Home Assistant embed bypass
- * (issue #186).
+ * `embedToken` opts ATC into the Home Assistant embed bypass (issue #186).
  */
-export function createAtcGuards(
-  options: { verify?: TokenVerifier; secret?: Uint8Array; trustedEmbedOrigins?: string[]; embedToken?: string } = {}
-): AtcGuards {
+export function createAtcGuards(options: { verify?: TokenVerifier; secret?: Uint8Array; embedToken?: string } = {}): AtcGuards {
   const { requireApi, requirePage } = createRoleGuards({
     role: ROLE_USER,
     appHome: '/atc/',

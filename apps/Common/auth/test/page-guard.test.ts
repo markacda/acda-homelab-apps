@@ -130,23 +130,19 @@ test('extra apiPublicPrefixes — /images is left to the API gate (JSON 401, not
   assert.equal(ok.body, 'IMG');
 });
 
-// --- Trusted-embed bypass (issue #186) ---------------------------------------
-
-const TRUSTED_ORIGIN = 'http://ha.local:8123';
+// Trusted-embed bypass (issue #186).
 
 interface ReqOptions {
   token?: string;
-  referer?: string;
   cookie?: string;
 }
 
-/** GET with arbitrary headers, capturing the Set-Cookie so a grant can be replayed. */
+/** GET capturing the Set-Cookie, so an issued grant can be replayed on the next request. */
 function req(url: string, opts: ReqOptions = {}): Promise<Res & { setCookie?: string }> {
   return new Promise((resolve, reject) => {
     const headers: Record<string, string> = {};
     const cookies = [opts.token ? `access_token=${opts.token}` : '', opts.cookie ?? ''].filter(Boolean);
     if (cookies.length) headers.cookie = cookies.join('; ');
-    if (opts.referer) headers.referer = opts.referer;
     http
       .get(url, { headers }, (res) => {
         let body = '';
@@ -177,7 +173,6 @@ async function startEmbedServer(): Promise<{ url: string; close: () => Promise<v
     role: ROLE_USER,
     appHome: '/atc/',
     forbiddenMessage: 'not allowed',
-    trustedEmbedOrigins: [TRUSTED_ORIGIN],
     embedToken: EMBED_TOKEN,
     secret: SECRET,
   });
@@ -193,37 +188,25 @@ async function startEmbedServer(): Promise<{ url: string; close: () => Promise<v
   return { url: `http://127.0.0.1:${port}`, close: () => new Promise<void>((resolve) => server.close(() => resolve())) };
 }
 
-test('embed — a request from the trusted origin is served and handed a grant cookie', async (t) => {
+test('embed — ?embed_token serves the entry request and hands out a grant cookie', async (t) => {
   const { url, close } = await startEmbedServer();
   t.after(close);
-  const res = await req(`${url}/`, { referer: `${TRUSTED_ORIGIN}/lovelace/atc` });
-  assert.equal(res.status, 200);
-  assert.equal(res.body, 'PAGE');
-  assert.match(res.setCookie ?? '', /^embed_grant=/);
-});
-
-test('embed — the issued grant cookie then authorizes page + api without a trusted Referer', async (t) => {
-  const { url, close } = await startEmbedServer();
-  t.after(close);
-  const first = await req(`${url}/`, { referer: `${TRUSTED_ORIGIN}/` });
-  const grant = cookiePair(first.setCookie);
-  assert.equal((await req(`${url}/`, { cookie: grant })).status, 200);
-  const api = await req(`${url}/api/thing`, { cookie: grant });
-  assert.equal(api.status, 200);
-  assert.deepEqual(JSON.parse(api.body), { ok: true });
-});
-
-test('embed — ?embed_token authorizes the entry request with no Referer at all', async (t) => {
-  const { url, close } = await startEmbedServer();
-  t.after(close);
-  // This is the HA case: an iframe that sends no Referer, only the token in its URL.
+  // The HA case: an iframe that sends no Referer at all, only the token in its URL.
   const res = await req(`${url}/?embed_token=${EMBED_TOKEN}`);
   assert.equal(res.status, 200);
   assert.equal(res.body, 'PAGE');
   assert.match(res.setCookie ?? '', /^embed_grant=/);
-  // The grant then covers the relative asset/API requests, which carry no token.
-  const grant = cookiePair(res.setCookie);
-  assert.equal((await req(`${url}/api/thing`, { cookie: grant })).status, 200);
+});
+
+test('embed — the issued grant then authorizes page + api requests carrying no token', async (t) => {
+  const { url, close } = await startEmbedServer();
+  t.after(close);
+  const entry = await req(`${url}/?embed_token=${EMBED_TOKEN}`);
+  const grant = cookiePair(entry.setCookie);
+  assert.equal((await req(`${url}/`, { cookie: grant })).status, 200);
+  const api = await req(`${url}/api/thing`, { cookie: grant });
+  assert.equal(api.status, 200);
+  assert.deepEqual(JSON.parse(api.body), { ok: true });
 });
 
 test('embed — a wrong ?embed_token is gated', async (t) => {
@@ -232,10 +215,10 @@ test('embed — a wrong ?embed_token is gated', async (t) => {
   assert.equal((await req(`${url}/?embed_token=wrong`)).status, 302);
 });
 
-test('embed — an untrusted request is still gated (page 302, api 401)', async (t) => {
+test('embed — a request with no token and no grant is still gated (page 302, api 401)', async (t) => {
   const { url, close } = await startEmbedServer();
   t.after(close);
-  assert.equal((await req(`${url}/`, { referer: 'http://evil.local/' })).status, 302);
+  assert.equal((await req(`${url}/`)).status, 302);
   assert.equal((await req(`${url}/api/thing`)).status, 401);
 });
 
@@ -247,9 +230,9 @@ test('embed — a grant minted for another app does not authorize this one', asy
   assert.equal(res.status, 302);
 });
 
-test('embed — the bypass is inert when trustedEmbedOrigins is unset', async (t) => {
+test('embed — the bypass is inert when no embedToken is configured', async (t) => {
   const { url, close } = await startTestServer();
   t.after(close);
-  // startTestServer configures no trusted origins, so an HA-looking Referer is ignored.
-  assert.equal((await req(`${url}/`, { referer: `${TRUSTED_ORIGIN}/` })).status, 302);
+  // startTestServer configures no embed token, so the query parameter means nothing.
+  assert.equal((await req(`${url}/?embed_token=${EMBED_TOKEN}`)).status, 302);
 });
