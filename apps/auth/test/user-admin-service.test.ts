@@ -10,7 +10,7 @@ function fakeRepo(seed: Person[] = []): PersonRepository {
   const store = new Map<string, Person>(seed.map((p) => [p.id, p]));
   return {
     async findByEmail(email) {
-      return [...store.values()].find((p) => p.email === email) ?? null;
+      return [...store.values()].find((p) => p.email.value === email) ?? null;
     },
     async findById(id) {
       return store.get(id) ?? null;

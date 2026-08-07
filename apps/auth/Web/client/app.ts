@@ -23,9 +23,9 @@ import {
 } from '../../../Common/auth-client/index.ts';
 import { $, el, setStatus as webSetStatus } from '../../../Common/web-kit/index.ts';
 
-/** Server-side minimum (Domain/Values/person-text MIN_PASSWORD_LENGTH); mirrored for early feedback. */
+/** Server-side minimum (Application/Mappers/auth-mapper MIN_PASSWORD_LENGTH); mirrored for early feedback. */
 const MIN_PASSWORD_LENGTH = 8;
-/** Server-side cap (Domain/Values/person-text MAX_NAME_LENGTH); mirrored for early feedback. */
+/** Server-side cap (Domain/ValueObjects/personal-name MAX_NAME_LENGTH); mirrored for early feedback. */
 const MAX_NAME_LENGTH = 100;
 
 const statusEl = $('status');
@@ -76,7 +76,7 @@ function validateCredentials(email: string, password: string): string | null {
 /**
  * Show the signed-in visitor's own details and prefill the rename form. Every value is
  * written as text (`textContent` / `el` text nodes), so a name containing markup renders
- * literally — the server-side cleaning in Domain/Values/person-text is the other half.
+ * literally — the server-side cleaning in Domain/ValueObjects is the other half.
  */
 function renderAccount(me: PersonView): void {
   $('account-name').textContent = displayName(me);
