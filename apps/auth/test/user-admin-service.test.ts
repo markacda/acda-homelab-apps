@@ -28,8 +28,20 @@ function fakeRepo(seed: Person[] = []): PersonRepository {
 }
 
 function seedPeople(): { alice: Person; bob: Person } {
-  const alice = Person.create({ email: 'alice@example.com', passwordHash: 'h', roles: ['User'] });
-  const bob = Person.create({ email: 'bob@work.test', passwordHash: 'h', roles: ['User', 'Administrator'] });
+  const alice = Person.create({
+    email: 'alice@example.com',
+    firstName: 'Ada',
+    lastName: 'Lovelace',
+    passwordHash: 'h',
+    roles: ['User'],
+  });
+  const bob = Person.create({
+    email: 'bob@work.test',
+    firstName: 'Grace',
+    lastName: 'Hopper',
+    passwordHash: 'h',
+    roles: ['User', 'Administrator'],
+  });
   return { alice, bob };
 }
 
@@ -56,6 +68,23 @@ test('listUsers filters by email substring, case-insensitively', async () => {
   );
   // Whitespace-only search is treated as no filter.
   assert.equal((await svc.listUsers('   ')).length, 2);
+});
+
+test('listUsers also filters by first name, last name, and the two combined', async () => {
+  const { alice, bob } = seedPeople();
+  const svc = new UserAdminService(fakeRepo([alice, bob]));
+  for (const [needle, expected] of [
+    ['ada', 'alice@example.com'],
+    ['LOVELACE', 'alice@example.com'],
+    ['grace hop', 'bob@work.test'],
+  ]) {
+    assert.deepEqual(
+      (await svc.listUsers(needle)).map((v) => v.email),
+      [expected],
+      `search "${needle}"`
+    );
+  }
+  assert.equal((await svc.listUsers('nobody')).length, 0);
 });
 
 test('addRole persists the role and returns the updated view', async () => {

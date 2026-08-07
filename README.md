@@ -12,16 +12,16 @@ Served through the proxy on `https://<pi-host>/` (recommended). The proxy uses a
 trust warning; plain HTTP on port 80 redirects to HTTPS. The direct `600x` ports
 stay plain HTTP.
 
-| Path                 | App                | Direct port | Description                                                                                                                                                      |
-| -------------------- | ------------------ | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/`                  | `dashboard`        | 6000        | Landing page: tiled dashboard that auto-discovers the other apps via the Docker socket and health-checks them                                                    |
-| `/atc`               | `atc`              | 6001        | Live aircraft-tracking frontend (airplanes.live), TypeScript/Express server + static map UI                                                                      |
-| `/laden-of-tanken`   | `ev-crossover`     | 6002        | Electricity price (€/kWh) at which charging is cheaper than petrol                                                                                               |
-| `/dynamisch-of-vast` | `dynamic-vs-fixed` | 6003        | Whether a dynamic (hourly-market) energy contract beats your fixed one, from HomeWizard usage + EnergyZero prices (NL)                                           |
-| `/logs`              | `log-viewer`       | 6004        | Browse, search, filter and aggregate the structured logs written by every app — requests, app-logs, exceptions and dependencies — with rule-based anomaly alerts |
-| `/receptenboek`      | `recipe-book`      | 6005        | Import Albert Heijn (Allerhande) recipes into a shared library, assemble named recipe books, and export them as LaTeX / PDF                                      |
-| `/notificaties`      | `notification`     | 6006        | Collects notifications from the other apps (via `POST /send`) and shows a feed of recent ones, e.g. failed-request alerts from the log viewer                    |
-| `/auth`              | `auth`             | 6007        | Authentication: persons store (email = username, hashed password, roles) backing the auth epic; registration/login/tokens land in follow-up work                 |
+| Path                 | App                | Direct port | Description                                                                                                                                                                                                       |
+| -------------------- | ------------------ | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                  | `dashboard`        | 6000        | Landing page: tiled dashboard that auto-discovers the other apps via the Docker socket and health-checks them                                                                                                     |
+| `/atc`               | `atc`              | 6001        | Live aircraft-tracking frontend (airplanes.live), TypeScript/Express server + static map UI                                                                                                                       |
+| `/laden-of-tanken`   | `ev-crossover`     | 6002        | Electricity price (€/kWh) at which charging is cheaper than petrol                                                                                                                                                |
+| `/dynamisch-of-vast` | `dynamic-vs-fixed` | 6003        | Whether a dynamic (hourly-market) energy contract beats your fixed one, from HomeWizard usage + EnergyZero prices (NL)                                                                                            |
+| `/logs`              | `log-viewer`       | 6004        | Browse, search, filter and aggregate the structured logs written by every app — requests, app-logs, exceptions and dependencies — with rule-based anomaly alerts                                                  |
+| `/receptenboek`      | `recipe-book`      | 6005        | Import Albert Heijn (Allerhande) recipes into a shared library, assemble named recipe books, and export them as LaTeX / PDF                                                                                       |
+| `/notificaties`      | `notification`     | 6006        | Collects notifications from the other apps (via `POST /send`) and shows a feed of recent ones, e.g. failed-request alerts from the log viewer                                                                     |
+| `/auth`              | `auth`             | 6007        | Authentication: registration/login/cookie sessions over a persons store (email = username, first/last name, hashed password, roles), your own account page when signed in, and Administrator-only user management |
 
 The proxy (`proxy/nginx.conf`) strips the path prefix before forwarding, so each
 app is unaware it's served under a subpath — the only requirement is that app

@@ -1,3 +1,4 @@
+import type { Person } from '../../Domain/Aggregates/person.ts';
 import type { PersonRepository } from '../../Domain/Ports/Repositories/person-repository.ts';
 import { ValidationError } from '../../Domain/Exceptions/validation-error.ts';
 import { NotFoundError } from '../../Domain/Exceptions/not-found-error.ts';
@@ -15,6 +16,12 @@ import { ROLE_USER, ROLE_ADMINISTRATOR } from '../../../Common/auth/index.ts';
 /** The roles that may be assigned via the admin API — single-sourced with the guard. */
 const ASSIGNABLE_ROLES: readonly string[] = [ROLE_USER, ROLE_ADMINISTRATOR];
 
+// Matching the full name as one string means "ada lov" finds "Ada Lovelace", which a
+// per-field check would miss.
+function matches(person: Person, needle: string): boolean {
+  return `${person.firstName} ${person.lastName} ${person.email}`.toLowerCase().includes(needle);
+}
+
 export class UserAdminService {
   private readonly persons: PersonRepository;
 
@@ -22,11 +29,11 @@ export class UserAdminService {
     this.persons = persons;
   }
 
-  /** All users (newest-created first), optionally filtered by an email substring. */
+  /** All users (newest-created first), optionally filtered by a name or email substring. */
   async listUsers(search?: string): Promise<PersonView[]> {
     const persons = await this.persons.list();
     const needle = search?.trim().toLowerCase();
-    const filtered = needle ? persons.filter((p) => p.email.toLowerCase().includes(needle)) : persons;
+    const filtered = needle ? persons.filter((p) => matches(p, needle)) : persons;
     return filtered.map(toPersonView);
   }
 

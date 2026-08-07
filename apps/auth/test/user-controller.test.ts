@@ -8,8 +8,8 @@ import { errorMapping } from '../Application/Filters/error-mapping.ts';
 import { NotFoundError } from '../Domain/Exceptions/not-found-error.ts';
 import { ValidationError } from '../Domain/Exceptions/validation-error.ts';
 
-const aliceView = { id: 'p1', email: 'alice@example.com', roles: ['User'] };
-const adminView = { id: 'p1', email: 'alice@example.com', roles: ['User', 'Administrator'] };
+const aliceView = { id: 'p1', email: 'alice@example.com', firstName: 'Ada', lastName: 'Lovelace', roles: ['User'] };
+const adminView = { ...aliceView, roles: ['User', 'Administrator'] };
 
 // Records the last search term the controller passed through, so we can assert
 // the ?search= query param is forwarded to the service.
@@ -20,7 +20,7 @@ let lastSearch: string | undefined;
 const fakeSvc = {
   async listUsers(search?: string) {
     lastSearch = search;
-    return search ? [aliceView] : [aliceView, { id: 'p2', email: 'bob@work.test', roles: ['User'] }];
+    return search ? [aliceView] : [aliceView, { id: 'p2', email: 'bob@work.test', firstName: 'Grace', lastName: 'Hopper', roles: ['User'] }];
   },
   async addRole(id: string, role: string) {
     if (id === 'missing') throw new NotFoundError('No user with that id.');

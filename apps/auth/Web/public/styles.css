@@ -152,6 +152,40 @@ button[type='submit']:disabled {
   cursor: default;
 }
 
+/* The account page (issue #187): a label/value grid above the rename form. */
+.account-details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.account-details dt {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  align-self: center;
+}
+
+.account-details dd {
+  margin: 0;
+}
+
+.account-form-title {
+  margin: 1.75rem 0 0.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.95rem;
+}
+
+#profile-hint {
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
 .status {
   margin: 1rem 0 0;
   padding: 0.75rem 1rem;
@@ -164,6 +198,11 @@ button[type='submit']:disabled {
 .status.error {
   border-color: var(--bad);
   color: var(--bad);
+}
+
+.status.ok {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .toggle {
@@ -246,6 +285,10 @@ button[type='submit']:disabled {
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--muted);
+}
+
+.cell-name {
+  white-space: nowrap;
 }
 
 .cell-email {
@@ -364,9 +407,15 @@ button[type='submit']:disabled {
   padding: 1.25rem;
 }
 
+.modal-name {
+  margin: 0;
+  font-weight: 600;
+}
+
 .modal-email {
   margin: 0 0 1rem;
-  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.85rem;
   word-break: break-all;
 }
 

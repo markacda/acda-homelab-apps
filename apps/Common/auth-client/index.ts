@@ -15,6 +15,8 @@
 export interface PersonView {
   id: string;
   email: string;
+  firstName: string;
+  lastName: string;
   roles: string[];
 }
 
@@ -25,6 +27,16 @@ export const ROLE_ADMINISTRATOR = 'Administrator';
 /** True when `me` holds `role`. */
 export function hasRole(me: PersonView, role: string): boolean {
   return me.roles.includes(role);
+}
+
+/**
+ * How to label a person in the UI: "First Last", falling back to the email. The fallback
+ * covers accounts created before names became required (issue #187), whose stored names
+ * are empty until their owner fills them in on the /auth account page. Pure (no DOM), so
+ * the auth account page and the admin user table label people identically.
+ */
+export function displayName(me: PersonView): string {
+  return `${me.firstName ?? ''} ${me.lastName ?? ''}`.trim() || me.email;
 }
 
 /**

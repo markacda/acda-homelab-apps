@@ -6,7 +6,7 @@
 // The shared auth + DOM helpers come from @homelab/auth-client and @homelab/web-kit
 // (issue #177), compiled in via tsconfig.client.json.
 
-import { apiJson as api, fetchCurrentUser, hasRole, ROLE_ADMINISTRATOR, type PersonView } from '../../../Common/auth-client/index.ts';
+import { apiJson as api, displayName, fetchCurrentUser, hasRole, ROLE_ADMINISTRATOR, type PersonView } from '../../../Common/auth-client/index.ts';
 import { $, el, setStatus as webSetStatus } from '../../../Common/web-kit/index.ts';
 
 /** The roles assignable via the admin API — mirrors the server's ASSIGNABLE_ROLES. */
@@ -15,6 +15,15 @@ const ASSIGNABLE_ROLES = ['User', 'Administrator'];
 /** A copy of the roles in alphabetical order, for stable tag rendering. */
 function sortedRoles(roles: string[]): string[] {
   return [...roles].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * The Name cell. Unlike the shared `displayName` this shows an em dash for an account
+ * with no name yet (issue #187) instead of falling back to the email, which has its
+ * own column right beside it.
+ */
+function fullName(user: PersonView): string {
+  return `${user.firstName} ${user.lastName}`.trim() || '—';
 }
 
 const statusEl = $('status');
@@ -59,14 +68,21 @@ function renderTable(): void {
   }
   const rows = users.map((u) => {
     const roleCell = el('td', {}, ...sortedRoles(u.roles).map((r) => el('span', { class: 'tag' }, r)));
-    const editBtn = el('button', { type: 'button', class: 'icon-btn', 'aria-label': `Edit roles for ${u.email}` }, icon('pen'));
+    const editBtn = el('button', { type: 'button', class: 'icon-btn', 'aria-label': `Edit roles for ${displayName(u)}` }, icon('pen'));
     editBtn.addEventListener('click', () => openModal(u.id));
-    return el('tr', {}, el('td', { class: 'cell-email' }, u.email), roleCell, el('td', { class: 'cell-actions' }, editBtn));
+    return el(
+      'tr',
+      {},
+      el('td', { class: 'cell-name' }, fullName(u)),
+      el('td', { class: 'cell-email' }, u.email),
+      roleCell,
+      el('td', { class: 'cell-actions' }, editBtn)
+    );
   });
   const table = el(
     'table',
     { class: 'users-table' },
-    el('thead', {}, el('tr', {}, el('th', {}, 'Email'), el('th', {}, 'Roles'), el('th', {}, ''))),
+    el('thead', {}, el('tr', {}, el('th', {}, 'Name'), el('th', {}, 'Email'), el('th', {}, 'Roles'), el('th', {}, ''))),
     el('tbody', {}, ...rows)
   );
   usersEl.replaceChildren(table);
@@ -75,7 +91,7 @@ function renderTable(): void {
 async function loadUsers(): Promise<void> {
   const query = searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : '';
   const fetched = await api<PersonView[]>(`api/users${query}`);
-  users = fetched.sort((a, b) => a.email.localeCompare(b.email));
+  users = fetched.sort((a, b) => displayName(a).localeCompare(displayName(b)));
   renderTable();
   refreshOpenModal();
 }
@@ -143,7 +159,7 @@ function refreshOpenModal(): void {
   );
 
   const body = $('modal-body');
-  body.replaceChildren(el('p', { class: 'modal-email' }, user.email), assigned, add);
+  body.replaceChildren(el('p', { class: 'modal-name' }, fullName(user)), el('p', { class: 'modal-email' }, user.email), assigned, add);
 }
 
 function openModal(id: string): void {

@@ -10,6 +10,8 @@ import type { PersonRepository } from '../../Domain/Ports/Repositories/person-re
 export interface PersonRow {
   id: string;
   email: string;
+  first_name: string | null;
+  last_name: string | null;
   password_hash: string;
   created_at: Date | string;
   roles: string[] | null;
@@ -20,6 +22,8 @@ export function rowToPerson(row: PersonRow): Person {
   return Person.fromJSON({
     id: row.id,
     email: row.email,
+    firstName: row.first_name ?? '',
+    lastName: row.last_name ?? '',
     passwordHash: row.password_hash,
     roles: row.roles ?? [],
     createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
@@ -28,7 +32,7 @@ export function rowToPerson(row: PersonRow): Person {
 
 // Reads share this projection. array_remove drops the NULL that array_agg
 // produces for a person with no roles, so `roles` is always a clean array.
-const SELECT_BASE = `SELECT p.id, p.email, p.password_hash, p.created_at,
+const SELECT_BASE = `SELECT p.id, p.email, p.first_name, p.last_name, p.password_hash, p.created_at,
        array_remove(array_agg(r.role), NULL) AS roles
   FROM persons p
   LEFT JOIN person_roles r ON r.person_id = p.id`;
@@ -61,12 +65,14 @@ export class PostgresPersonRepository implements PersonRepository {
     try {
       await client.query('BEGIN');
       await client.query(
-        `INSERT INTO persons (id, email, password_hash, created_at)
-           VALUES ($1, $2, $3, $4)
+        `INSERT INTO persons (id, email, first_name, last_name, password_hash, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6)
            ON CONFLICT (id) DO UPDATE
              SET email = EXCLUDED.email,
+                 first_name = EXCLUDED.first_name,
+                 last_name = EXCLUDED.last_name,
                  password_hash = EXCLUDED.password_hash`,
-        [data.id, data.email, data.passwordHash, data.createdAt]
+        [data.id, data.email, data.firstName, data.lastName, data.passwordHash, data.createdAt]
       );
       // Replace the person's role set wholesale (simplest correct sync).
       await client.query('DELETE FROM person_roles WHERE person_id = $1', [data.id]);
