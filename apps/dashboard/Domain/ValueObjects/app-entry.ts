@@ -10,6 +10,10 @@ export interface AppEntry {
   // "https"). Defaults to the browser's current protocol. Set "http" for
   // services that don't speak TLS (e.g. Home Assistant on :8123).
   protocol?: string | null;
+  // Path the server-side health probe appends to hostAddress + port. Defaults to
+  // "/healthz", which every in-repo app serves via server-kit. Set it for external
+  // services that don't — e.g. Home Assistant, which 404s there.
+  healthPath?: string | null;
   icon?: string | null;
   group?: string | null;
   hidden?: boolean;

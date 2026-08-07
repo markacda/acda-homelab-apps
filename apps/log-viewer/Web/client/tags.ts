@@ -1,7 +1,8 @@
 // Shared helpers for the tag filter dropdown used by all four log views.
-// Tags are a general labelling mechanism on telemetry records; today the only
-// producer is the DB health-check ping (tag "Healthcheck"), which we hide by
-// default so its frequent SELECT 1 dependency rows don't dominate the tables.
+// Tags are a general labelling mechanism on telemetry records; today's producers
+// both emit "Healthcheck" — the DB health-check ping and the dashboard's health
+// probes — which we hide by default so their frequent dependency rows (SELECT 1,
+// and a GET per tile every 30s) don't dominate the tables.
 
 /** Dropdown option (and client-only label) that matches records with no tags. */
 export const NO_TAG_LABEL = 'No tag';

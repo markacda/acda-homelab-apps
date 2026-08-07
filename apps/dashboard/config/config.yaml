@@ -33,11 +33,16 @@ apps:
     # http — otherwise the tile would inherit the dashboard's https and fail with
     # ERR_SSL_PROTOCOL_ERROR.
     protocol: http
+    # The health probe defaults to /healthz — this repo's server-kit convention,
+    # which HA doesn't implement, so every probe 404'd. /manifest.json is public,
+    # tiny and returns 200.
+    healthPath: /manifest.json
     icon: 'home-assistant'
   # - name: "Router"
   #   url: "http://192.168.1.1"
   #   icon: "router"          # slug (dashboard-icons), or a full https:// URL, or /icons/foo.png
   #   group: "Infra"
+  #   healthPath: /           # probe path for a port-based tile (default /healthz)
 
 # Per-container overrides, keyed by container name. Set `hidden: true` to hide.
 # The `url:` values below are the reverse-proxy paths (served by the `proxy`
