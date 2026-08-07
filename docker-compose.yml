@@ -113,12 +113,16 @@ services:
       # Same signing key the auth app self-provisions on the shared auth-secrets
       # volume — verifies the User-role access token (issue #154).
       - *jwt-secret-file
-      # Home Assistant embed bypass (issue #186): comma-separated origin(s) HA is
-      # reached at. A request from one of these (Origin/Referer) is served without a
-      # login and handed a short-lived embed-grant cookie, so the ATC view works
-      # inside an HA iframe while every other origin stays gated. Uncomment and set
-      # to your HA origin(s), e.g. the Pi's LAN IP/hostname on port 8123.
-      - ATC_TRUSTED_EMBED_ORIGINS=http://192.168.1.142:8123,http://homeassistant.local:8123
+      # Home Assistant embed bypass (issue #186): a request carrying ?embed_token=<token>
+      # loads ATC without a login (and gets a short-lived scoped cookie for the rest of
+      # the session), while every other visitor stays gated. The token self-provisions
+      # onto the atc-secrets volume on first boot (ATC_EMBED_TOKEN_FILE, set in the
+      # Dockerfile) — no manual secret. Read it back to build the HA Webpage card URL
+      # http://<pi>:6001/?embed_token=<token> with either:
+      #   docker compose logs atc | grep embed_token
+      #   docker compose exec atc cat /embed-secrets/embed-token
+      # Set ATC_EMBED_TOKEN on the host to pin the value instead of generating one.
+      - ATC_EMBED_TOKEN=${ATC_EMBED_TOKEN:-}
       # MQTT: connect to the host broker and subscribe to MQTT_TOPIC (default "#",
       # all topics). Known topics are parsed (the EHAM runway config, exposed at
       # /api/runways); unknown topics are logged. Unset MQTT_URL to disable.
@@ -129,6 +133,8 @@ services:
       # - MQTT_PASSWORD=
     volumes:
       - atc-logs:/app/logs
+      # Persists the self-provisioned embed token so redeploys keep the HA card URL valid.
+      - atc-secrets:/embed-secrets
       - *auth-secrets-ro
     restart: unless-stopped
     healthcheck:
@@ -429,3 +435,6 @@ volumes:
   # Self-generated JWT signing secret for the auth app; persisted so redeploys
   # don't invalidate existing sessions.
   auth-secrets:
+  # Self-generated Home Assistant embed token for atc (issue #186); persisted so
+  # redeploys don't invalidate the URL configured in the HA Webpage card.
+  atc-secrets:

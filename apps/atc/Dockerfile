@@ -59,10 +59,15 @@ EXPOSE 6001
 ENV NODE_ENV=production
 ENV PORT=6001
 ENV LOG_DIR=/app/logs
+# Self-provisioned Home Assistant embed token (issue #186), persisted on the
+# atc-secrets volume so the HA card URL survives redeploys. Generated on first boot
+# when the file is absent; see Adapters/Config/embed-token.ts.
+ENV ATC_EMBED_TOKEN_FILE=/embed-secrets/embed-token
 
-# Writable log dir owned by the non-root "node" user. A named volume mounted
-# here inherits this ownership on first use, so the app can write access logs.
-RUN mkdir -p /app/logs && chown node:node /app/logs
+# Writable dirs owned by the non-root "node" user. The named volumes mounted here
+# inherit this ownership on first use: logs, and the secrets dir the app writes the
+# embed token into.
+RUN mkdir -p /app/logs /embed-secrets && chown node:node /app/logs /embed-secrets
 
 # Run as non-root user for security
 USER node

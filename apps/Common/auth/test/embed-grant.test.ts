@@ -1,19 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Request, Response } from 'express';
-import { EMBED_COOKIE, issueEmbedGrant, matchesTrustedOrigin, verifyEmbedGrant } from '../embed-grant.ts';
+import { EMBED_COOKIE, issueEmbedGrant, matchesEmbedToken, verifyEmbedGrant } from '../embed-grant.ts';
 
-// The trusted-embed grant primitives (issue #186): origin matching + a signed,
+// The trusted-embed grant primitives (issue #186): shared-token matching + a signed,
 // app-scoped grant cookie. An explicit test secret keeps these off the env.
 
 const SECRET = new TextEncoder().encode('test-secret-thirty-two-bytes!!aa');
-const TRUSTED = ['http://192.168.1.50:8123', 'http://homeassistant.local:8123'];
 
-/** Minimal Request exposing only the case-insensitive header getter these helpers use. */
-function reqWith(headers: Record<string, string>): Request {
-  const lower: Record<string, string> = {};
-  for (const [k, v] of Object.entries(headers)) lower[k.toLowerCase()] = v;
-  return { get: (name: string) => lower[name.toLowerCase()] } as unknown as Request;
+/** Minimal Request carrying only a parsed query string. */
+function reqWithQuery(query: Record<string, unknown>): Request {
+  return { query, get: () => undefined } as unknown as Request;
 }
 
 /** A Response that captures whatever issueEmbedGrant sets via res.cookie. */
@@ -27,22 +24,21 @@ function capturingRes(): { res: Response; cookie: () => string | undefined } {
   return { res, cookie: () => cookie };
 }
 
-test('matchesTrustedOrigin — Origin header matches', () => {
-  assert.equal(matchesTrustedOrigin(reqWith({ origin: 'http://192.168.1.50:8123' }), TRUSTED), true);
+test('matchesEmbedToken — the exact token in ?embed_token matches', () => {
+  assert.equal(matchesEmbedToken(reqWithQuery({ embed_token: 'sekrit' }), 'sekrit'), true);
 });
 
-test('matchesTrustedOrigin — falls back to the origin of the Referer', () => {
-  assert.equal(matchesTrustedOrigin(reqWith({ referer: 'http://homeassistant.local:8123/lovelace/atc' }), TRUSTED), true);
+test('matchesEmbedToken — a wrong, absent or non-string token does not match', () => {
+  assert.equal(matchesEmbedToken(reqWithQuery({ embed_token: 'nope' }), 'sekrit'), false);
+  assert.equal(matchesEmbedToken(reqWithQuery({ embed_token: 'sekri' }), 'sekrit'), false); // length differs
+  assert.equal(matchesEmbedToken(reqWithQuery({}), 'sekrit'), false);
+  // A repeated param parses to an array, which must not be coerced into a match.
+  assert.equal(matchesEmbedToken(reqWithQuery({ embed_token: ['sekrit'] }), 'sekrit'), false);
 });
 
-test('matchesTrustedOrigin — an untrusted origin does not match', () => {
-  assert.equal(matchesTrustedOrigin(reqWith({ origin: 'http://192.168.1.50:6001' }), TRUSTED), false);
-  assert.equal(matchesTrustedOrigin(reqWith({ referer: 'http://evil.local/' }), TRUSTED), false);
-});
-
-test('matchesTrustedOrigin — no headers, or an empty trust list, never matches', () => {
-  assert.equal(matchesTrustedOrigin(reqWith({}), TRUSTED), false);
-  assert.equal(matchesTrustedOrigin(reqWith({ origin: 'http://192.168.1.50:8123' }), []), false);
+test('matchesEmbedToken — an unconfigured token never matches', () => {
+  assert.equal(matchesEmbedToken(reqWithQuery({ embed_token: 'anything' }), undefined), false);
+  assert.equal(matchesEmbedToken(reqWithQuery({ embed_token: '' }), ''), false);
 });
 
 test('issueEmbedGrant → verifyEmbedGrant round-trips for the same scope', async () => {

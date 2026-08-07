@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import cors from 'cors';
 import type { CorsOptions } from 'cors';
 import compression from 'compression';
+import { loadOrCreateEmbedToken } from '../../Adapters/Config/embed-token.ts';
 import { HttpAirplanesSource } from '../../Adapters/AirplanesLive/http-airplanes-source.ts';
 import { FallbackAirplanesSource } from '../../Adapters/AirplanesLive/fallback-airplanes-source.ts';
 import { MqttClientSubscriber } from '../../Adapters/Mqtt/mqtt-client-subscriber.ts';
@@ -50,13 +51,16 @@ export function register(app: Express): Registrations {
   // User-role gate (issue #154): the /api proxy answers JSON 401/403; the served
   // static frontend bounces logged-out browsers to the auth login. /healthz stays
   // public (both guards skip it). Mounted before static + the /api routers below.
-  // ATC_TRUSTED_EMBED_ORIGINS opts into the Home Assistant embed bypass (issue #186):
-  // requests from a listed origin (e.g. http://<pi>:8123) are served without a login.
-  const trustedEmbedOrigins = (process.env.ATC_TRUSTED_EMBED_ORIGINS ?? '')
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean);
-  const { requireApiUser, requireUserPage } = createAtcGuards({ trustedEmbedOrigins });
+  // Home Assistant embed bypass (issue #186): a request whose URL carries
+  // ?embed_token=<token> is served without a login and handed a short-lived grant
+  // cookie. The token self-provisions onto a volume (see loadOrCreateEmbedToken), so
+  // it is logged once here — otherwise a generated token would be unreachable, and it
+  // already lands in access.log on every embed request anyway. Unconfigured = gated.
+  const embedToken = loadOrCreateEmbedToken();
+  if (embedToken) {
+    console.log(`Home Assistant embed enabled — point the HA Webpage card at http://<pi>:${process.env.PORT ?? 6001}/?embed_token=${embedToken}`);
+  }
+  const { requireApiUser, requireUserPage } = createAtcGuards({ embedToken });
   app.use('/api', requireApiUser); // gates AirplanesController + RunwayController
   app.use(requireUserPage); // gates the static index.html + assets (skips /api, /healthz)
 
