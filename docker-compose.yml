@@ -118,7 +118,7 @@ services:
       # login and handed a short-lived embed-grant cookie, so the ATC view works
       # inside an HA iframe while every other origin stays gated. Uncomment and set
       # to your HA origin(s), e.g. the Pi's LAN IP/hostname on port 8123.
-      # - ATC_TRUSTED_EMBED_ORIGINS=http://192.168.1.50:8123,http://homeassistant.local:8123
+      - ATC_TRUSTED_EMBED_ORIGINS=http://192.168.1.142:8123,http://homeassistant.local:8123
       # MQTT: connect to the host broker and subscribe to MQTT_TOPIC (default "#",
       # all topics). Known topics are parsed (the EHAM runway config, exposed at
       # /api/runways); unknown topics are logged. Unset MQTT_URL to disable.
