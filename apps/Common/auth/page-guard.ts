@@ -1,8 +1,9 @@
-import type { RequestHandler } from 'express';
+import type { Request, RequestHandler, Response } from 'express';
 import { createAuth } from './middleware.ts';
 import { ACCESS_COOKIE, readCookie } from './cookies.ts';
 import { joseVerifier, type TokenVerifier } from './verify.ts';
 import { loadJwtSecret } from './secret.ts';
+import { issueEmbedGrant, matchesTrustedOrigin, readEmbedGrant, verifyEmbedGrant } from './embed-grant.ts';
 
 // A role gate for the apps that serve a browser frontend behind the nginx proxy
 // (atc, recipe-book, log-viewer). Each needs the same pair of guards:
@@ -32,6 +33,17 @@ export interface RoleGuardsOptions {
   verify?: TokenVerifier;
   /** Explicit HMAC secret; ignored when `verify` is given. For tests. Defaults to loadJwtSecret(). */
   secret?: Uint8Array;
+  /**
+   * Origins allowed to embed this app without a user session (issue #186): a request
+   * from one of these (via Origin/Referer) is served and handed a short-lived signed
+   * grant cookie so the rest of the embedded session works. Empty/unset disables the
+   * bypass entirely (no behavior change).
+   */
+  trustedEmbedOrigins?: string[];
+  /** Scope stamped on the embed grant so it can't authorize another app. Defaults to `appHome`. */
+  embedScope?: string;
+  /** Embed grant lifetime in ms once issued. Defaults to the embed-grant module default (24h). */
+  embedGrantMaxAgeMs?: number;
 }
 
 export interface RoleGuards {
@@ -51,16 +63,44 @@ export interface RoleGuards {
 export function createRoleGuards(options: RoleGuardsOptions): RoleGuards {
   const loginPath = options.loginPath ?? DEFAULT_LOGIN_PATH;
   const apiPublicPrefixes = options.apiPublicPrefixes ?? DEFAULT_API_PUBLIC_PREFIXES;
+  const trustedEmbedOrigins = options.trustedEmbedOrigins ?? [];
+  const embedScope = options.embedScope ?? options.appHome;
 
+  let secret: Uint8Array | undefined = options.secret;
+  const resolveSecret = (): Uint8Array => {
+    if (!secret) secret = loadJwtSecret();
+    return secret;
+  };
   let verifier: TokenVerifier | undefined = options.verify;
   const resolveVerifier = (): TokenVerifier => {
-    if (!verifier) verifier = joseVerifier(options.secret ?? loadJwtSecret());
+    if (!verifier) verifier = joseVerifier(resolveSecret());
     return verifier;
+  };
+
+  // Trusted-embed bypass (issue #186): a request carrying a valid grant cookie, or one
+  // from a trusted origin (which is then handed a fresh grant), is allowed without a
+  // user session. Inert unless trustedEmbedOrigins is configured. Shared by both gates.
+  const embedAllows = async (req: Request, res: Response): Promise<boolean> => {
+    if (trustedEmbedOrigins.length === 0) return false;
+    const grant = readEmbedGrant(req);
+    if (grant && (await verifyEmbedGrant(grant, resolveSecret(), embedScope))) return true;
+    if (matchesTrustedOrigin(req, trustedEmbedOrigins)) {
+      await issueEmbedGrant(res, { secret: resolveSecret(), scope: embedScope, secure: req.secure, maxAgeMs: options.embedGrantMaxAgeMs });
+      return true;
+    }
+    return false;
   };
 
   // The API gate reuses the shared middleware, sharing the very same verifier so
   // the secret is loaded once for both guards.
-  const requireApi = createAuth({ verify: (token) => resolveVerifier()(token) }).requireRole(options.role);
+  const apiRoleGate = createAuth({ verify: (token) => resolveVerifier()(token) }).requireRole(options.role);
+  const requireApi: RequestHandler = async (req, res, next) => {
+    if (await embedAllows(req, res)) {
+      next();
+      return;
+    }
+    apiRoleGate(req, res, next);
+  };
 
   const forbiddenHtml =
     '<!doctype html><meta charset="utf-8"><title>Forbidden</title>' +
@@ -85,6 +125,10 @@ export function createRoleGuards(options: RoleGuardsOptions): RoleGuards {
       }
     }
     if (claims?.roles.includes(options.role)) {
+      next();
+      return;
+    }
+    if (await embedAllows(req, res)) {
       next();
       return;
     }

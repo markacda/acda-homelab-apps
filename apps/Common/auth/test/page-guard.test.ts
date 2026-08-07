@@ -129,3 +129,105 @@ test('extra apiPublicPrefixes — /images is left to the API gate (JSON 401, not
   assert.equal(ok.status, 200);
   assert.equal(ok.body, 'IMG');
 });
+
+// --- Trusted-embed bypass (issue #186) ---------------------------------------
+
+const TRUSTED_ORIGIN = 'http://ha.local:8123';
+
+interface ReqOptions {
+  token?: string;
+  referer?: string;
+  cookie?: string;
+}
+
+/** GET with arbitrary headers, capturing the Set-Cookie so a grant can be replayed. */
+function req(url: string, opts: ReqOptions = {}): Promise<Res & { setCookie?: string }> {
+  return new Promise((resolve, reject) => {
+    const headers: Record<string, string> = {};
+    const cookies = [opts.token ? `access_token=${opts.token}` : '', opts.cookie ?? ''].filter(Boolean);
+    if (cookies.length) headers.cookie = cookies.join('; ');
+    if (opts.referer) headers.referer = opts.referer;
+    http
+      .get(url, { headers }, (res) => {
+        let body = '';
+        res.on('data', (c) => (body += c));
+        res.on('end', () =>
+          resolve({
+            status: res.statusCode ?? 0,
+            location: res.headers.location,
+            body,
+            setCookie: res.headers['set-cookie']?.[0],
+          })
+        );
+      })
+      .on('error', reject);
+  });
+}
+
+/** Just the `name=value` pair from a Set-Cookie header, ready to send back as a Cookie. */
+function cookiePair(setCookie: string | undefined): string {
+  return (setCookie ?? '').split(';')[0];
+}
+
+/** A guard set that opts into the embed bypass, as ATC does (role User, appHome /atc/). */
+async function startEmbedServer(): Promise<{ url: string; close: () => Promise<void> }> {
+  const { requireApi, requirePage } = createRoleGuards({
+    role: ROLE_USER,
+    appHome: '/atc/',
+    forbiddenMessage: 'not allowed',
+    trustedEmbedOrigins: [TRUSTED_ORIGIN],
+    secret: SECRET,
+  });
+  const app = express();
+  app.use('/api', requireApi);
+  app.get('/api/thing', (_req, res) => res.json({ ok: true }));
+  app.use(requirePage);
+  app.get('/', (_req, res) => res.send('PAGE'));
+
+  const server = app.listen(0);
+  await new Promise<void>((resolve) => server.once('listening', resolve));
+  const { port } = server.address() as AddressInfo;
+  return { url: `http://127.0.0.1:${port}`, close: () => new Promise<void>((resolve) => server.close(() => resolve())) };
+}
+
+test('embed — a request from the trusted origin is served and handed a grant cookie', async (t) => {
+  const { url, close } = await startEmbedServer();
+  t.after(close);
+  const res = await req(`${url}/`, { referer: `${TRUSTED_ORIGIN}/lovelace/atc` });
+  assert.equal(res.status, 200);
+  assert.equal(res.body, 'PAGE');
+  assert.match(res.setCookie ?? '', /^embed_grant=/);
+});
+
+test('embed — the issued grant cookie then authorizes page + api without a trusted Referer', async (t) => {
+  const { url, close } = await startEmbedServer();
+  t.after(close);
+  const first = await req(`${url}/`, { referer: `${TRUSTED_ORIGIN}/` });
+  const grant = cookiePair(first.setCookie);
+  assert.equal((await req(`${url}/`, { cookie: grant })).status, 200);
+  const api = await req(`${url}/api/thing`, { cookie: grant });
+  assert.equal(api.status, 200);
+  assert.deepEqual(JSON.parse(api.body), { ok: true });
+});
+
+test('embed — an untrusted request is still gated (page 302, api 401)', async (t) => {
+  const { url, close } = await startEmbedServer();
+  t.after(close);
+  assert.equal((await req(`${url}/`, { referer: 'http://evil.local/' })).status, 302);
+  assert.equal((await req(`${url}/api/thing`)).status, 401);
+});
+
+test('embed — a grant minted for another app does not authorize this one', async (t) => {
+  const { url, close } = await startEmbedServer();
+  t.after(close);
+  const otherApp = await new SignJWT({ embed: '/receptenboek/' }).setProtectedHeader({ alg: 'HS256' }).setExpirationTime('5m').sign(SECRET);
+  const res = await req(`${url}/`, { cookie: `embed_grant=${otherApp}` });
+  assert.equal(res.status, 302);
+});
+
+test('embed — the bypass is inert when trustedEmbedOrigins is unset', async (t) => {
+  const { url, close } = await startTestServer();
+  t.after(close);
+  // startTestServer configures no trusted origins, so an HA-looking Referer is ignored.
+  assert.equal((await req(`${url}/`, { referer: `${TRUSTED_ORIGIN}/` })).status, 302);
+});

@@ -37,6 +37,18 @@ function isDependencyEntry(v: Rec): v is Rec & DependencyLogEntry {
   );
 }
 
+// A 3xx isn't a failure — installFetchLogging records success = res.ok, which is
+// false for a redirect (e.g. the dashboard's health probes saw 302s before they
+// were pointed at /healthz). Treat any recorded 3xx as OK here so it doesn't inflate
+// the Dependencies failure rate, retroactively for already-written records too. The
+// stored `status` is kept intact, so the status pill still shows the real code (#186).
+function normalizeDependency(e: DependencyLogEntry): DependencyLogEntry {
+  if (!e.success && typeof e.status === 'number' && e.status >= 300 && e.status < 400) {
+    return { ...e, success: true };
+  }
+  return e;
+}
+
 // A request entry needs ts + numeric status.
 function isRequestEntry(v: Rec): v is Rec & AccessLogEntry {
   return typeof v.ts === 'string' && typeof v.status === 'number';
@@ -61,7 +73,7 @@ export function parseAll(text: string): ParsedLogs {
       if (typeof parsed !== 'object' || parsed === null) continue;
       const v = parsed as Rec;
       if (isExceptionEntry(v)) exceptions.push(v);
-      else if (isDependencyEntry(v)) dependencies.push(v);
+      else if (isDependencyEntry(v)) dependencies.push(normalizeDependency(v));
       else if (isRequestEntry(v)) requests.push(v);
       else if (isAppLogEntry(v)) logs.push(v);
     } catch {

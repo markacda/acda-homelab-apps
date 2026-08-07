@@ -50,6 +50,20 @@ test('parseAll classifies all four record kinds by kind/shape', () => {
   assert.equal(dependencies[0].kind, 'dependency');
 });
 
+test('parseAll normalizes a 3xx dependency to success, keeping the status (issue #186)', () => {
+  const text = [
+    JSON.stringify(dep({ success: false, status: 302 })), // redirect recorded as res.ok === false
+    JSON.stringify(dep({ success: false, status: 500 })), // a real failure stays a failure
+    JSON.stringify(dep({ success: true, status: 200 })),
+  ].join('\n');
+  const { dependencies } = parseAll(text);
+  const redirect = dependencies.find((d) => d.status === 302)!;
+  assert.equal(redirect.success, true); // no longer counted as a failure
+  assert.equal(redirect.status, 302); // real status preserved for the pill
+  assert.equal(dependencies.find((d) => d.status === 500)!.success, false);
+  assert.equal(computeDependencyStats(dependencies).overall.failureCount, 1); // only the 500
+});
+
 const excSample: ExceptionLogEntry[] = [
   exc({ app: 'atc', name: 'TypeError', message: 'boom', source: 'express', ts: '2026-07-06T10:00:00Z' }),
   exc({ app: 'atc', name: 'TypeError', message: 'boom', source: 'express', ts: '2026-07-06T10:01:00Z' }),
